@@ -1,0 +1,182 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "binary"
+}
+
+enum UserRole {
+  CUSTOMER
+  INSTALLER
+  ENGINEER
+  ADMIN
+}
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  role         UserRole   @default(CUSTOMER)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  refreshToken String?
+  projects     Project[]
+  auditLogs    AuditLog[]
+}
+
+model Project {
+  id           String             @id @default(uuid())
+  name         String
+  description  String?
+  location     String?
+  latitude     Float?
+  longitude    Float?
+  userId       String
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  appliances   ProjectAppliance[]
+  designs      ProjectDesign[]
+  simulations  SimulationResult[]
+  quotations   Quotation[]
+}
+
+model Appliance {
+  id           String             @id @default(uuid())
+  name         String
+  defaultPower Float              // In Watts
+  category     String             // e.g., Kitchen, Cooling, Lighting
+  isCustom     Boolean            @default(false)
+  projects     ProjectAppliance[]
+}
+
+model ProjectAppliance {
+  id          String    @id @default(uuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  applianceId String
+  appliance   Appliance @relation(fields: [applianceId], references: [id])
+  quantity    Int       @default(1)
+  hoursOnDay  Float[]   // Array of 24 floats representing load profile per hour (0.0 to 1.0)
+  createdAt   DateTime  @default(now())
+}
+
+model ProjectDesign {
+  id                     String   @id @default(uuid())
+  projectId              String
+  project                Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  
+  // PV Parameters
+  pvModulePower          Float?   // Watts
+  pvModuleQty            Int?
+  pvTotalPower           Float?   // kW
+  
+  // Battery Parameters
+  batteryCapacityAh      Float?
+  batteryVoltage         Float?
+  batteryDepthOfDischarge Float?
+  batteryQty             Int?
+  
+  // Inverter Parameters
+  inverterPowerRating    Float?   // kW
+  inverterEfficiency     Float?   // percentage
+  
+  // MPPT Parameters
+  mpptCurrentRating      Float?   // Amps
+  
+  // Cables & Protection
+  cableSizeMm2           Float?
+  fuseRatingAmps         Float?
+  circuitBreakerAmps     Float?
+}
+
+model SimulationResult {
+  id                String   @id @default(uuid())
+  projectId         String
+  project           Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now())
+  
+  // Generation & Demand Profiles
+  hourlySolarGen    Float[]  // 24 hours of solar generation in kWh
+  hourlyLoadDemand  Float[]  // 24 hours of load demand in kWh
+  hourlyBatterySoC  Float[]  // 24 hours of Battery State-of-Charge percentage
+  
+  // Financial Outcomes
+  totalCost         Float
+  paybackPeriodYrs  Float
+  roiPercentage     Float
+  exportedGridKwh   Float
+  gridRevenueEarned Float
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String   // e.g., "USER_LOGIN", "PROJECT_CREATE", "CALCULATION_RUN"
+  details   String?  // JSON string or summary
+  ipAddress String?
+  createdAt DateTime @default(now())
+}
+
+model Product {
+  id        String            @id @default(uuid())
+  name      String
+  category  String            // e.g. PANEL, BATTERY, INVERTER
+  model     String
+  rating    Float             // e.g., watts, Ah, kW
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  suppliers SupplierProduct[]
+}
+
+model Supplier {
+  id        String            @id @default(uuid())
+  name      String
+  contact   String?
+  rating    Float             @default(5.0)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  products  SupplierProduct[]
+}
+
+model SupplierProduct {
+  id         String   @id @default(uuid())
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  price      Float
+  stock      Int      @default(0)
+  leadTime   Int      @default(1) // in days
+}
+
+model Installer {
+  id        String      @id @default(uuid())
+  name      String
+  contact   String
+  rating    Float       @default(5.0)
+  baseRate  Float       // base rate for standard install in local currency
+  location  String
+  quotes    Quotation[]
+}
+
+model Quotation {
+  id                String     @id @default(uuid())
+  projectId         String
+  project           Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  installerId       String?
+  installer         Installer? @relation(fields: [installerId], references: [id], onDelete: SetNull)
+  totalHardwareCost Float
+  installationCost  Float
+  grandTotal        Float
+  itemsJson         String     // JSON serialized list of products included
+  createdAt         DateTime   @default(now())
+}
