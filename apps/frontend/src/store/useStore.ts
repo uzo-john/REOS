@@ -49,6 +49,10 @@ interface ProjectInputs {
   gridTariffRate: number; // cost per kWh in selected currency
   capexBudget: number;    // total system investment cost
   surplusTransferKwh: number; // kWh to transfer to neighbor per month
+  optimizationGoals: string[]; // energy optimization goal objectives
+  additionalPvCapacityKw: number; // additional PV size in kWp for surplus
+  microgridTariff: number; // peer-to-peer neighbor sharing tariff rate
+  gridAvailabilityHours: number; // daily utility grid power availability
 
   // Customization Overrides
   batteryType: 'LEAD_ACID' | 'LITHIUM';
@@ -126,6 +130,23 @@ interface REOSState {
   setUtilityDetails: (provider: string, accountNo: string) => void;
   addAccumulatedCredits: (amount: number) => void;
   resetGridExport: () => void;
+
+  // IoT & Telemetry State
+  devices: any[];
+  telemetry: any | null;
+  alerts: any[];
+  isGatewayBuffering: boolean;
+  gridExportEnabled: boolean;
+  neighbourTransferEnabled: boolean;
+
+  // IoT Actions
+  fetchIotData: () => Promise<void>;
+  registerDevice: (device: any) => Promise<void>;
+  removeDevice: (id: string) => Promise<void>;
+  toggleGridExport: (enabled: boolean) => Promise<void>;
+  toggleNeighbourTransfer: (enabled: boolean) => Promise<void>;
+  toggleGatewayBuffering: (enabled: boolean) => Promise<void>;
+  acknowledgeAlert: (id: string) => Promise<void>;
 }
 
 const defaultInputs: ProjectInputs = {
@@ -157,6 +178,10 @@ const defaultInputs: ProjectInputs = {
   gridTariffRate: 225,
   capexBudget: 2500000,
   surplusTransferKwh: 0,
+  optimizationGoals: ['MEET_DEMAND'],
+  additionalPvCapacityKw: 0,
+  microgridTariff: 180,
+  gridAvailabilityHours: 24,
   // Customization Overrides
   batteryType: 'LITHIUM',
   selectedBatteryAh: 200,
@@ -213,6 +238,14 @@ export const useStore = create<REOSState>((set, get) => ({
   utilityProvider: '',
   utilityAccountNo: '',
   accumulatedCredits: 0,
+
+  // IoT & Telemetry Initial State
+  devices: [],
+  telemetry: null,
+  alerts: [],
+  isGatewayBuffering: false,
+  gridExportEnabled: true,
+  neighbourTransferEnabled: true,
 
   // AI State
   aiResponse: null,
@@ -292,13 +325,271 @@ export const useStore = create<REOSState>((set, get) => ({
   // Grid Export Actions
   updateGridExportStatus: (status) => set({ gridExportStatus: status }),
   setUtilityDetails: (provider, accountNo) => set({ utilityProvider: provider, utilityAccountNo: accountNo }),
-  addAccumulatedCredits: (amount) => set((state) => ({ accumulatedCredits: state.accumulatedCredits + amount })),
-  resetGridExport: () => set({
-    gridExportStatus: 'INACTIVE',
-    utilityProvider: '',
-    utilityAccountNo: '',
-    accumulatedCredits: 0,
-  }),
+  addAccumulatedCredits: (amount) => set(state => ({ accumulatedCredits: state.accumulatedCredits + amount })),
+  resetGridExport: () => set({ gridExportStatus: 'INACTIVE', accumulatedCredits: 0 }),
+
+  // IoT Actions implementation
+  fetchIotData: async () => {
+    const { token } = get();
+    try {
+      const devices = await api.fetchDevices(token || undefined);
+      const telemetry = await api.fetchLiveTelemetry(token || undefined);
+      const alerts = await api.fetchAlerts(token || undefined);
+      set({
+        devices,
+        telemetry,
+        alerts,
+        gridExportEnabled: telemetry.smartMeter.activePowerKw >= 0,
+        isDbOffline: false,
+      });
+    } catch (error) {
+      // Fallback: client-side simulation when offline
+      const state = get();
+      let devices = state.devices;
+      if (devices.length === 0) {
+        devices = [
+          { id: 'dev-inv-001', name: 'Main Hybrid Inverter (5kW)', type: 'INVERTER', status: 'ONLINE', projectId: 'default', firmwareVersion: 'v2.4.12', lastCommTime: new Date().toISOString(), signalStrength: -68, communicationQuality: 95 },
+          { id: 'dev-met-001', name: 'Bidirectional Smart Net Meter', type: 'SMART_METER', status: 'ONLINE', projectId: 'default', firmwareVersion: 'v1.0.8', lastCommTime: new Date().toISOString(), signalStrength: -72, communicationQuality: 92 },
+          { id: 'dev-bms-001', name: 'Lithium BMS Controller', type: 'BMS', status: 'ONLINE', projectId: 'default', firmwareVersion: 'v4.1.2', lastCommTime: new Date().toISOString(), signalStrength: -55, communicationQuality: 99 },
+          { id: 'dev-wth-001', name: 'Outdoor Weather Station', type: 'WEATHER_STATION', status: 'ONLINE', projectId: 'default', firmwareVersion: 'v0.9.4', lastCommTime: new Date().toISOString(), signalStrength: -88, communicationQuality: 74 },
+          { id: 'dev-ngb-001', name: 'Neighbour Grid Tie Link', type: 'NEIGHBOUR_METER', status: 'ONLINE', projectId: 'default', firmwareVersion: 'v1.2.0', lastCommTime: new Date().toISOString(), signalStrength: -81, communicationQuality: 81 },
+          { id: 'dev-gw-001', name: 'REOS Edge Gateway v1', type: 'EDGE_GATEWAY', status: 'ONLINE', projectId: 'default', firmwareVersion: 'v3.0.0', lastCommTime: new Date().toISOString(), signalStrength: -45, communicationQuality: 100 }
+        ];
+      }
+
+      const solarKw = state.results.solar ? state.results.solar.expectedAnnualGenKwh / 365 / 5.5 : 2.5; 
+      const solarP = Math.max(0, solarKw + (Math.random() * 0.4 - 0.2));
+      const loadP = (state.results.load ? state.results.load.maximumDemandW / 1000 * 0.4 : 1.2) + (Math.random() * 0.2 - 0.1);
+
+      let gridExportKw = 0;
+      let gridImportKw = 0;
+      let neighborExportKw = 0;
+
+      const surplus = solarP - loadP;
+      if (surplus > 0) {
+        if (state.neighbourTransferEnabled) {
+          neighborExportKw = Math.min(surplus, 0.6);
+        }
+        if (state.gridExportEnabled) {
+          gridExportKw = surplus - neighborExportKw;
+        }
+      } else {
+        gridImportKw = Math.abs(surplus);
+      }
+
+      const gridVolt = 228 + (Math.random() * 6 - 3);
+      const currentA = gridExportKw > 0 ? (gridExportKw * 1000) / gridVolt : (gridImportKw * 1000) / gridVolt;
+      const nbrVolt = 226 + (Math.random() * 4 - 2);
+
+      // Local Alert Engine
+      const localAlerts = [...state.alerts];
+      
+      // Undervoltage check (< 230V as specified by user)
+      if (gridVolt < 230 && !localAlerts.some(a => a.code === 'GRID_UNDERVOLTAGE')) {
+        localAlerts.push({
+          id: 'alert-undervoltage',
+          code: 'GRID_UNDERVOLTAGE',
+          title: 'Grid Undervoltage Fault',
+          severity: 'WARNING',
+          timestamp: new Date().toISOString(),
+          recommendedAction: 'Grid voltage falls below 230V threshold. Check automatic voltage regulator settings.',
+          acknowledged: false,
+        });
+      }
+
+      // Sync failure check
+      const synced = gridVolt >= 230 && gridVolt <= 253;
+      if (!synced && !localAlerts.some(a => a.code === 'GRID_SYNC_FAILURE')) {
+        localAlerts.push({
+          id: 'alert-sync-fail',
+          code: 'GRID_SYNC_FAILURE',
+          title: 'Inverter Synchronization Failure',
+          severity: 'CRITICAL',
+          timestamp: new Date().toISOString(),
+          recommendedAction: 'Inverter is out of sync with utility grid parameters. Check utility voltage/frequency ranges.',
+          acknowledged: false,
+        });
+      }
+
+      // Offline check
+      devices.forEach(d => {
+        if (d.status === 'OFFLINE' && !localAlerts.some(a => a.id === `alert-dev-${d.id}`)) {
+          localAlerts.push({
+            id: `alert-dev-${d.id}`,
+            code: 'DEVICE_OFFLINE',
+            title: `Device Offline: ${d.name}`,
+            severity: d.type === 'SMART_METER' || d.type === 'INVERTER' ? 'CRITICAL' : 'WARNING',
+            timestamp: new Date().toISOString(),
+            recommendedAction: `Inspect connection links, verify Zigbee/Wi-Fi signal strength, and restart the ${d.name}.`,
+            acknowledged: false,
+          });
+        }
+      });
+
+      // Reverse power check
+      if (!state.gridExportEnabled && gridExportKw > 0 && !localAlerts.some(a => a.code === 'REVERSE_POWER_FAULT')) {
+        localAlerts.push({
+          id: 'alert-rev-power',
+          code: 'REVERSE_POWER_FAULT',
+          title: 'Reverse Power Flow Detected',
+          severity: 'CRITICAL',
+          timestamp: new Date().toISOString(),
+          recommendedAction: 'Grid export is disabled but power export is detected. Check inverter export prevention settings.',
+          acknowledged: false,
+        });
+      }
+
+      // Filter resolved alerts
+      const activeAlerts = localAlerts.filter(a => {
+        if (a.code === 'GRID_UNDERVOLTAGE' && gridVolt >= 230) return false;
+        if (a.code === 'GRID_SYNC_FAILURE' && synced) return false;
+        const dev = devices.find(d => `alert-dev-${d.id}` === a.id);
+        if (dev && dev.status === 'ONLINE') return false;
+        if (a.code === 'REVERSE_POWER_FAULT' && (!state.gridExportEnabled && gridExportKw <= 0)) return false;
+        return true;
+      });
+
+      const updatedCredits = state.accumulatedCredits + ((gridExportKw * 2) / 3600) * state.inputs.gridTariffRate;
+
+      set({
+        devices,
+        alerts: activeAlerts,
+        accumulatedCredits: state.gridExportStatus === 'ACTIVE' ? updatedCredits : state.accumulatedCredits,
+        telemetry: {
+          timestamp: new Date().toISOString(),
+          inverter: {
+            powerKw: solarP,
+            voltageV: gridVolt + 1,
+            currentA: (solarP * 1000) / (gridVolt + 1),
+            efficiencyPercent: 97.4,
+            frequencyHz: 50.0 + (Math.random() * 0.1 - 0.05),
+            gridSynchronized: synced,
+            antiIslandingActive: false,
+            status: solarP > 0.1 ? 'GENERATING' : 'STANDBY',
+          },
+          smartMeter: {
+            voltageV: gridVolt,
+            currentA: currentA,
+            activePowerKw: gridExportKw > 0 ? gridExportKw : -gridImportKw,
+            reactivePowerKvar: 0.12,
+            apparentPowerKva: Math.abs(gridExportKw > 0 ? gridExportKw : gridImportKw) * 1.02,
+            powerFactor: 0.98,
+            frequencyHz: 50.0,
+            importEnergyKwh: 89.2 + (gridImportKw * 2) / 3600,
+            exportEnergyKwh: 142.8 + (gridExportKw * 2) / 3600,
+            netEnergyKwh: 142.8 - 89.2,
+            dailyExportKwh: 15.4,
+            monthlyExportKwh: 124.6,
+            lifetimeExportKwh: 142.8,
+            voltageImbalancePercent: 0.4,
+            harmonicsThdPercent: 1.8,
+            phaseLoss: false,
+          },
+          battery: {
+            socPercent: Math.max(10, Math.min(100, (state.telemetry?.battery?.socPercent || 82) + (surplus > 0 ? 0.05 : -0.1))),
+            voltageV: 51.2,
+            currentA: surplus > 0 ? 15 : -25,
+            temperatureC: 28.5,
+            healthPercent: 98.0,
+            chargingState: surplus > 0 ? 'CHARGING' : 'DISCHARGING',
+          },
+          neighbourTrading: {
+            voltageV: nbrVolt,
+            currentA: (neighborExportKw * 1000) / nbrVolt,
+            instantaneousPowerKw: neighborExportKw,
+            energyDeliveredKwh: 45.6 + (neighborExportKw * 2) / 3600,
+            energyReceivedKwh: 12.3,
+            currentPricePerKwh: state.inputs.gridTariffRate,
+            earnedCredits: state.accumulatedCredits || 7492.5,
+            purchasedCredits: 12.3 * state.inputs.gridTariffRate,
+            settlementBalance: (state.accumulatedCredits || 7492.5) - (12.3 * state.inputs.gridTariffRate),
+            connectedNeighboursCount: 3,
+            activeTransactionsCount: neighborExportKw > 0 ? 1 : 0,
+            availableExportCapacityKw: Math.max(0, 1.5 - neighborExportKw),
+          },
+          weather: {
+            solarIrradianceWm2: solarP > 0.5 ? 780 : 0,
+            ambientTempC: 31.0,
+            windSpeedMs: 3.4,
+          }
+        }
+      });
+    }
+  },
+
+  registerDevice: async (deviceData) => {
+    const { token } = get();
+    try {
+      await api.registerDevice(deviceData, token || undefined);
+      await get().fetchIotData();
+    } catch (e) {
+      const dev: any = {
+        ...deviceData,
+        id: deviceData.id || `dev-${Date.now()}`,
+        status: 'ONLINE',
+        lastCommTime: new Date().toISOString(),
+        signalStrength: -65,
+        communicationQuality: 98,
+      };
+      set(state => ({
+        devices: [...state.devices, dev]
+      }));
+    }
+  },
+
+  removeDevice: async (id) => {
+    const { token } = get();
+    try {
+      await api.removeDevice(id, token || undefined);
+      await get().fetchIotData();
+    } catch (e) {
+      set(state => ({
+        devices: state.devices.filter(d => d.id !== id)
+      }));
+    }
+  },
+
+  toggleGridExport: async (enabled) => {
+    const { token } = get();
+    try {
+      await api.setGridExport(enabled, token || undefined);
+      set({ gridExportEnabled: enabled });
+    } catch (e) {
+      set({ gridExportEnabled: enabled });
+    }
+  },
+
+  toggleNeighbourTransfer: async (enabled) => {
+    const { token } = get();
+    try {
+      await api.setNeighbourTransfer(enabled, token || undefined);
+      set({ neighbourTransferEnabled: enabled });
+    } catch (e) {
+      set({ neighbourTransferEnabled: enabled });
+    }
+  },
+
+  toggleGatewayBuffering: async (enabled) => {
+    const { token } = get();
+    try {
+      await api.setEdgeGatewayBuffering(enabled, token || undefined);
+      set({ isGatewayBuffering: enabled });
+    } catch (e) {
+      set({ isGatewayBuffering: enabled });
+    }
+  },
+
+  acknowledgeAlert: async (id) => {
+    const { token } = get();
+    try {
+      await api.acknowledgeAlert(id, token || undefined);
+      await get().fetchIotData();
+    } catch (e) {
+      set(state => ({
+        alerts: state.alerts.map(a => a.id === id ? { ...a, acknowledged: true } : a)
+      }));
+    }
+  },
 
   // Auth Actions
   login: async (credentials) => {

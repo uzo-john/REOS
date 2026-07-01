@@ -112,5 +112,76 @@ export const api = {
       body: JSON.stringify(data),
     });
     return response.json();
+  },
+
+  // IoT & Telemetry endpoints
+  async fetchDevices(token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return fetch(`${API_BASE_URL}/iot/devices`, { method: 'GET', headers }).then(res => res.json());
+  },
+
+  async registerDevice(device: any, token?: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return fetch(`${API_BASE_URL}/iot/devices`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(device),
+    }).then(res => res.json());
+  },
+
+  async removeDevice(id: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return fetch(`${API_BASE_URL}/iot/devices/${id}`, { method: 'DELETE', headers }).then(res => res.json());
+  },
+
+  async fetchLiveTelemetry(token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return fetch(`${API_BASE_URL}/iot/telemetry/live`, { method: 'GET', headers }).then(res => res.json());
+  },
+
+  async setGridExport(enabled: boolean, token?: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return fetch(`${API_BASE_URL}/iot/grid-export`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ enabled }),
+    }).then(res => res.json());
+  },
+
+  async setNeighbourTransfer(enabled: boolean, token?: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return fetch(`${API_BASE_URL}/iot/neighbour-transfer`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ enabled }),
+    }).then(res => res.json());
+  },
+
+  async setEdgeGatewayBuffering(enabled: boolean, token?: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return fetch(`${API_BASE_URL}/iot/edge-gateway/buffering`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ enabled }),
+    }).then(res => res.json());
+  },
+
+  async fetchAlerts(token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return fetch(`${API_BASE_URL}/iot/alerts`, { method: 'GET', headers }).then(res => res.json());
+  },
+
+  async acknowledgeAlert(id: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return fetch(`${API_BASE_URL}/iot/alerts/${id}/acknowledge`, { method: 'POST', headers }).then(res => res.json());
   }
 };

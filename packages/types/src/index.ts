@@ -1,4 +1,18 @@
-export type UserRole = 'CUSTOMER' | 'INSTALLER' | 'ENGINEER' | 'ADMIN';
+export type UserRole = 'CUSTOMER' | 'INSTALLER' | 'ENGINEER' | 'ADMIN' | 'PLANT_OPERATOR';
+
+export interface PlantConfig {
+  plantName: string;
+  plantCapacityKwp: number;
+  numberOfInverters: number;
+  gridConnectionType: 'GRID_TIED' | 'HYBRID' | 'ISLAND';
+  numberOfNeighborSubscribers: number;
+  batteryReservePercent: number;  // minimum battery % before exporting to grid
+  neighborMaxShareKw: number;     // max kW per neighbor subscriber
+  gridExportCapPercent: number;   // % of output to cap grid export at
+  gridExportAllowed: boolean;     // allow export to public grid
+  tariffPerKwh: number;
+  currency: string;
+}
 
 export interface User {
   id: string;

@@ -13,7 +13,11 @@ interface AiChatModalProps {
 }
 
 export const AiChatModal: React.FC<AiChatModalProps> = ({ visible, onClose }) => {
-  const { theme, inputs, results, token } = useStore();
+  const { 
+    theme, inputs, results, token, 
+    devices, telemetry, alerts, 
+    gridExportEnabled, neighbourTransferEnabled 
+  } = useStore();
   const activeColors = Colors[theme];
 
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -190,7 +194,25 @@ Here is the current project design context:
 - Inverter Size: ${results.inverter?.recommendedInverterKw ?? 0} kW (${inputs.inverterOutputVoltage} output)
 - Cable Voltage Drop: ${results.cable?.voltageDropPercent?.toFixed(2) ?? 0}%
 
-Use this data to answer the user's questions. Be professional, technical, and extremely helpful. If the user's manual selections fail compliance, point it out. Keep answers concise.
+Here is the LIVE system telemetry and device status:
+- Grid Export Enabled: ${gridExportEnabled ? 'YES' : 'NO'}
+- Neighbor Energy Transfer Enabled: ${neighbourTransferEnabled ? 'YES' : 'NO'}
+- Devices Status: ${JSON.stringify(devices.map(d => ({ name: d.name, type: d.type, status: d.status, fw: d.firmwareVersion })))}
+- Telemetry: ${telemetry ? JSON.stringify({
+    inverterPowerKw: telemetry.inverter.powerKw,
+    inverterGridSynced: telemetry.inverter.gridSynchronized,
+    meterActivePowerKw: telemetry.smartMeter.activePowerKw,
+    meterVoltageV: telemetry.smartMeter.voltageV,
+    meterFrequencyHz: telemetry.smartMeter.frequencyHz,
+    batterySoc: telemetry.battery.socPercent,
+    batteryChargingState: telemetry.battery.chargingState,
+    neighborPowerKw: telemetry.neighbourTrading.instantaneousPowerKw,
+    neighborDeliveredKwh: telemetry.neighbourTrading.energyDeliveredKwh,
+    neighborActiveLinks: telemetry.neighbourTrading.connectedNeighboursCount
+  }) : 'No live telemetry available'}
+- Active Fault Alerts: ${JSON.stringify(alerts.filter(a => !a.acknowledged).map(a => ({ code: a.code, title: a.title, severity: a.severity, action: a.recommendedAction })))}
+
+Use this data to answer the user's questions. For example, if they ask 'Why has export stopped?' or 'Which device is offline?' look at the active alerts and device status to give technical, context-aware answers. Be professional, technical, and extremely helpful. Keep answers concise.
     `.trim();
 
     const payload: ChatMessage[] = [
@@ -206,15 +228,54 @@ Use this data to answer the user's questions. Be professional, technical, and ex
       
       // Local fallback logic
       let fallbackText = '';
-      if (textToSend.toLowerCase().includes('explain')) {
+      const textLower = textToSend.toLowerCase();
+      
+      if (textLower.includes('export stopped') || textLower.includes('revenue lower') || textLower.includes('stopped')) {
+        const activeGridAlerts = alerts.filter(a => !a.acknowledged && (a.code.includes('GRID') || a.code.includes('REVERSE')));
+        if (activeGridAlerts.length > 0) {
+          fallbackText = `According to live telemetry, export has stopped or is degraded due to the following grid faults:\n` +
+            activeGridAlerts.map(a => `- **${a.title}**: ${a.recommendedAction}`).join('\n');
+        } else if (!gridExportEnabled) {
+          fallbackText = `Grid export is currently switched off in the Edge Gateway settings. You can re-enable it in the IoT & Edge Gateway Control Center to start selling power again.`;
+        } else {
+          fallbackText = `Grid export is active, but check solar production. If solar irradiance is low (current: ${telemetry?.weather?.solarIrradianceWm2 ?? 0} W/m²), you won't have surplus power to export.`;
+        }
+      } else if (textLower.includes('neighbor') || textLower.includes('neighbour') || textLower.includes('not receiving power')) {
+        const neighborAlerts = alerts.filter(a => !a.acknowledged && a.code.includes('NEIGHBOUR'));
+        if (neighborAlerts.length > 0) {
+          fallbackText = `Neighbor energy sharing is active, but encountering issues:\n` +
+            neighborAlerts.map(a => `- **${a.title}**: ${a.recommendedAction}`).join('\n');
+        } else if (!neighbourTransferEnabled) {
+          fallbackText = `Neighbor Transfer is currently disabled. Toggle P2P Neighbor Transfer on in the Edge Gateway Control Center to share surplus energy.`;
+        } else if (telemetry?.neighbourTrading?.instantaneousPowerKw === 0) {
+          fallbackText = `Neighbor Transfer is enabled, but current P2P transfer rate is 0 kW. This means your battery is charging or solar generation is just enough to cover your local load (${telemetry?.inverter?.powerKw?.toFixed(2)} kW PV vs ${((telemetry?.inverter?.powerKw ?? 0) - (telemetry?.smartMeter?.activePowerKw ?? 0)).toFixed(2)} kW load).`;
+        } else {
+          fallbackText = `Neighbor P2P link is healthy! Current transfer rate: ${telemetry?.neighbourTrading?.instantaneousPowerKw?.toFixed(2)} kW at ${telemetry?.neighbourTrading?.voltageV?.toFixed(1)} V. Total energy delivered: ${telemetry?.neighbourTrading?.energyDeliveredKwh?.toFixed(2)} kWh.`;
+        }
+      } else if (textLower.includes('offline') || textLower.includes('device offline')) {
+        const offlineDevices = devices.filter(d => d.status === 'OFFLINE');
+        if (offlineDevices.length > 0) {
+          fallbackText = `The following field devices are currently offline:\n` +
+            offlineDevices.map(d => `- **${d.name}** (${d.type}): Offline. Recommended Action: check connection, signal is ${d.signalStrength} dBm.`).join('\n');
+        } else {
+          fallbackText = `All registered field devices (Inverter, Smart Net Meter, BMS, Weather Station, Edge Gateway) are currently online and checking in successfully!`;
+        }
+      } else if (textLower.includes('synchronized') || textLower.includes('sync')) {
+        const isSynced = telemetry?.inverter?.gridSynchronized;
+        if (isSynced) {
+          fallbackText = `Yes, the hybrid inverter is successfully synchronized with the utility grid at ${telemetry?.smartMeter?.frequencyHz?.toFixed(1)} Hz and phase voltage ${telemetry?.smartMeter?.voltageV?.toFixed(1)} V.`;
+        } else {
+          fallbackText = `⚠️ No, the inverter is not synchronized. Current grid voltage is ${telemetry?.smartMeter?.voltageV?.toFixed(1)} V. The sync threshold requires a steady grid voltage between 230V and 253V. Recommended action: Check for local grid undervoltage.`;
+        }
+      } else if (textLower.includes('explain')) {
         fallbackText = `Here is your system breakdown:\n- **Solar PV**: Sized at ${results.solar?.requiredPvSizeKw ?? 0} kWp (${results.solar?.numberOfPanels ?? 0} modules) to generate enough power for your ${results.load?.dailyEnergyKwh ?? 0} kWh daily consumption.\n- **Storage**: ${results.battery?.requiredCapacityKwh ?? 0} kWh battery bank providing ${inputs.autonomyDays} day(s) of backup.\n- **Inverter**: ${results.inverter?.recommendedInverterKw ?? 0} kW, adequate for your peak demand.`;
-      } else if (textToSend.toLowerCase().includes('optimize')) {
+      } else if (textLower.includes('optimize')) {
         fallbackText = `1. **Peak Load Shift**: Shift heavy appliances like the Microwave to peak sun hours (10 AM - 2 PM) to run directly off solar and preserve battery life.\n2. **Cable Thickness**: Upgrade your cable size if your voltage drop exceeds 3.0%.\n3. **DoD Limit**: Ensure your battery Depth of Discharge (DoD) is capped at 80% to maximize cycle life.`;
-      } else if (textToSend.toLowerCase().includes('compliance')) {
+      } else if (textLower.includes('compliance')) {
         const drop = results.cable?.voltageDropPercent ?? 0;
         fallbackText = `Compliance Check:\n- **Voltage Drop**: ${drop <= 3 ? '✅ PASS' : '❌ FAIL'} (${drop.toFixed(2)}% drop vs 3% limit).\n- **Inverter Margin**: ${results.inverter && results.inverter.safetyMarginUsed >= 1.25 ? '✅ PASS' : '⚠️ WARN'} (×${results.inverter?.safetyMarginUsed ?? 0} safety margin).\n- **Battery DoD**: ${inputs.dod <= 0.8 ? '✅ PASS' : '⚠️ WARN'} (${inputs.dod * 100}% DoD).`;
       } else {
-        fallbackText = `I received your message. I am currently running in offline guest mode. You can ask me to: \n1. "Explain my design"\n2. "Get optimization tips"\n3. "Check compliance"\nAnd I will analyze your local metrics!`;
+        fallbackText = `I received your message. I am currently running in offline guest mode. You can ask me to: \n1. "Explain my design"\n2. "Get optimization tips"\n3. "Check compliance"\n4. "Why is neighbor not receiving power?"\n5. "Why has export stopped?"\n6. "Which device is offline?"\nAnd I will analyze your live system parameters!`;
       }
 
       setMessages(prev => [...prev, { role: 'assistant', content: fallbackText }]);

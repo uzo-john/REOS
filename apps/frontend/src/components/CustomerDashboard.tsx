@@ -7,6 +7,9 @@ import { Colors, Spacing, BorderRadius } from '@reos/ui';
 import { useStore } from '../store/useStore';
 import { GridExportWizard } from './GridExportWizard';
 import { DownloadReportButton } from './DownloadReportButton';
+import { IotControlCenter } from './IotControlCenter';
+import { EnergyTradingHub } from './EnergyTradingHub';
+import { EnergyGoalOptimizer } from './EnergyGoalOptimizer';
 
 // ─── Currency config ─────────────────────────────────────────────────────────
 const CURRENCIES = [
@@ -37,10 +40,11 @@ const fmt = (n: number, sym: string) => {
 export const CustomerDashboard: React.FC = () => {
   const { 
     theme, inputs, results, updateInputs, runAllCalculations,
-    gridExportStatus, accumulatedCredits 
+    gridExportStatus, accumulatedCredits, telemetry 
   } = useStore();
   const C = Colors[theme];
 
+  const [dashTab, setDashTab] = useState<'MY_SYSTEM' | 'TRADING'>('MY_SYSTEM');
   const [showTransfer, setShowTransfer] = useState(false);
   const [transferKwh, setTransferKwh] = useState('');
   const [tariffInput, setTariffInput] = useState(String(inputs.gridTariffRate));
@@ -205,8 +209,52 @@ export const CustomerDashboard: React.FC = () => {
 
   const hasResults = !!results.load;
 
+  const tabBarStyle = StyleSheet.create({
+    bar: {
+      flexDirection: 'row',
+      backgroundColor: C.surface,
+      borderRadius: BorderRadius.md,
+      padding: 4,
+      marginBottom: Spacing.md,
+      borderWidth: 1,
+      borderColor: C.border,
+    },
+    tab: {
+      flex: 1, paddingVertical: Spacing.sm,
+      alignItems: 'center', borderRadius: BorderRadius.sm,
+    },
+    tabActive: { backgroundColor: C.primary },
+    tabText: { color: C.textSecondary, fontSize: 12, fontWeight: '700', marginTop: 2 },
+    tabTextActive: { color: '#fff' },
+  });
+
   return (
     <ScrollView style={s.page} showsVerticalScrollIndicator={false}>
+
+      {/* ── Main Dashboard Tab Bar ──────────────────────────────────────── */}
+      <View style={tabBarStyle.bar}>
+        {([
+          { key: 'MY_SYSTEM', emoji: '🏠', label: 'My System' },
+          { key: 'TRADING',   emoji: '⚡', label: 'Energy Trading Hub' },
+        ] as const).map(t => (
+          <TouchableOpacity
+            key={t.key}
+            style={[tabBarStyle.tab, dashTab === t.key && tabBarStyle.tabActive]}
+            onPress={() => setDashTab(t.key)}
+          >
+            <Text style={{ fontSize: 20 }}>{t.emoji}</Text>
+            <Text style={[tabBarStyle.tabText, dashTab === t.key && tabBarStyle.tabTextActive]}>
+              {t.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* ── Energy Trading Hub Tab ──────────────────────────────────────── */}
+      {dashTab === 'TRADING' && <EnergyTradingHub />}
+
+      {/* ── My System Tab ──────────────────────────────────────────────── */}
+      {dashTab === 'MY_SYSTEM' && <>
 
       {/* ── Currency Selector ────────────────────────────────────────────── */}
       <View style={s.section}>
@@ -326,6 +374,17 @@ export const CustomerDashboard: React.FC = () => {
                   <Text style={{ color: C.textSecondary, fontSize: 11, marginTop: Spacing.xs }}>
                     Status: Export Active ●
                   </Text>
+                  {telemetry && (
+                    <View style={{ marginVertical: 4, padding: 6, backgroundColor: C.surface, borderRadius: BorderRadius.xs, borderWidth: 1, borderColor: C.border }}>
+                      <Text style={{ color: C.textPrimary, fontSize: 10, fontWeight: '700' }}>⚡ Grid Telemetry:</Text>
+                      <Text style={{ color: C.textSecondary, fontSize: 9, marginTop: 2 }}>Export Power: {telemetry.smartMeter.activePowerKw.toFixed(2)} kW</Text>
+                      <Text style={{ color: C.textSecondary, fontSize: 9 }}>Line Voltage: {telemetry.smartMeter.voltageV.toFixed(1)} V</Text>
+                      <Text style={{ color: C.textSecondary, fontSize: 9 }}>Frequency: {telemetry.smartMeter.frequencyHz.toFixed(1)} Hz</Text>
+                      <Text style={{ color: telemetry.inverter.gridSynchronized ? C.success : C.error, fontSize: 9, fontWeight: '700', marginTop: 2 }}>
+                        {telemetry.inverter.gridSynchronized ? 'Grid Synced ✓' : 'Grid Out-of-Sync ⚠️'}
+                      </Text>
+                    </View>
+                  )}
                   <TouchableOpacity 
                     style={[s.actionBtn, { backgroundColor: C.success }]}
                     onPress={() => setIsWizardVisible(true)}
@@ -358,6 +417,17 @@ export const CustomerDashboard: React.FC = () => {
               <Text style={{ color: C.textSecondary, fontSize: 11, marginTop: Spacing.xs }}>
                 {transferKwhNum.toFixed(1)} kWh × {currency.symbol}{tariff}/kWh
               </Text>
+              {telemetry && (
+                <View style={{ marginVertical: 4, padding: 6, backgroundColor: C.surface, borderRadius: BorderRadius.xs, borderWidth: 1, borderColor: C.border }}>
+                  <Text style={{ color: C.textPrimary, fontSize: 10, fontWeight: '700' }}>🤝 Neighbor Feed:</Text>
+                  <Text style={{ color: C.textSecondary, fontSize: 9, marginTop: 2 }}>Transfer Rate: {telemetry.neighbourTrading.instantaneousPowerKw.toFixed(2)} kW</Text>
+                  <Text style={{ color: C.textSecondary, fontSize: 9 }}>Line Voltage: {telemetry.neighbourTrading.voltageV.toFixed(1)} V</Text>
+                  <Text style={{ color: C.textSecondary, fontSize: 9 }}>Delivered: {telemetry.neighbourTrading.energyDeliveredKwh.toFixed(2)} kWh</Text>
+                  <Text style={{ color: C.info, fontSize: 9, fontWeight: '700', marginTop: 2 }}>
+                    Connected: {telemetry.neighbourTrading.connectedNeighboursCount} active links
+                  </Text>
+                </View>
+              )}
               <TouchableOpacity
                 style={[s.actionBtn, { backgroundColor: C.info }]}
                 onPress={() => setShowTransfer(!showTransfer)}
@@ -426,6 +496,10 @@ export const CustomerDashboard: React.FC = () => {
         </View>
       )}
 
+      {hasResults && (
+        <EnergyGoalOptimizer />
+      )}
+
       {/* ── My System Summary ─────────────────────────────────────────────── */}
       {hasResults && results.solar && results.battery && results.inverter && (
         <View style={s.section}>
@@ -442,6 +516,10 @@ export const CustomerDashboard: React.FC = () => {
             </View>
           ))}
         </View>
+      )}
+
+      {hasResults && (
+        <IotControlCenter />
       )}
 
       {!hasResults && (
@@ -462,6 +540,8 @@ export const CustomerDashboard: React.FC = () => {
           <DownloadReportButton />
         </View>
       )}
+      </> /* end MY_SYSTEM tab */}
+
     </ScrollView>
   );
 };

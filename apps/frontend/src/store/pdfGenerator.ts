@@ -54,6 +54,10 @@ export interface PdfDesignData {
     currency: string;
     gridTariffRate: number;
     capexBudget: number;
+    optimizationGoals?: string[];
+    additionalPvCapacityKw?: number;
+    microgridTariff?: number;
+    gridAvailabilityHours?: number;
   };
   results: {
     load: { connectedLoadW: number; maximumDemandW: number; dailyEnergyKwh: number; monthlyEnergyKwh: number; annualEnergyKwh: number } | null;
@@ -344,6 +348,55 @@ export async function generateDesignPdf(data: PdfDesignData): Promise<void> {
   y = dataRow(doc, 'Simple Payback Period',          paybackYrs > 0 ? `${paybackYrs.toFixed(1)} years` : 'N/A', y, true, pageW);
   y = dataRow(doc, '25-Year Net Savings (NPV est.)', savings25 > 0 ? fmtMoney(savings25) : 'N/A', y, false, pageW);
   y += 6;
+
+  // ── SECTION 7: ENERGY GOAL OPTIMIZATION & SURPLUS SIZING ───────────────────
+  if (data.inputs.optimizationGoals && data.inputs.optimizationGoals.length > 0 && !data.inputs.optimizationGoals.includes('MEET_DEMAND')) {
+    if (y > 200) { doc.addPage(); y = 20; }
+    y = sectionHeader(doc, '7.  ENERGY GOAL OPTIMIZATION & SURPLUS SIZING', y, pageW);
+    
+    y = dataRow(doc, 'Selected Objectives', data.inputs.optimizationGoals.map(g => g.replace('_', ' ')).join(', '), y, false, pageW);
+    
+    if (data.inputs.additionalPvCapacityKw && data.inputs.additionalPvCapacityKw > 0) {
+      const addedPv = data.inputs.additionalPvCapacityKw;
+      const basePv = data.results.solar ? data.results.solar.requiredPvSizeKw : 0;
+      const totalPv = basePv + addedPv;
+      const costPerKwp = basePv > 0 ? capex / basePv : 500000;
+      const addedCapex = addedPv * costPerKwp;
+      const optimizedCapex = capex + addedCapex;
+
+      const dailyGenKwh = totalPv * data.inputs.peakSunHours * (1 - data.inputs.losses) * data.inputs.tempDerating;
+      const batteryChargingKwh = data.results.battery ? (data.results.battery.requiredCapacityKwh * data.inputs.dod / 0.95) : 0;
+      const dailySurplusKwh = Math.max(0, dailyGenKwh - dailyUse - batteryChargingKwh);
+      const realDailyExportKwh = dailySurplusKwh * 0.95 * (Math.min(24, data.inputs.gridAvailabilityHours || 24) / 24);
+      const annualExportIncome = realDailyExportKwh * tariff * 365;
+
+      y = dataRow(doc, 'Additional PV Sized', `${addedPv.toFixed(2)} kWp`, y, true, pageW);
+      y = dataRow(doc, 'Total Optimized PV Sizing', `${totalPv.toFixed(2)} kWp`, y, false, pageW);
+      y = dataRow(doc, 'Base Capex vs. Optimized Capex', `${fmtMoney(capex)} vs. ${fmtMoney(optimizedCapex)}`, y, true, pageW);
+      y = dataRow(doc, 'Expected Daily Generation', `${dailyGenKwh.toFixed(1)} kWh`, y, false, pageW);
+      y = dataRow(doc, 'Net Daily Tradeable Surplus', `${dailySurplusKwh.toFixed(1)} kWh`, y, true, pageW);
+      
+      if (data.inputs.optimizationGoals.includes('SELL_GRID')) {
+        y = dataRow(doc, 'Expected Daily Grid Export', `${realDailyExportKwh.toFixed(1)} kWh`, y, false, pageW);
+        y = dataRow(doc, 'Projected Annual Export Revenue', `+ ${fmtMoney(annualExportIncome)}/yr`, y, true, pageW, GREEN);
+      }
+      if (data.inputs.optimizationGoals.includes('SELL_NEIGHBORS')) {
+        const neighborKwh = realDailyExportKwh * 0.6;
+        const neighborTariff = data.inputs.microgridTariff || 180;
+        const neighborAnnualRevenue = neighborKwh * neighborTariff * 365;
+        y = dataRow(doc, 'Neighbor P2P Trading Rate', `${sym}${neighborTariff}/kWh`, y, false, pageW);
+        y = dataRow(doc, 'Neighbor Microgrid Annual Revenue', `+ ${fmtMoney(neighborAnnualRevenue)}/yr`, y, true, pageW, GREEN);
+      }
+    } else {
+      y = dataRow(doc, 'Surplus Sizing Options', 'Meet base load only. No additional PV sizing configured.', y, true, pageW);
+    }
+    y += 4;
+    y = infoBox(doc, '🤖 Sizing Optimization Recommendation Note', [
+      'Selling surplus solar power can reduce payback periods and generate microgrid credits.',
+      'Always ensure grid sync capabilities comply with IEEE 1547 disconnect thresholds.',
+    ], TEAL, y, pageW);
+    y += 4;
+  }
 
   // ── FOOTER on every page ───────────────────────────────────────────────────
   const totalPages = doc.getNumberOfPages();

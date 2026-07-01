@@ -10,6 +10,7 @@ import { AiModule } from './ai/ai.module';
 import { FinancialModule } from './financial/financial.module';
 import { GridModule } from './grid/grid.module';
 import { ProcurementModule } from './procurement/procurement.module';
+import { IotModule } from './iot/iot.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -26,6 +27,7 @@ import { AppService } from './app.service';
     FinancialModule,
     GridModule,
     ProcurementModule,
+    IotModule,
   ],
   controllers: [AppController],
   providers: [AppService],
