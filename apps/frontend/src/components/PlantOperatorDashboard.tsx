@@ -31,16 +31,16 @@ const fmt = (n: number, sym: string) => {
 };
 
 const DEFAULT_CONFIG: PlantConfig = {
-  plantName: 'My Solar Plant',
-  plantCapacityKwp: 50,
-  numberOfInverters: 4,
+  plantName: '',
+  plantCapacityKwp: 0,
+  numberOfInverters: 0,
   gridConnectionType: 'HYBRID',
-  numberOfNeighborSubscribers: 8,
-  batteryReservePercent: 20,
-  neighborMaxShareKw: 2,
-  gridExportCapPercent: 60,
+  numberOfNeighborSubscribers: 0,
+  batteryReservePercent: 0,
+  neighborMaxShareKw: 0,
+  gridExportCapPercent: 0,
   gridExportAllowed: true,
-  tariffPerKwh: 225,
+  tariffPerKwh: 0,
   currency: 'NGN',
 };
 
@@ -228,7 +228,7 @@ export const PlantOperatorDashboard: React.FC = () => {
           <Text style={s.label}>Plant Capacity (kWp)</Text>
           <TextInput
             style={s.input}
-            value={String(config.plantCapacityKwp)}
+            value={config.plantCapacityKwp === 0 ? '' : String(config.plantCapacityKwp)}
             onChangeText={v => setConfig((p: PlantConfig) => ({ ...p, plantCapacityKwp: parseFloat(v) || 0 }))}
             keyboardType="decimal-pad"
             placeholder="e.g. 50"
@@ -238,8 +238,8 @@ export const PlantOperatorDashboard: React.FC = () => {
           <Text style={s.label}>Number of Inverters</Text>
           <TextInput
             style={s.input}
-            value={String(config.numberOfInverters)}
-            onChangeText={v => setConfig((p: PlantConfig) => ({ ...p, numberOfInverters: parseInt(v) || 1 }))}
+            value={config.numberOfInverters === 0 ? '' : String(config.numberOfInverters)}
+            onChangeText={v => setConfig((p: PlantConfig) => ({ ...p, numberOfInverters: parseInt(v) || 0 }))}
             keyboardType="number-pad"
             placeholder="e.g. 4"
             placeholderTextColor={C.placeholder}
@@ -268,7 +268,7 @@ export const PlantOperatorDashboard: React.FC = () => {
           <Text style={s.label}>Number of Neighbor Subscribers</Text>
           <TextInput
             style={s.input}
-            value={String(config.numberOfNeighborSubscribers)}
+            value={config.numberOfNeighborSubscribers === 0 ? '' : String(config.numberOfNeighborSubscribers)}
             onChangeText={v => setConfig((p: PlantConfig) => ({ ...p, numberOfNeighborSubscribers: parseInt(v) || 0 }))}
             keyboardType="number-pad"
             placeholder="e.g. 8"
@@ -278,7 +278,7 @@ export const PlantOperatorDashboard: React.FC = () => {
           <Text style={s.label}>Max Power per Subscriber (kW)</Text>
           <TextInput
             style={s.input}
-            value={String(config.neighborMaxShareKw)}
+            value={config.neighborMaxShareKw === 0 ? '' : String(config.neighborMaxShareKw)}
             onChangeText={v => setConfig((p: PlantConfig) => ({ ...p, neighborMaxShareKw: parseFloat(v) || 0 }))}
             keyboardType="decimal-pad"
             placeholder="e.g. 2.0"
@@ -288,8 +288,8 @@ export const PlantOperatorDashboard: React.FC = () => {
           <Text style={s.label}>Min Battery Reserve Before Exporting (%)</Text>
           <TextInput
             style={s.input}
-            value={String(config.batteryReservePercent)}
-            onChangeText={v => setConfig((p: PlantConfig) => ({ ...p, batteryReservePercent: parseFloat(v) || 20 }))}
+            value={config.batteryReservePercent === 0 ? '' : String(config.batteryReservePercent)}
+            onChangeText={v => setConfig((p: PlantConfig) => ({ ...p, batteryReservePercent: parseFloat(v) || 0 }))}
             keyboardType="decimal-pad"
             placeholder="e.g. 20"
             placeholderTextColor={C.placeholder}
@@ -298,8 +298,8 @@ export const PlantOperatorDashboard: React.FC = () => {
           <Text style={s.label}>Grid Export Cap (% of total output)</Text>
           <TextInput
             style={s.input}
-            value={String(config.gridExportCapPercent)}
-            onChangeText={v => setConfig((p: PlantConfig) => ({ ...p, gridExportCapPercent: parseFloat(v) || 60 }))}
+            value={config.gridExportCapPercent === 0 ? '' : String(config.gridExportCapPercent)}
+            onChangeText={v => setConfig((p: PlantConfig) => ({ ...p, gridExportCapPercent: parseFloat(v) || 0 }))}
             keyboardType="decimal-pad"
             placeholder="e.g. 60"
             placeholderTextColor={C.placeholder}
@@ -341,7 +341,7 @@ export const PlantOperatorDashboard: React.FC = () => {
           <Text style={s.label}>Tariff Rate ({currency.symbol}/kWh)</Text>
           <TextInput
             style={s.input}
-            value={String(config.tariffPerKwh)}
+            value={config.tariffPerKwh === 0 ? '' : String(config.tariffPerKwh)}
             onChangeText={v => setConfig((p: PlantConfig) => ({ ...p, tariffPerKwh: parseFloat(v) || 0 }))}
             keyboardType="decimal-pad"
             placeholder="e.g. 225"
