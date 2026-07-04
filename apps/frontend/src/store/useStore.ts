@@ -910,7 +910,7 @@ Provide 3 short, high-impact engineering recommendations for this design. Keep t
       set({ activeContract: data });
     } catch (e) {
       if (!get().activeContract) {
-        set({ activeContract: { id: 'mock-contract-id', supplierId: 'mock-supplier-id', consumerId: 'mock-consumer-id', connectionStatus: 'ACTIVE', tariffRate: 180, billingCycle: 'PREPAID', balance: 5000.0, gatewayId: 'dev-gw-001' } });
+        set({ activeContract: { id: 'mock-contract-id', supplierId: 'mock-supplier-id', consumerId: 'mock-consumer-id', connectionStatus: 'ACTIVE', tariffRate: 180, billingCycle: 'PREPAID', balance: 5000.0, gatewayId: 'dev-gw-001', supplier: { firstName: 'Sunshine', lastName: 'Community', email: 'supplier@reos.io' }, consumer: { firstName: 'Demo', lastName: 'Consumer', email: 'consumer@reos.io' } } });
       }
     }
   },

@@ -65,6 +65,10 @@ export default function App() {
   const [isSaveModalVisible, setIsSaveModalVisible] = useState(false);
   const [isAiChatVisible, setIsAiChatVisible] = useState(false);
 
+  // User type selection (shown after login)
+  const [userType, setUserType] = useState<'CUSTOMER' | 'PLATFORM_USER' | null>(null);
+  const [isUserTypeModalVisible, setIsUserTypeModalVisible] = useState(false);
+
   // Form Inputs
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [email, setEmail] = useState('');
@@ -106,9 +110,27 @@ export default function App() {
       setPassword('');
       setFirstName('');
       setLastName('');
+      // Show user-type picker after successful login
+      setIsUserTypeModalVisible(true);
     } catch (err: any) {
       setErrorMessage(err.message || 'Authentication failed');
     }
+  };
+
+  const handleSelectUserType = (type: 'CUSTOMER' | 'PLATFORM_USER') => {
+    setUserType(type);
+    setIsUserTypeModalVisible(false);
+    if (type === 'CUSTOMER') {
+      setRole('CONSUMER');
+    } else {
+      setRole('SYSTEM_OWNER');
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    setUserType(null);
+    setRole('SYSTEM_OWNER');
   };
 
   const handleSaveSubmit = async () => {
@@ -328,9 +350,9 @@ export default function App() {
     return results.cable.passesCheck ? 'PASS' : 'ERROR';
   };
 
+  // CONSUMER is accessed via the login user-type picker, not the public role bar
   const roles: { role: UserRole; icon: string; desc: string }[] = [
     { role: 'SYSTEM_OWNER',    icon: '🏠', desc: 'System Owner' },
-    { role: 'CONSUMER',        icon: '🔌', desc: 'Energy Consumer' },
     { role: 'INSTALLER',       icon: '🔧', desc: 'Site & BOM' },
     { role: 'ENGINEER',        icon: '⚙️', desc: 'Full Workspace' },
     { role: 'PLANT_OPERATOR',  icon: '🌱', desc: 'Mini-Grid Ops' },
@@ -374,7 +396,7 @@ export default function App() {
           </TouchableOpacity>
 
           {isAuthenticated ? (
-            <TouchableOpacity style={[mainStyles.btnNav, { backgroundColor: activeColors.error }]} onPress={logout}>
+            <TouchableOpacity style={[mainStyles.btnNav, { backgroundColor: activeColors.error }]} onPress={handleLogout}>
               <Text style={[mainStyles.btnNavText, { color: '#fff' }]}>🚪 {user?.firstName}</Text>
             </TouchableOpacity>
           ) : (
@@ -385,52 +407,79 @@ export default function App() {
         </View>
       </View>
 
-      {/* ── Role Selector Bar ───────────────────────────────────────────── */}
-      <View style={[mainStyles.configBar, { flexDirection: 'row', alignItems: 'center' }]}>
-        <Text style={[mainStyles.configText, { marginRight: Spacing.sm }]}>View as:</Text>
-        <View style={mainStyles.roleSelector}>
-          {roles.map(({ role, icon, desc }) => (
-            <TouchableOpacity
-              key={role}
-              style={[
-                mainStyles.roleBtn,
-                userRole === role && mainStyles.roleBtnActive,
-                { alignItems: 'center' },
-              ]}
-              onPress={() => setRole(role)}
-            >
-              <Text style={{ fontSize: 14 }}>{icon}</Text>
-              <Text style={[mainStyles.roleBtnText, userRole === role && mainStyles.roleBtnTextActive]}>
-                {role}
-              </Text>
-              <Text style={{ fontSize: 9, color: userRole === role ? activeColors.primary : activeColors.textSecondary }}>
-                {desc}
-              </Text>
-            </TouchableOpacity>
-          ))}
+      {/* ── Role Selector Bar — hidden for Customer accounts ───────────── */}
+      {userType !== 'CUSTOMER' && (
+        <View style={[mainStyles.configBar, { flexDirection: 'row', alignItems: 'center' }]}>
+          <Text style={[mainStyles.configText, { marginRight: Spacing.sm }]}>View as:</Text>
+          <View style={mainStyles.roleSelector}>
+            {roles.map(({ role, icon, desc }) => (
+              <TouchableOpacity
+                key={role}
+                style={[
+                  mainStyles.roleBtn,
+                  userRole === role && mainStyles.roleBtnActive,
+                  { alignItems: 'center' },
+                ]}
+                onPress={() => setRole(role)}
+              >
+                <Text style={{ fontSize: 14 }}>{icon}</Text>
+                <Text style={[mainStyles.roleBtnText, userRole === role && mainStyles.roleBtnTextActive]}>
+                  {role}
+                </Text>
+                <Text style={{ fontSize: 9, color: userRole === role ? activeColors.primary : activeColors.textSecondary }}>
+                  {desc}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
-      </View>
+      )}
 
-      {/* ── Role-Based Workspace ────────────────────────────────────────── */}
-      {/* SYSTEM OWNER view */}
-      {(userRole === 'SYSTEM_OWNER' || userRole === 'CUSTOMER') && (
+      {/* ── Workspace ────────────────────────────────────────────────────── */}
+
+      {/* NOT LOGGED IN — show a prompt to login */}
+      {!isAuthenticated && (
         <ScrollView
           style={[mainStyles.workspace, { paddingHorizontal: Spacing.md }]}
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
         >
-          {isDbOffline && (
-            <View style={mainStyles.badgeOffline}>
-              <Text style={mainStyles.badgeOfflineText}>
-                ⚠️ Running offline — data saved locally in your browser.
-              </Text>
-            </View>
-          )}
-          <CustomerDashboard />
+          <View style={{
+            backgroundColor: activeColors.card,
+            borderColor: activeColors.border,
+            borderWidth: 1,
+            borderRadius: 16,
+            padding: 32,
+            alignItems: 'center',
+            maxWidth: 360,
+            width: '100%',
+          }}>
+            <Text style={{ fontSize: 48, marginBottom: 12 }}>🌞</Text>
+            <Text style={{ color: activeColors.textPrimary, fontSize: 20, fontWeight: '800', marginBottom: 8, textAlign: 'center' }}>
+              Welcome to REOS
+            </Text>
+            <Text style={{ color: activeColors.textSecondary, fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 24 }}>
+              {'Renewable Energy Operating System.\nPlease log in to access your personalised dashboard.'}
+            </Text>
+            <TouchableOpacity
+              style={{
+                backgroundColor: activeColors.primary,
+                borderRadius: 10,
+                paddingVertical: 14,
+                paddingHorizontal: 32,
+                width: '100%',
+                alignItems: 'center',
+              }}
+              onPress={() => setIsAuthModalVisible(true)}
+            >
+              <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>🔑 Login / Register</Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       )}
 
-      {/* ENERGY CONSUMER view */}
-      {userRole === 'CONSUMER' && (
+      {/* CUSTOMER — only Consumer Portal, no role switcher */}
+      {isAuthenticated && userType === 'CUSTOMER' && (
         <ScrollView
           style={[mainStyles.workspace, { paddingHorizontal: Spacing.md }]}
           showsVerticalScrollIndicator={false}
@@ -438,7 +487,7 @@ export default function App() {
           {isDbOffline && (
             <View style={mainStyles.badgeOffline}>
               <Text style={mainStyles.badgeOfflineText}>
-                ⚠️ Running offline — received energy telemetry simulated locally.
+                ⚠️ Running offline — energy telemetry simulated locally.
               </Text>
             </View>
           )}
@@ -446,115 +495,106 @@ export default function App() {
         </ScrollView>
       )}
 
-      {/* INSTALLER view */}
-      {userRole === 'INSTALLER' && (
-        <ScrollView
-          style={[mainStyles.workspace, { paddingHorizontal: Spacing.md }]}
-          showsVerticalScrollIndicator={false}
-        >
-          {isDbOffline && (
-            <View style={mainStyles.badgeOffline}>
-              <Text style={mainStyles.badgeOfflineText}>
-                ⚠️ Running offline — data saved locally in your browser.
-              </Text>
-            </View>
+      {/* PLATFORM USER — full role-based workspace */}
+      {isAuthenticated && userType === 'PLATFORM_USER' && (
+        <>
+          {/* SYSTEM OWNER view */}
+          {userRole === 'SYSTEM_OWNER' && (
+            <ScrollView
+              style={[mainStyles.workspace, { paddingHorizontal: Spacing.md }]}
+              showsVerticalScrollIndicator={false}
+            >
+              {isDbOffline && (
+                <View style={mainStyles.badgeOffline}>
+                  <Text style={mainStyles.badgeOfflineText}>
+                    ⚠️ Running offline — data saved locally in your browser.
+                  </Text>
+                </View>
+              )}
+              <CustomerDashboard />
+            </ScrollView>
           )}
-          <InstallerDashboard />
-        </ScrollView>
-      )}
 
-      {/* PLANT OPERATOR view — mini-grid / solar farm operator workspace */}
-      {userRole === 'PLANT_OPERATOR' && (
-        <ScrollView
-          style={[mainStyles.workspace, { paddingHorizontal: Spacing.md }]}
-          showsVerticalScrollIndicator={false}
-        >
-          {isDbOffline && (
-            <View style={mainStyles.badgeOffline}>
-              <Text style={mainStyles.badgeOfflineText}>
-                ⚠️ Running offline — IoT telemetry is running on local simulation.
-              </Text>
-            </View>
+          {/* INSTALLER view */}
+          {userRole === 'INSTALLER' && (
+            <ScrollView
+              style={[mainStyles.workspace, { paddingHorizontal: Spacing.md }]}
+              showsVerticalScrollIndicator={false}
+            >
+              {isDbOffline && (
+                <View style={mainStyles.badgeOffline}>
+                  <Text style={mainStyles.badgeOfflineText}>
+                    ⚠️ Running offline — data saved locally in your browser.
+                  </Text>
+                </View>
+              )}
+              <InstallerDashboard />
+            </ScrollView>
           )}
-          <PlantOperatorDashboard />
-        </ScrollView>
-      )}
 
-      {/* ENGINEER view — full technical workspace */}
-      {userRole === 'ENGINEER' && (
-      <ScrollView style={mainStyles.workspace} showsVerticalScrollIndicator={false}>
-        {isDbOffline && (
-          <View style={mainStyles.badgeOffline}>
-            <Text style={mainStyles.badgeOfflineText}>
-              ⚠️ Database is offline. Sizing calculations are running locally, and projects will be saved to your browser storage.
-            </Text>
-          </View>
-        )}
-        <AiAssistantPanel />
-        <View style={{ height: Spacing.md }} />
+          {/* PLANT OPERATOR view */}
+          {userRole === 'PLANT_OPERATOR' && (
+            <ScrollView
+              style={[mainStyles.workspace, { paddingHorizontal: Spacing.md }]}
+              showsVerticalScrollIndicator={false}
+            >
+              {isDbOffline && (
+                <View style={mainStyles.badgeOffline}>
+                  <Text style={mainStyles.badgeOfflineText}>
+                    ⚠️ Running offline — IoT telemetry is running on local simulation.
+                  </Text>
+                </View>
+              )}
+              <PlantOperatorDashboard />
+            </ScrollView>
+          )}
+          {/* ENGINEER view — full technical workspace */}
+          {userRole === 'ENGINEER' && (
+            <ScrollView style={mainStyles.workspace} showsVerticalScrollIndicator={false}>
+              {isDbOffline && (
+                <View style={mainStyles.badgeOffline}>
+                  <Text style={mainStyles.badgeOfflineText}>
+                    ⚠️ Database is offline. Sizing calculations are running locally, and projects will be saved to your browser storage.
+                  </Text>
+                </View>
+              )}
+              <AiAssistantPanel />
+              <View style={{ height: Spacing.md }} />
 
-        {/* Card 1: Load Sizing */}
-        <WorkspaceCard
-          title="1. Load Assessment"
-          icon="🔌"
-          status={getLoadStatus()}
-          summaryText={results.load ? `Peak demand: ${results.load.maximumDemandW.toFixed(0)}W` : 'Define connected load configurations'}
-          expanded={expandedCard === 'load'}
-          onToggle={() => handleCardToggle('load')}
-        >
-          <LoadAssessmentCard />
-        </WorkspaceCard>
+              <WorkspaceCard title="1. Load Assessment" icon="🔌" status={getLoadStatus()}
+                summaryText={results.load ? `Peak demand: ${results.load.maximumDemandW.toFixed(0)}W` : 'Define connected load configurations'}
+                expanded={expandedCard === 'load'} onToggle={() => handleCardToggle('load')}>
+                <LoadAssessmentCard />
+              </WorkspaceCard>
 
-        {/* Card 2: Solar PV Sizing */}
-        <WorkspaceCard
-          title="2. Solar PV Design"
-          icon="☀️"
-          status={getSolarStatus()}
-          summaryText={results.solar ? `Calculated PV capacity: ${results.solar.requiredPvSizeKw} kWp` : 'Calculate solar generation footprint'}
-          expanded={expandedCard === 'solar'}
-          onToggle={() => handleCardToggle('solar')}
-        >
-          <SolarPvCard />
-        </WorkspaceCard>
+              <WorkspaceCard title="2. Solar PV Design" icon="☀️" status={getSolarStatus()}
+                summaryText={results.solar ? `Calculated PV capacity: ${results.solar.requiredPvSizeKw} kWp` : 'Calculate solar generation footprint'}
+                expanded={expandedCard === 'solar'} onToggle={() => handleCardToggle('solar')}>
+                <SolarPvCard />
+              </WorkspaceCard>
 
-        {/* Card 3: Battery Sizing */}
-        <WorkspaceCard
-          title="3. Battery Capacity"
-          icon="🔋"
-          status={getBatteryStatus()}
-          summaryText={results.battery ? `Required capacity: ${results.battery.requiredCapacityKwh} kWh` : 'Determine storage autonomy requirements'}
-          expanded={expandedCard === 'battery'}
-          onToggle={() => handleCardToggle('battery')}
-        >
-          <BatterySizingCard />
-        </WorkspaceCard>
+              <WorkspaceCard title="3. Battery Capacity" icon="🔋" status={getBatteryStatus()}
+                summaryText={results.battery ? `Required capacity: ${results.battery.requiredCapacityKwh} kWh` : 'Determine storage autonomy requirements'}
+                expanded={expandedCard === 'battery'} onToggle={() => handleCardToggle('battery')}>
+                <BatterySizingCard />
+              </WorkspaceCard>
 
-        {/* Card 4: Inverter Sizing */}
-        <WorkspaceCard
-          title="4. Inverter Sizing"
-          icon="🔌"
-          status={getInverterStatus()}
-          summaryText={results.inverter ? `Recommended: ${results.inverter.recommendedInverterKw} kW inverter` : 'Size inverter for continuous & surge loads'}
-          expanded={expandedCard === 'inverter'}
-          onToggle={() => handleCardToggle('inverter')}
-        >
-          <InverterSizingCard />
-        </WorkspaceCard>
+              <WorkspaceCard title="4. Inverter Sizing" icon="🔌" status={getInverterStatus()}
+                summaryText={results.inverter ? `Recommended: ${results.inverter.recommendedInverterKw} kW inverter` : 'Size inverter for continuous & surge loads'}
+                expanded={expandedCard === 'inverter'} onToggle={() => handleCardToggle('inverter')}>
+                <InverterSizingCard />
+              </WorkspaceCard>
 
-        {/* Card 5: Cable Sizing & Voltage Drop */}
-        <WorkspaceCard
-          title="5. Cable Coordination"
-          icon="⚡"
-          status={getCableStatus()}
-          summaryText={results.cable ? `Voltage drop: ${results.cable.voltageDropPercent.toFixed(2)}%` : 'Verify voltage drop standard limits'}
-          expanded={expandedCard === 'cable'}
-          onToggle={() => handleCardToggle('cable')}
-        >
-          <CableSizingCard />
-        </WorkspaceCard>
+              <WorkspaceCard title="5. Cable Coordination" icon="⚡" status={getCableStatus()}
+                summaryText={results.cable ? `Voltage drop: ${results.cable.voltageDropPercent.toFixed(2)}%` : 'Verify voltage drop standard limits'}
+                expanded={expandedCard === 'cable'} onToggle={() => handleCardToggle('cable')}>
+                <CableSizingCard />
+              </WorkspaceCard>
 
-        <View style={{ height: 48 }} />
-      </ScrollView>
+              <View style={{ height: 48 }} />
+            </ScrollView>
+          )}
+        </>
       )}
 
       {/* Auth Modal (Login / Register) */}
@@ -714,6 +754,67 @@ export default function App() {
           </View>
         </View>
       </Modal>
+      {/* ── User Type Picker Modal (shown after login) ──────────────────── */}
+      <Modal visible={isUserTypeModalVisible} transparent animationType="fade">
+        <View style={mainStyles.modalOverlay}>
+          <View style={[mainStyles.modalContent, { maxWidth: 420 }]}>
+            <Text style={{ fontSize: 36, textAlign: 'center', marginBottom: 8 }}>👋</Text>
+            <Text style={[mainStyles.modalTitle, { textAlign: 'center', fontSize: 20 }]}>
+              Welcome, {user?.firstName || 'User'}!
+            </Text>
+            <Text style={{ color: activeColors.textSecondary, fontSize: 13, textAlign: 'center', marginBottom: 24, lineHeight: 20 }}>
+              How would you like to access REOS today?
+            </Text>
+
+            {/* CUSTOMER option */}
+            <TouchableOpacity
+              style={{
+                backgroundColor: activeColors.surface,
+                borderColor: activeColors.primary,
+                borderWidth: 2,
+                borderRadius: 12,
+                padding: 20,
+                marginBottom: 12,
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}
+              onPress={() => handleSelectUserType('CUSTOMER')}
+            >
+              <Text style={{ fontSize: 36, marginRight: 16 }}>🔌</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: activeColors.textPrimary, fontWeight: '800', fontSize: 15 }}>Energy Customer</Text>
+                <Text style={{ color: activeColors.textSecondary, fontSize: 11, marginTop: 4, lineHeight: 16 }}>
+                  View your live energy dashboard, billing, consumption analytics and notifications from your energy supplier.
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* PLATFORM USER option */}
+            <TouchableOpacity
+              style={{
+                backgroundColor: activeColors.surface,
+                borderColor: activeColors.success,
+                borderWidth: 2,
+                borderRadius: 12,
+                padding: 20,
+                marginBottom: 8,
+                flexDirection: 'row',
+                alignItems: 'center',
+              }}
+              onPress={() => handleSelectUserType('PLATFORM_USER')}
+            >
+              <Text style={{ fontSize: 36, marginRight: 16 }}>⚙️</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: activeColors.textPrimary, fontWeight: '800', fontSize: 15 }}>REOS Platform User</Text>
+                <Text style={{ color: activeColors.textSecondary, fontSize: 11, marginTop: 4, lineHeight: 16 }}>
+                  Access the full REOS platform — system design, IoT monitoring, plant operations, installer tools and engineering workspace.
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* Floating AI Chat Button */}
       <TouchableOpacity 
         style={{
