@@ -26,6 +26,7 @@ import { InstallerDashboard } from './src/components/InstallerDashboard';
 import { AiChatModal } from './src/components/AiChatModal';
 import { DownloadReportButton } from './src/components/DownloadReportButton';
 import { PlantOperatorDashboard } from './src/components/PlantOperatorDashboard';
+import { ConsumerPortal } from './src/components/ConsumerPortal';
 
 export default function App() {
   const { 
@@ -328,7 +329,8 @@ export default function App() {
   };
 
   const roles: { role: UserRole; icon: string; desc: string }[] = [
-    { role: 'CUSTOMER',        icon: '👤', desc: 'Energy & Cost' },
+    { role: 'SYSTEM_OWNER',    icon: '🏠', desc: 'System Owner' },
+    { role: 'CONSUMER',        icon: '🔌', desc: 'Energy Consumer' },
     { role: 'INSTALLER',       icon: '🔧', desc: 'Site & BOM' },
     { role: 'ENGINEER',        icon: '⚙️', desc: 'Full Workspace' },
     { role: 'PLANT_OPERATOR',  icon: '🌱', desc: 'Mini-Grid Ops' },
@@ -410,8 +412,8 @@ export default function App() {
       </View>
 
       {/* ── Role-Based Workspace ────────────────────────────────────────── */}
-      {/* CUSTOMER view */}
-      {userRole === 'CUSTOMER' && (
+      {/* SYSTEM OWNER view */}
+      {(userRole === 'SYSTEM_OWNER' || userRole === 'CUSTOMER') && (
         <ScrollView
           style={[mainStyles.workspace, { paddingHorizontal: Spacing.md }]}
           showsVerticalScrollIndicator={false}
@@ -424,6 +426,23 @@ export default function App() {
             </View>
           )}
           <CustomerDashboard />
+        </ScrollView>
+      )}
+
+      {/* ENERGY CONSUMER view */}
+      {userRole === 'CONSUMER' && (
+        <ScrollView
+          style={[mainStyles.workspace, { paddingHorizontal: Spacing.md }]}
+          showsVerticalScrollIndicator={false}
+        >
+          {isDbOffline && (
+            <View style={mainStyles.badgeOffline}>
+              <Text style={mainStyles.badgeOfflineText}>
+                ⚠️ Running offline — received energy telemetry simulated locally.
+              </Text>
+            </View>
+          )}
+          <ConsumerPortal />
         </ScrollView>
       )}
 

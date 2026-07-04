@@ -13,6 +13,7 @@ import {
 import { Colors, Spacing, BorderRadius } from '@reos/ui';
 import { useStore } from '../store/useStore';
 import { PlantConfig } from '@reos/types';
+import { generatePlantReportPdf } from '../store/pdfGenerator';
 
 const CURRENCIES = [
   { code: 'NGN', symbol: '₦', name: 'Naira', tariff: 225 },
@@ -400,6 +401,15 @@ export const PlantOperatorDashboard: React.FC = () => {
           </TouchableOpacity>
         ))}
       </View>
+
+      {/* Operations PDF Generation Button */}
+      <TouchableOpacity 
+        style={[s.btn, { backgroundColor: C.primary, marginTop: -4, marginBottom: 12, flexDirection: 'row', justifyContent: 'center', gap: 6 }]}
+        onPress={() => generatePlantReportPdf(config.plantName, config, distribution, telemetry, alerts)}
+      >
+        <Text style={{ fontSize: 16 }}>📄</Text>
+        <Text style={s.btnText}>Export Operations PDF Report</Text>
+      </TouchableOpacity>
 
       {/* ── MONITOR TAB ──────────────────────────────────────────────────── */}
       {activeTab === 'MONITOR' && (

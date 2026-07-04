@@ -10,23 +10,31 @@ generator client {
 
 enum UserRole {
   CUSTOMER
+  SYSTEM_OWNER
+  CONSUMER
   INSTALLER
   ENGINEER
   ADMIN
+  PLANT_OPERATOR
 }
 
 model User {
-  id           String     @id @default(uuid())
-  email        String     @unique
-  passwordHash String
-  firstName    String
-  lastName     String
-  role         UserRole   @default(CUSTOMER)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  refreshToken String?
-  projects     Project[]
-  auditLogs    AuditLog[]
+  id                  String               @id @default(uuid())
+  email               String               @unique
+  passwordHash        String
+  firstName           String
+  lastName            String
+  role                UserRole             @default(SYSTEM_OWNER)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  refreshToken        String?
+  projects            Project[]
+  auditLogs           AuditLog[]
+  contractsAsSupplier EnergyContract[]     @relation("SupplierContracts")
+  contractsAsConsumer EnergyContract[]     @relation("ConsumerContracts")
+  invitationsSent     ConsumerInvitation[] @relation("SentInvitations")
+  notifications       Notification[]
+  devices             Device[]
 }
 
 model Project {
@@ -44,6 +52,7 @@ model Project {
   designs      ProjectDesign[]
   simulations  SimulationResult[]
   quotations   Quotation[]
+  devices      Device[]
 }
 
 model Appliance {
@@ -180,3 +189,115 @@ model Quotation {
   itemsJson         String     // JSON serialized list of products included
   createdAt         DateTime   @default(now())
 }
+
+model ConsumerInvitation {
+  id             String    @id @default(uuid())
+  invitationCode String    @unique
+  supplierId     String
+  supplier       User      @relation("SentInvitations", fields: [supplierId], references: [id], onDelete: Cascade)
+  email          String?
+  phoneNumber    String?
+  status         String    @default("PENDING") // PENDING, ACCEPTED, REJECTED, EXPIRED
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model EnergyContract {
+  id               String        @id @default(uuid())
+  supplierId       String
+  supplier         User          @relation("SupplierContracts", fields: [supplierId], references: [id], onDelete: Cascade)
+  consumerId       String
+  consumer         User          @relation("ConsumerContracts", fields: [consumerId], references: [id], onDelete: Cascade)
+  connectionStatus String        @default("ACTIVE") // ACTIVE, SUSPENDED, TERMINATED
+  contractDate     DateTime      @default(now())
+  tariffRate       Float         // Price in local currency per kWh (e.g. NGN/kWh)
+  billingCycle     String        @default("PREPAID") // PREPAID, POSTPAID, HYBRID
+  balance          Float         @default(0.0) // wallet balance for prepaid or outstanding for postpaid
+  gatewayId        String?       // Edge gateway handling the link
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  invoices         Invoice[]
+  transactions     Transaction[]
+}
+
+model Device {
+  id                   String        @id @default(uuid())
+  name                 String
+  type                 String        // SMART_METER, INVERTER, BMS, CHARGE_CONTROLLER, EDGE_GATEWAY, etc.
+  manufacturer         String?
+  model                String?
+  firmwareVersion      String?
+  protocol             String        @default("MQTT") // MODBUS_RTU, MODBUS_TCP, MQTT, HTTP
+  status               String        @default("ONLINE") // ONLINE, OFFLINE, MAINTENANCE
+  signalStrength       Int?          // dBm
+  communicationQuality Int?          // 0-100%
+  lastCommTime         DateTime      @default(now())
+  ownerId              String?
+  owner                User?         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  projectId            String?
+  project              Project?      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  telemetry            Telemetry[]
+}
+
+model Telemetry {
+  id              String   @id @default(uuid())
+  deviceId        String
+  device          Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  timestamp       DateTime @default(now())
+  voltage         Float?
+  current         Float?
+  activePower     Float?
+  reactivePower   Float?
+  apparentPower   Float?
+  frequency       Float?
+  powerFactor     Float?
+  energyImported  Float?
+  energyExported  Float?
+  batterySoc      Float?
+  status          String?
+  alarmStatus     String?
+  commQuality     Float?
+}
+
+model Invoice {
+  id                String         @id @default(uuid())
+  contractId        String
+  contract          EnergyContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  amount            Float
+  tariffRate        Float
+  energyReceivedKwh Float
+  billingPeriodStart DateTime
+  billingPeriodEnd  DateTime
+  dueDate           DateTime
+  status            String         @default("UNPAID") // PAID, UNPAID, OVERDUE
+  pdfUrl            String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+}
+
+model Transaction {
+  id             String         @id @default(uuid())
+  contractId     String
+  contract       EnergyContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  type           String         // PREPAID_PURCHASE, BILL_PAYMENT, CREDIT_TRANSFER
+  amount         Float
+  currency       String         @default("NGN")
+  paymentGateway String?
+  status         String         @default("SUCCESSFUL") // PENDING, SUCCESSFUL, FAILED
+  reference      String?        @unique
+  createdAt      DateTime       @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("INFO") // ALERT, BILLING, SYSTEM, INFO
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+

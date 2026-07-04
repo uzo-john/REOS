@@ -11,6 +11,7 @@ import { FinancialModule } from './financial/financial.module';
 import { GridModule } from './grid/grid.module';
 import { ProcurementModule } from './procurement/procurement.module';
 import { IotModule } from './iot/iot.module';
+import { ConsumerModule } from './consumer/consumer.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -28,9 +29,11 @@ import { AppService } from './app.service';
     GridModule,
     ProcurementModule,
     IotModule,
+    ConsumerModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}
+
 

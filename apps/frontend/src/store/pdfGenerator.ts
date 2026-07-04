@@ -413,3 +413,136 @@ export async function generateDesignPdf(data: PdfDesignData): Promise<void> {
 
   doc.save(`REOS_Solar_Design_${new Date().toISOString().slice(0, 10)}.pdf`);
 }
+
+export async function generatePlantReportPdf(
+  plantName: string,
+  config: any,
+  dist: any,
+  telemetry: any,
+  alerts: any[]
+): Promise<void> {
+  const jsPDF = await loadJsPdf();
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const pageW = doc.internal.pageSize.getWidth();
+  let y = 0;
+
+  // Header Banner
+  drawRect(doc, 0, 0, pageW, 42, DARK, 0);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(22);
+  doc.setTextColor(WHITE[0], WHITE[1], WHITE[2]);
+  doc.text('REOS MINI-GRID OPERATIONS REPORT', 14, 18);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(TEAL[0], TEAL[1], TEAL[2]);
+  doc.text(`Operator / Plant: ${plantName || 'Sunshine Grid Community'}`, 14, 26);
+  doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 32);
+
+  y = 48;
+  
+  // Section 1: System Configuration
+  y = sectionHeader(doc, '🏭 SYSTEM CONFIGURATION', y, pageW);
+  y = dataRow(doc, 'Grid Connection Type', config.gridConnectionType || 'HYBRID', y, false, pageW);
+  y = dataRow(doc, 'Installed Panel Capacity', `${config.plantCapacityKwp || 0} kWp`, y, true, pageW);
+  y = dataRow(doc, 'Number of Inverters', `${config.numberOfInverters || 0} units`, y, false, pageW);
+  y = dataRow(doc, 'Battery Reserve Limit', `${config.batteryReservePercent || 0}%`, y, true, pageW);
+  y = dataRow(doc, 'Connected Neighbors', `${config.numberOfNeighborSubscribers || 0} subscribers`, y, false, pageW);
+  y += 6;
+
+  // Section 2: Distribution Metrics
+  y = sectionHeader(doc, '⚡ DISTRIBUTION & TELEMETRY ENGINE', y, pageW);
+  y = dataRow(doc, 'Live Plant Output', `${dist.plantOutputKw.toFixed(2)} kW`, y, false, pageW);
+  y = dataRow(doc, 'Battery Charging Share', `${dist.batteryChargeKw.toFixed(2)} kW (SOC: ${dist.batterySoc.toFixed(0)}%)`, y, true, pageW);
+  y = dataRow(doc, 'Neighbors Distribution', `${dist.neighborKw.toFixed(2)} kW`, y, false, pageW);
+  y = dataRow(doc, 'Grid Export Flow', `${dist.gridExportKw.toFixed(2)} kW`, y, true, pageW);
+  y += 6;
+
+  // Section 3: Revenue Projections
+  y = sectionHeader(doc, '📊 P2P REVENUE & SETTLEMENTS', y, pageW);
+  const sym = currencySymbol(config.currency || 'NGN');
+  y = dataRow(doc, 'Neighbor Sharing Tariff', `${sym}${config.tariffPerKwh || 0}/kWh`, y, false, pageW);
+  y = dataRow(doc, 'P2P Neighbor Revenue', `+ ${sym}${dist.neighborRevenue.toLocaleString(undefined, { maximumFractionDigits: 2 })}/month`, y, true, pageW, GREEN);
+  y = dataRow(doc, 'Utility Grid Feed-in Credits', `+ ${sym}${dist.gridRevenue.toLocaleString(undefined, { maximumFractionDigits: 2 })}/month`, y, false, pageW, GREEN);
+  y = dataRow(doc, 'Total Estimated Revenue', `${sym}${dist.totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 2 })}/month`, y, true, pageW, TEAL);
+  y += 6;
+
+  // Section 4: System Alerts
+  if (alerts && alerts.length > 0) {
+    y = sectionHeader(doc, '⚠️ SYSTEM FAULTS & ALERTS', y, pageW);
+    alerts.forEach((alert) => {
+      y = dataRow(doc, `${alert.title}`, `${alert.severity}`, y, false, pageW, alert.severity === 'CRITICAL' ? RED : ORANGE);
+    });
+  }
+
+  // Draw Footer
+  const pH = doc.internal.pageSize.getHeight();
+  drawRect(doc, 0, pH - 12, pageW, 12, DARK, 0);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(GRAY[0], GRAY[1], GRAY[2]);
+  doc.text('REOS – Renewable Energy Operating System  |  Auto-generated Operations Report.', 14, pH - 4);
+  doc.text('Page 1 of 1', pageW - 14, pH - 4, { align: 'right' });
+
+  doc.save(`REOS_Plant_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
+}
+
+export async function generateInvoicePdf(
+  invoice: any,
+  contract: any,
+  supplier: any,
+  consumer: any
+): Promise<void> {
+  const jsPDF = await loadJsPdf();
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const pageW = doc.internal.pageSize.getWidth();
+  let y = 0;
+
+  // Header Banner
+  drawRect(doc, 0, 0, pageW, 42, DARK, 0);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(22);
+  doc.setTextColor(WHITE[0], WHITE[1], WHITE[2]);
+  doc.text('REOS P2P ENERGY INVOICE', 14, 18);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9.5);
+  doc.setTextColor(TEAL[0], TEAL[1], TEAL[2]);
+  doc.text(`Invoice ID: ${invoice.id.substring(0, 8).toUpperCase()}`, 14, 26);
+  doc.text(`Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}`, 14, 32);
+
+  y = 48;
+
+  // Party Details
+  y = sectionHeader(doc, '👤 TRANSACTION PARTIES', y, pageW);
+  y = dataRow(doc, 'Supplier (Seller)', `${supplier?.firstName || 'Sunshine'} ${supplier?.lastName || 'Supplier'}`, y, false, pageW);
+  y = dataRow(doc, 'Supplier Email', `${supplier?.email || ''}`, y, true, pageW);
+  y = dataRow(doc, 'Consumer (Buyer)', `${consumer?.firstName || 'Neighbor'} ${consumer?.lastName || 'Consumer'}`, y, false, pageW);
+  y = dataRow(doc, 'Consumer Email', `${consumer?.email || ''}`, y, true, pageW);
+  y += 6;
+
+  // Invoice Items
+  y = sectionHeader(doc, '📋 INVOICE DETAILS & USAGE', y, pageW);
+  y = dataRow(doc, 'Energy Consumed Today', `${invoice.energyReceivedKwh.toFixed(2)} kWh`, y, false, pageW);
+  y = dataRow(doc, 'Microgrid P2P Rate', `₦${invoice.tariffRate.toFixed(2)} / kWh`, y, true, pageW);
+  y = dataRow(doc, 'Billing Mode', `${contract?.billingCycle || 'PREPAID'}`, y, false, pageW);
+  y = dataRow(doc, 'Payment Status', `${invoice.status}`, y, true, pageW, invoice.status === 'PAID' ? GREEN : RED);
+  y = dataRow(doc, 'Total Amount', `₦${invoice.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, y, false, pageW, TEAL);
+  y += 6;
+
+  // Info Note
+  y = infoBox(doc, '⚡ Peer-to-Peer Energy Contract Note', [
+    'This invoice was auto-generated based on streaming telemetry from the smart gateway.',
+    'Payments are processed securely via verified P2P gateways. Thank you!',
+  ], TEAL, y, pageW);
+
+  // Footer
+  const pH = doc.internal.pageSize.getHeight();
+  drawRect(doc, 0, pH - 12, pageW, 12, DARK, 0);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(GRAY[0], GRAY[1], GRAY[2]);
+  doc.text('REOS P2P Billing Engine  |  Cryptographically verified energy sharing contract.', 14, pH - 4);
+  doc.text('Page 1 of 1', pageW - 14, pH - 4, { align: 'right' });
+
+  doc.save(`REOS_Invoice_${invoice.id.substring(0, 8).toUpperCase()}.pdf`);
+}
+

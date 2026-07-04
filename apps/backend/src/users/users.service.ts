@@ -5,6 +5,8 @@ import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class UsersService {
+  private static mockUsers: User[] = [];
+
   constructor(private prisma: PrismaService) {}
 
   async create(data: {
@@ -14,8 +16,31 @@ export class UsersService {
     lastName: string;
     role?: UserRole;
   }): Promise<User> {
+    const lowercaseEmail = data.email.toLowerCase();
+
+    if (!this.prisma.isConnected) {
+      const existing = UsersService.mockUsers.find(u => u.email === lowercaseEmail);
+      if (existing) {
+        throw new ConflictException('User with this email already exists');
+      }
+      const newUser: User = {
+        id: `mock-user-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        email: lowercaseEmail,
+        passwordHash: data.passwordHash,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        role: data.role || 'CUSTOMER',
+        refreshToken: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      UsersService.mockUsers.push(newUser);
+      console.log('Offline mode: Created mock user in memory:', lowercaseEmail);
+      return newUser;
+    }
+
     const existing = await this.prisma.user.findUnique({
-      where: { email: data.email.toLowerCase() },
+      where: { email: lowercaseEmail },
     });
     if (existing) {
       throw new ConflictException('User with this email already exists');
@@ -24,18 +49,29 @@ export class UsersService {
     return this.prisma.user.create({
       data: {
         ...data,
-        email: data.email.toLowerCase(),
+        email: lowercaseEmail,
       },
     });
   }
 
   async findByEmail(email: string): Promise<User | null> {
+    const lowercaseEmail = email.toLowerCase();
+    if (!this.prisma.isConnected) {
+      return UsersService.mockUsers.find(u => u.email === lowercaseEmail) || null;
+    }
     return this.prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email: lowercaseEmail },
     });
   }
 
   async findById(id: string): Promise<User> {
+    if (!this.prisma.isConnected) {
+      const user = UsersService.mockUsers.find(u => u.id === id);
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+      return user;
+    }
     const user = await this.prisma.user.findUnique({
       where: { id },
     });
@@ -50,6 +86,19 @@ export class UsersService {
     if (token) {
       hashedToken = await bcrypt.hash(token, 10);
     }
+
+    if (!this.prisma.isConnected) {
+      const userIndex = UsersService.mockUsers.findIndex(u => u.id === userId);
+      if (userIndex !== -1) {
+        UsersService.mockUsers[userIndex] = {
+          ...UsersService.mockUsers[userIndex],
+          refreshToken: hashedToken,
+          updatedAt: new Date(),
+        };
+      }
+      return;
+    }
+
     await this.prisma.user.update({
       where: { id: userId },
       data: { refreshToken: hashedToken },

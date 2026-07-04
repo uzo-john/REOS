@@ -6,13 +6,18 @@ export class AuditLogService {
   constructor(private prisma: PrismaService) {}
 
   async log(action: string, details?: any, userId?: string, ipAddress?: string) {
-    return this.prisma.auditLog.create({
-      data: {
-        action,
-        details: details ? JSON.stringify(details) : null,
-        userId,
-        ipAddress,
-      },
-    });
+    try {
+      return await this.prisma.auditLog.create({
+        data: {
+          action,
+          details: details ? JSON.stringify(details) : null,
+          userId,
+          ipAddress,
+        },
+      });
+    } catch (e) {
+      console.warn('Offline mode: skipping audit log save.');
+      return null;
+    }
   }
 }

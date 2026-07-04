@@ -39,6 +39,7 @@ export const EnergyTradingHub: React.FC = () => {
     gridExportStatus, accumulatedCredits,
     gridExportEnabled, neighbourTransferEnabled,
     toggleGridExport, toggleNeighbourTransfer,
+    createInviteCode, consumerInvite, activeContract
   } = useStore();
   const C = Colors[theme];
 
@@ -46,6 +47,13 @@ export const EnergyTradingHub: React.FC = () => {
   const [isWizardVisible, setIsWizardVisible] = useState(false);
   const [transferKwh, setTransferKwh] = useState('');
   const [manualExportKw, setManualExportKw] = useState('');
+
+  // P2P Invite States
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [invitePhone, setInvitePhone] = useState('');
+  const [inviteTariff, setInviteTariff] = useState(String(inputs?.gridTariffRate || 225));
+  const [inviteCycle, setInviteCycle] = useState<'PREPAID' | 'POSTPAID' | 'HYBRID'>('PREPAID');
+  const [isCreatingInvite, setIsCreatingInvite] = useState(false);
 
   const currency = CURRENCIES.find(c => c.code === (inputs?.currency || 'NGN')) || CURRENCIES[0];
   const tariff = inputs?.gridTariffRate || currency.tariff;
@@ -301,108 +309,230 @@ export const EnergyTradingHub: React.FC = () => {
   );
 
   // ── Section: NEIGHBOR TRANSFER ─────────────────────────────────────────────
-  const NeighborSection = () => (
-    <View>
-      {!hasProfile && (
-        <View style={s.noProfile}>
-          <Text style={[s.noProfileText, { fontWeight: '700', color: C.warning }]}>
-            ℹ️ No load profile calculated yet
-          </Text>
-          <Text style={s.noProfileText}>
-            You can still configure and monitor live P2P neighbor energy sharing.
-            Enter a manual transfer amount below, or go to "My System" to calculate your real surplus.
-          </Text>
-        </View>
-      )}
+  const NeighborSection = () => {
+    const handleCreateInvite = async () => {
+      setIsCreatingInvite(true);
+      try {
+        await createInviteCode(parseFloat(inviteTariff) || 225, inviteCycle, inviteEmail || undefined, invitePhone || undefined);
+        setInviteEmail('');
+        setInvitePhone('');
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsCreatingInvite(false);
+      }
+    };
 
-      <View style={s.card}>
-        <Text style={s.cardTitle}>🤝 Neighbor Transfer</Text>
-        <Text style={s.cardSub}>
-          Share surplus solar energy directly with neighbors at peer-to-peer tariff
-        </Text>
-
-        {/* Live P2P gauges */}
-        {telemetry && (
-          <View style={s.telGrid}>
-            <View style={s.telCell}>
-              <Text style={s.telEmoji}>⚡</Text>
-              <Text style={s.telVal}>{neighborKw.toFixed(2)} kW</Text>
-              <Text style={s.telLbl}>Transfer Rate</Text>
-            </View>
-            <View style={s.telCell}>
-              <Text style={s.telEmoji}>🔌</Text>
-              <Text style={s.telVal}>{neighborV.toFixed(1)} V</Text>
-              <Text style={s.telLbl}>Line Voltage</Text>
-            </View>
-            <View style={s.telCell}>
-              <Text style={s.telEmoji}>📦</Text>
-              <Text style={s.telVal}>{neighborKwh.toFixed(2)} kWh</Text>
-              <Text style={s.telLbl}>Delivered Total</Text>
-            </View>
-            <View style={s.telCell}>
-              <Text style={s.telEmoji}>🏘️</Text>
-              <Text style={s.telVal}>{neighborLinks}</Text>
-              <Text style={s.telLbl}>Active P2P Links</Text>
-            </View>
+    return (
+      <View>
+        {!hasProfile && (
+          <View style={s.noProfile}>
+            <Text style={[s.noProfileText, { fontWeight: '700', color: C.warning }]}>
+              ℹ️ No load profile calculated yet
+            </Text>
+            <Text style={s.noProfileText}>
+              You can still configure and monitor live P2P neighbor energy sharing.
+              Enter a manual transfer amount below, or go to "My System" to calculate your real surplus.
+            </Text>
           </View>
         )}
 
-        {/* Value summary */}
-        {hasProfile && monthlySurplusKwh > 0 ? (
-          <>
-            <Text style={s.bigNum}>{fmt(transferValue || monthlySurplusRevenue * 0.3, currency.symbol)}</Text>
-            <Text style={s.bigUnit}>transfer credit value / month</Text>
-          </>
-        ) : (
-          <>
-            <Text style={s.bigNum}>{fmt(neighborKw * 24 * 30 * tariff, currency.symbol)}</Text>
-            <Text style={s.bigUnit}>projected neighbor revenue / month at live rate</Text>
-          </>
-        )}
-
-        {/* Manual kWh input */}
-        <Text style={[s.inputLabel, { marginTop: Spacing.sm }]}>
-          Set monthly transfer target (kWh)
-          {hasProfile && ` — max available: ${monthlySurplusKwh.toFixed(1)} kWh`}
-        </Text>
-        <TextInput
-          style={s.inputBox}
-          value={transferKwh}
-          onChangeText={setTransferKwh}
-          keyboardType="decimal-pad"
-          placeholder={hasProfile ? `max ${monthlySurplusKwh.toFixed(0)} kWh` : 'e.g. 150'}
-          placeholderTextColor={C.placeholder}
-        />
-
-        <View style={s.switchRow}>
-          <View>
-            <Text style={s.switchLabel}>Enable P2P Transfer</Text>
-            <Text style={s.switchSub}>Open microgrid link to neighbor subscribers</Text>
-          </View>
-          <Switch
-            value={neighbourTransferEnabled}
-            onValueChange={toggleNeighbourTransfer}
-            trackColor={{ false: C.border, true: C.info }}
-            thumbColor="#fff"
-          />
-        </View>
-      </View>
-
-      {/* P2P Fault Alerts */}
-      {activeAlerts.filter(a => a.code.includes('NEIGHBOUR')).length > 0 && (
         <View style={s.card}>
-          <Text style={[s.cardTitle, { color: C.error, fontSize: 13 }]}>⚠️ P2P Link Faults</Text>
-          {activeAlerts.filter(a => a.code.includes('NEIGHBOUR')).map(a => (
-            <View key={a.id} style={[s.alertPill, a.severity === 'CRITICAL' ? s.alertCrit : s.alertWarn]}>
-              <Text style={[s.alertText, { color: a.severity === 'CRITICAL' ? '#991B1B' : '#92400E' }]}>
-                {a.title}: {a.recommendedAction}
-              </Text>
+          <Text style={s.cardTitle}>🤝 Neighbor Transfer</Text>
+          <Text style={s.cardSub}>
+            Share surplus solar energy directly with neighbors at peer-to-peer tariff
+          </Text>
+
+          {/* Live P2P gauges */}
+          {telemetry && (
+            <View style={s.telGrid}>
+              <View style={s.telCell}>
+                <Text style={s.telEmoji}>⚡</Text>
+                <Text style={s.telVal}>{neighborKw.toFixed(2)} kW</Text>
+                <Text style={s.telLbl}>Transfer Rate</Text>
+              </View>
+              <View style={s.telCell}>
+                <Text style={s.telEmoji}>🔌</Text>
+                <Text style={s.telVal}>{neighborV.toFixed(1)} V</Text>
+                <Text style={s.telLbl}>Line Voltage</Text>
+              </View>
+              <View style={s.telCell}>
+                <Text style={s.telEmoji}>📦</Text>
+                <Text style={s.telVal}>{neighborKwh.toFixed(2)} kWh</Text>
+                <Text style={s.telLbl}>Delivered Total</Text>
+              </View>
+              <View style={s.telCell}>
+                <Text style={s.telEmoji}>🏘️</Text>
+                <Text style={s.telVal}>{neighborLinks}</Text>
+                <Text style={s.telLbl}>Active P2P Links</Text>
+              </View>
             </View>
-          ))}
+          )}
+
+          {/* Value summary */}
+          {hasProfile && monthlySurplusKwh > 0 ? (
+            <>
+              <Text style={s.bigNum}>{fmt(transferValue || monthlySurplusRevenue * 0.3, currency.symbol)}</Text>
+              <Text style={s.bigUnit}>transfer credit value / month</Text>
+            </>
+          ) : (
+            <>
+              <Text style={s.bigNum}>{fmt(neighborKw * 24 * 30 * tariff, currency.symbol)}</Text>
+              <Text style={s.bigUnit}>projected neighbor revenue / month at live rate</Text>
+            </>
+          )}
+
+          {/* Manual kWh input */}
+          <Text style={[s.inputLabel, { marginTop: Spacing.sm }]}>
+            Set monthly transfer target (kWh)
+            {hasProfile && ` — max available: ${monthlySurplusKwh.toFixed(1)} kWh`}
+          </Text>
+          <TextInput
+            style={s.inputBox}
+            value={transferKwh}
+            onChangeText={setTransferKwh}
+            keyboardType="decimal-pad"
+            placeholder={hasProfile ? `max ${monthlySurplusKwh.toFixed(0)} kWh` : 'e.g. 150'}
+            placeholderTextColor={C.placeholder}
+          />
+
+          <View style={s.switchRow}>
+            <View>
+              <Text style={s.switchLabel}>Enable P2P Transfer</Text>
+              <Text style={s.switchSub}>Open microgrid link to neighbor subscribers</Text>
+            </View>
+            <Switch
+              value={neighbourTransferEnabled}
+              onValueChange={toggleNeighbourTransfer}
+              trackColor={{ false: C.border, true: C.info }}
+              thumbColor="#fff"
+            />
+          </View>
         </View>
-      )}
-    </View>
-  );
+
+        {/* ── P2P Consumer Connection Invitation Panel ── */}
+        <View style={s.card}>
+          <Text style={s.cardTitle}>✉️ Invite Neighbor Consumer</Text>
+          <Text style={s.cardSub}>Generate invitation details or codes for neighbors to join your supply contract</Text>
+
+          <Text style={s.inputLabel}>Neighbor Email (Optional)</Text>
+          <TextInput
+            style={s.inputBox}
+            value={inviteEmail}
+            onChangeText={setInviteEmail}
+            placeholder="neighbor@community.com"
+            placeholderTextColor={C.placeholder}
+            autoCapitalize="none"
+          />
+
+          <Text style={[s.inputLabel, { marginTop: Spacing.xs }]}>Neighbor Phone Number (Optional)</Text>
+          <TextInput
+            style={s.inputBox}
+            value={invitePhone}
+            onChangeText={setInvitePhone}
+            placeholder="+234..."
+            placeholderTextColor={C.placeholder}
+          />
+
+          <Text style={[s.inputLabel, { marginTop: Spacing.xs }]}>Peer-to-Peer Tariff ({currency.symbol}/kWh)</Text>
+          <TextInput
+            style={s.inputBox}
+            value={inviteTariff}
+            onChangeText={setInviteTariff}
+            keyboardType="decimal-pad"
+            placeholder="180"
+            placeholderTextColor={C.placeholder}
+          />
+
+          <Text style={[s.inputLabel, { marginTop: Spacing.xs }]}>Billing Mode</Text>
+          <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
+            {(['PREPAID', 'POSTPAID', 'HYBRID'] as const).map((cycle) => (
+              <TouchableOpacity
+                key={cycle}
+                style={[{
+                  paddingVertical: 6, paddingHorizontal: 12, borderRadius: BorderRadius.full,
+                  borderWidth: 1, borderColor: C.border, backgroundColor: C.divider
+                }, inviteCycle === cycle && { backgroundColor: C.primary, borderColor: C.primary }]}
+                onPress={() => setInviteCycle(cycle)}
+              >
+                <Text style={[{ fontSize: 10, fontWeight: '700', color: C.textSecondary }, inviteCycle === cycle && { color: '#fff' }]}>
+                  {cycle}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <TouchableOpacity
+            style={[s.btn, { backgroundColor: C.primary, marginTop: Spacing.md }]}
+            onPress={handleCreateInvite}
+            disabled={isCreatingInvite}
+          >
+            <Text style={s.btnText}>{isCreatingInvite ? 'Generating...' : '🎟️ Generate Invitation Code'}</Text>
+          </TouchableOpacity>
+
+          {/* Invitation code outputs */}
+          {consumerInvite && (
+            <View style={{ marginTop: Spacing.md, padding: Spacing.sm, backgroundColor: C.divider, borderRadius: BorderRadius.xs, borderWidth: 1, borderColor: C.border, alignItems: 'center' }}>
+              <Text style={{ color: C.textSecondary, fontSize: 11 }}>INVITATION CODE</Text>
+              <Text style={{ color: C.primary, fontSize: 24, fontWeight: '900', letterSpacing: 2, marginVertical: 4 }}>
+                {consumerInvite.invitationCode}
+              </Text>
+              <Text style={{ color: C.textSecondary, fontSize: 10, textAlign: 'center', marginBottom: Spacing.sm }}>
+                Share this code with your neighbor. They can enter it in their REOS Dashboard to link accounts.
+              </Text>
+              {/* Simulated QR Code */}
+              <View style={{ width: 100, height: 100, backgroundColor: '#fff', padding: 8, borderRadius: 4, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: C.border }}>
+                <Text style={{ fontSize: 44 }}>🏁</Text>
+                <Text style={{ color: '#000', fontSize: 6, fontWeight: '700', marginTop: 2 }}>REOS P2P SCAN</Text>
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* Active Connected Consumers List */}
+        <View style={s.card}>
+          <Text style={s.cardTitle}>🏘️ Connected Neighbor Contracts</Text>
+          {activeContract ? (
+            <View style={{ padding: Spacing.sm, backgroundColor: C.surface, borderWidth: 1, borderColor: C.border, borderRadius: BorderRadius.xs }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View>
+                  <Text style={{ color: C.textPrimary, fontWeight: '700', fontSize: 14 }}>
+                    👤 {activeContract.consumer?.firstName || 'Neighbor'} {activeContract.consumer?.lastName || 'Consumer'}
+                  </Text>
+                  <Text style={{ color: C.textSecondary, fontSize: 11 }}>{activeContract.consumer?.email || 'neighbor@reos.io'}</Text>
+                </View>
+                <View style={{ backgroundColor: C.successLight, paddingVertical: 2, paddingHorizontal: 6, borderRadius: BorderRadius.xs }}>
+                  <Text style={{ color: C.success, fontSize: 10, fontWeight: '700' }}>ACTIVE</Text>
+                </View>
+              </View>
+              <View style={{ borderTopWidth: 1, borderTopColor: C.border, marginTop: Spacing.sm, paddingTop: Spacing.sm, flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text style={{ color: C.textSecondary, fontSize: 11 }}>Tariff Rate: ₦{activeContract.tariffRate}/kWh</Text>
+                <Text style={{ color: C.textSecondary, fontSize: 11 }}>Mode: {activeContract.billingCycle}</Text>
+              </View>
+            </View>
+          ) : (
+            <Text style={{ color: C.textSecondary, fontSize: 12, textAlign: 'center', marginVertical: Spacing.sm }}>
+              No active energy sharing contracts. Generate an invite code above to connect!
+            </Text>
+          )}
+        </View>
+
+        {/* P2P Fault Alerts */}
+        {activeAlerts.filter(a => a.code.includes('NEIGHBOUR')).length > 0 && (
+          <View style={s.card}>
+            <Text style={[s.cardTitle, { color: C.error, fontSize: 13 }]}>⚠️ P2P Link Faults</Text>
+            {activeAlerts.filter(a => a.code.includes('NEIGHBOUR')).map(a => (
+              <View key={a.id} style={[s.alertPill, a.severity === 'CRITICAL' ? s.alertCrit : s.alertWarn]}>
+                <Text style={[s.alertText, { color: a.severity === 'CRITICAL' ? '#991B1B' : '#92400E' }]}>
+                  {a.title}: {a.recommendedAction}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
     <View>

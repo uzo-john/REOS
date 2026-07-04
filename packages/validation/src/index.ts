@@ -5,13 +5,25 @@ export const RegisterSchema = z.object({
   password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
   firstName: z.string().min(1, { message: 'First name is required' }),
   lastName: z.string().min(1, { message: 'Last name is required' }),
-  role: z.enum(['CUSTOMER', 'INSTALLER', 'ENGINEER', 'ADMIN']).optional(),
+  role: z.enum(['CUSTOMER', 'SYSTEM_OWNER', 'CONSUMER', 'INSTALLER', 'ENGINEER', 'ADMIN', 'PLANT_OPERATOR']).optional(),
 });
 
 export const LoginSchema = z.object({
   email: z.string().email({ message: 'Invalid email address' }),
   password: z.string().min(1, { message: 'Password is required' }),
 });
+
+export const ConsumerInviteSchema = z.object({
+  email: z.string().email().optional().nullable(),
+  phoneNumber: z.string().optional().nullable(),
+  tariffRate: z.number().positive(),
+  billingCycle: z.enum(['PREPAID', 'POSTPAID', 'HYBRID']).default('PREPAID'),
+});
+
+export const AcceptInviteSchema = z.object({
+  invitationCode: z.string().min(6, { message: 'Invitation code must be at least 6 characters' }),
+});
+
 
 export const ProjectCreateSchema = z.object({
   name: z.string().min(3, { message: 'Project name must be at least 3 characters' }),

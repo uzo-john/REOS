@@ -1,4 +1,4 @@
-export type UserRole = 'CUSTOMER' | 'INSTALLER' | 'ENGINEER' | 'ADMIN' | 'PLANT_OPERATOR';
+export type UserRole = 'CUSTOMER' | 'SYSTEM_OWNER' | 'CONSUMER' | 'INSTALLER' | 'ENGINEER' | 'ADMIN' | 'PLANT_OPERATOR';
 
 export interface PlantConfig {
   plantName: string;
@@ -139,3 +139,103 @@ export interface AIResponse {
   content: string;
   timestamp: Date;
 }
+
+export interface ConsumerInvitation {
+  id: string;
+  invitationCode: string;
+  supplierId: string;
+  email?: string | null;
+  phoneNumber?: string | null;
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface EnergyContract {
+  id: string;
+  supplierId: string;
+  consumerId: string;
+  connectionStatus: 'ACTIVE' | 'SUSPENDED' | 'TERMINATED';
+  contractDate: Date;
+  tariffRate: number;
+  billingCycle: 'PREPAID' | 'POSTPAID' | 'HYBRID';
+  balance: number;
+  gatewayId?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Device {
+  id: string;
+  name: string;
+  type: string;
+  manufacturer?: string | null;
+  model?: string | null;
+  firmwareVersion?: string | null;
+  protocol: string;
+  status: 'ONLINE' | 'OFFLINE' | 'MAINTENANCE';
+  signalStrength?: number | null;
+  communicationQuality?: number | null;
+  lastCommTime: Date;
+  ownerId?: string | null;
+  projectId?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Telemetry {
+  id: string;
+  deviceId: string;
+  timestamp: Date;
+  voltage?: number | null;
+  current?: number | null;
+  activePower?: number | null;
+  reactivePower?: number | null;
+  apparentPower?: number | null;
+  frequency?: number | null;
+  powerFactor?: number | null;
+  energyImported?: number | null;
+  energyExported?: number | null;
+  batterySoc?: number | null;
+  status?: string | null;
+  alarmStatus?: string | null;
+  commQuality?: number | null;
+}
+
+export interface Invoice {
+  id: string;
+  contractId: string;
+  amount: number;
+  tariffRate: number;
+  energyReceivedKwh: number;
+  billingPeriodStart: Date;
+  billingPeriodEnd: Date;
+  dueDate: Date;
+  status: 'PAID' | 'UNPAID' | 'OVERDUE';
+  pdfUrl?: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Transaction {
+  id: string;
+  contractId: string;
+  type: 'PREPAID_PURCHASE' | 'BILL_PAYMENT' | 'CREDIT_TRANSFER';
+  amount: number;
+  currency: string;
+  paymentGateway?: string | null;
+  status: 'PENDING' | 'SUCCESSFUL' | 'FAILED';
+  reference?: string | null;
+  createdAt: Date;
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: 'ALERT' | 'BILLING' | 'SYSTEM' | 'INFO';
+  read: boolean;
+  createdAt: Date;
+}
+

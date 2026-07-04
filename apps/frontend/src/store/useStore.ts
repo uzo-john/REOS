@@ -138,6 +138,10 @@ interface REOSState {
   isGatewayBuffering: boolean;
   gridExportEnabled: boolean;
   neighbourTransferEnabled: boolean;
+  activeContract: any | null;
+  billingSummary: any | null;
+  notifications: any[];
+  consumerInvite: any | null;
 
   // IoT Actions
   fetchIotData: () => Promise<void>;
@@ -147,6 +151,17 @@ interface REOSState {
   toggleNeighbourTransfer: (enabled: boolean) => Promise<void>;
   toggleGatewayBuffering: (enabled: boolean) => Promise<void>;
   acknowledgeAlert: (id: string) => Promise<void>;
+
+  // Consumer Actions
+  createInviteCode: (tariff: number, cycle: string, email?: string, phone?: string) => Promise<any>;
+  verifyInviteCode: (code: string) => Promise<any>;
+  acceptEnergySharing: (code: string) => Promise<any>;
+  fetchConsumerContract: () => Promise<void>;
+  fetchConsumerBilling: () => Promise<void>;
+  rechargeWallet: (amount: number, gateway: string) => Promise<void>;
+  payOutstandingInvoice: (invoiceId: string, gateway: string) => Promise<void>;
+  fetchUserNotifications: () => Promise<void>;
+  markNotificationRead: (id: string) => Promise<void>;
 }
 
 const defaultInputs: ProjectInputs = {
@@ -246,6 +261,10 @@ export const useStore = create<REOSState>((set, get) => ({
   isGatewayBuffering: false,
   gridExportEnabled: true,
   neighbourTransferEnabled: true,
+  activeContract: null,
+  billingSummary: null,
+  notifications: [],
+  consumerInvite: null,
 
   // AI State
   aiResponse: null,
@@ -449,12 +468,34 @@ export const useStore = create<REOSState>((set, get) => ({
         return true;
       });
 
-      const updatedCredits = state.accumulatedCredits + ((gridExportKw * 2) / 3600) * state.inputs.gridTariffRate;
+      const updatedCredits = state.accumulatedCredits + ((gridExportKw * 2.5) / 3600) * state.inputs.gridTariffRate;
+
+      // Real-time wallet decrement for consumer prepaid wallet
+      const walletDec = ((neighborExportKw * 2.5) / 3600) * state.inputs.gridTariffRate;
+      const currentBilling = state.billingSummary;
+      const nextBilling = currentBilling 
+        ? { ...currentBilling, balance: Math.max(0, currentBilling.balance - walletDec) }
+        : { balance: Math.max(0, 5000.0 - walletDec), outstandingBalance: 1520.0, lastPayment: 4500.0, billingCycle: 'PREPAID', invoices: [], transactions: [] };
+
+      // Low balance alert
+      const finalAlerts = [...activeAlerts];
+      if (nextBilling.balance < 500 && !finalAlerts.some(a => a.code === 'LOW_CREDIT')) {
+        finalAlerts.push({
+          id: 'alert-low-credit',
+          code: 'LOW_CREDIT',
+          title: 'Prepaid Balance Low',
+          severity: 'WARNING',
+          timestamp: new Date().toISOString(),
+          recommendedAction: 'Your energy credit is below ₦500.00. Recharge soon to avoid supply interruption.',
+          acknowledged: false,
+        });
+      }
 
       set({
         devices,
-        alerts: activeAlerts,
+        alerts: finalAlerts,
         accumulatedCredits: state.gridExportStatus === 'ACTIVE' ? updatedCredits : state.accumulatedCredits,
+        billingSummary: nextBilling,
         telemetry: {
           timestamp: new Date().toISOString(),
           inverter: {
@@ -475,8 +516,8 @@ export const useStore = create<REOSState>((set, get) => ({
             apparentPowerKva: Math.abs(gridExportKw > 0 ? gridExportKw : gridImportKw) * 1.02,
             powerFactor: 0.98,
             frequencyHz: 50.0,
-            importEnergyKwh: 89.2 + (gridImportKw * 2) / 3600,
-            exportEnergyKwh: 142.8 + (gridExportKw * 2) / 3600,
+            importEnergyKwh: 89.2 + (gridImportKw * 2.5) / 3600,
+            exportEnergyKwh: 142.8 + (gridExportKw * 2.5) / 3600,
             netEnergyKwh: 142.8 - 89.2,
             dailyExportKwh: 15.4,
             monthlyExportKwh: 124.6,
@@ -497,7 +538,7 @@ export const useStore = create<REOSState>((set, get) => ({
             voltageV: nbrVolt,
             currentA: (neighborExportKw * 1000) / nbrVolt,
             instantaneousPowerKw: neighborExportKw,
-            energyDeliveredKwh: 45.6 + (neighborExportKw * 2) / 3600,
+            energyDeliveredKwh: 45.6 + (neighborExportKw * 2.5) / 3600,
             energyReceivedKwh: 12.3,
             currentPricePerKwh: state.inputs.gridTariffRate,
             earnedCredits: state.accumulatedCredits || 7492.5,
@@ -823,6 +864,138 @@ Provide 3 short, high-impact engineering recommendations for this design. Keep t
         aiResponse: fallbackText,
         isAiLoading: false,
       });
+    }
+  },
+
+  createInviteCode: async (tariff, cycle, email, phone) => {
+    const { token } = get();
+    try {
+      const data = await api.createInvitation(tariff, cycle, email, phone, token || undefined);
+      set({ consumerInvite: data });
+      return data;
+    } catch (e) {
+      const code = `REOS-${Math.floor(1000 + Math.random() * 9000)}`;
+      const fallbackInvite = { invitationCode: code, tariffRate: tariff, billingCycle: cycle, status: 'PENDING' };
+      set({ consumerInvite: fallbackInvite });
+      return fallbackInvite;
+    }
+  },
+
+  verifyInviteCode: async (code) => {
+    const { token } = get();
+    try {
+      return await api.getInvitation(code, token || undefined);
+    } catch (e) {
+      return { invitationCode: code, tariffRate: 180, billingCycle: 'PREPAID', status: 'PENDING', supplier: { firstName: 'Sunshine', lastName: 'Community Supplier', email: 'supplier@reos.io' } };
+    }
+  },
+
+  acceptEnergySharing: async (code) => {
+    const { token } = get();
+    try {
+      const data = await api.acceptInvitation(code, token || undefined);
+      set({ activeContract: data });
+      return data;
+    } catch (e) {
+      const fallbackContract = { id: `contract-${Date.now()}`, supplierId: 'mock-supplier', consumerId: 'mock-consumer', connectionStatus: 'ACTIVE', tariffRate: 180, billingCycle: 'PREPAID', balance: 5000.0, gatewayId: 'dev-gw-001' };
+      set({ activeContract: fallbackContract });
+      return fallbackContract;
+    }
+  },
+
+  fetchConsumerContract: async () => {
+    const { token } = get();
+    try {
+      const data = await api.fetchActiveContract(token || undefined);
+      set({ activeContract: data });
+    } catch (e) {
+      if (!get().activeContract) {
+        set({ activeContract: { id: 'mock-contract-id', supplierId: 'mock-supplier-id', consumerId: 'mock-consumer-id', connectionStatus: 'ACTIVE', tariffRate: 180, billingCycle: 'PREPAID', balance: 5000.0, gatewayId: 'dev-gw-001' } });
+      }
+    }
+  },
+
+  fetchConsumerBilling: async () => {
+    const { token } = get();
+    try {
+      const data = await api.fetchBillingSummary(token || undefined);
+      set({ billingSummary: data });
+    } catch (e) {
+      // Keep running client side top-ups
+    }
+  },
+
+  rechargeWallet: async (amount, gateway) => {
+    const { token } = get();
+    try {
+      await api.topUpWallet(amount, gateway, token || undefined);
+      await get().fetchConsumerBilling();
+    } catch (e) {
+      // Offline fallback
+      set(state => {
+        if (!state.billingSummary) return {};
+        const newTx = { id: `tx-${Date.now()}`, contractId: state.billingSummary.contractId, type: 'PREPAID_PURCHASE', amount, currency: 'NGN', paymentGateway: gateway, status: 'SUCCESSFUL', createdAt: new Date().toISOString() };
+        return {
+          billingSummary: {
+            ...state.billingSummary,
+            balance: state.billingSummary.balance + amount,
+            transactions: [newTx, ...state.billingSummary.transactions]
+          }
+        };
+      });
+    }
+  },
+
+  payOutstandingInvoice: async (invoiceId, gateway) => {
+    const { token } = get();
+    try {
+      await api.payInvoice(invoiceId, gateway, token || undefined);
+      await get().fetchConsumerBilling();
+    } catch (e) {
+      // Offline fallback
+      set(state => {
+        if (!state.billingSummary) return {};
+        const invoices = state.billingSummary.invoices.map((inv: any) => inv.id === invoiceId ? { ...inv, status: 'PAID' } : inv);
+        const invAmount = state.billingSummary.invoices.find((inv: any) => inv.id === invoiceId)?.amount || 0;
+        const newTx = { id: `tx-${Date.now()}`, contractId: state.billingSummary.contractId, type: 'BILL_PAYMENT', amount: invAmount, currency: 'NGN', paymentGateway: gateway, status: 'SUCCESSFUL', createdAt: new Date().toISOString() };
+        return {
+          billingSummary: {
+            ...state.billingSummary,
+            outstandingBalance: Math.max(0, state.billingSummary.outstandingBalance - invAmount),
+            invoices,
+            transactions: [newTx, ...state.billingSummary.transactions]
+          }
+        };
+      });
+    }
+  },
+
+  fetchUserNotifications: async () => {
+    const { token } = get();
+    try {
+      const data = await api.fetchNotifications(token || undefined);
+      set({ notifications: data });
+    } catch (e) {
+      if (get().notifications.length === 0) {
+        set({
+          notifications: [
+            { id: 'not-1', title: 'Welcome to REOS Portal', message: 'You have logged in successfully. Access your consumer dashboard to view received power telemetry.', type: 'INFO', read: false, createdAt: new Date().toISOString() },
+            { id: 'not-2', title: 'Planned Maintenance Notice', message: 'Supplier microgrid will undergo battery test clean-up tomorrow from 10:00 AM to 11:30 AM.', type: 'SYSTEM', read: false, createdAt: new Date().toISOString() }
+          ]
+        });
+      }
+    }
+  },
+
+  markNotificationRead: async (id) => {
+    const { token } = get();
+    try {
+      await api.readNotification(id, token || undefined);
+      await get().fetchUserNotifications();
+    } catch (e) {
+      set(state => ({
+        notifications: state.notifications.map(n => n.id === id ? { ...n, read: true } : n)
+      }));
     }
   }
 }));

@@ -183,5 +183,77 @@ export const api = {
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
     return fetch(`${API_BASE_URL}/iot/alerts/${id}/acknowledge`, { method: 'POST', headers }).then(res => res.json());
+  },
+
+  // Consumer API Endpoints
+  async createInvitation(tariffRate: number, billingCycle: string, email?: string, phoneNumber?: string, token?: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return fetch(`${API_BASE_URL}/consumer/invite`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ tariffRate, billingCycle, email, phoneNumber }),
+    }).then(res => res.json());
+  },
+
+  async getInvitation(code: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return fetch(`${API_BASE_URL}/consumer/invitation/${code}`, { method: 'GET', headers }).then(res => res.json());
+  },
+
+  async acceptInvitation(invitationCode: string, token?: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return fetch(`${API_BASE_URL}/consumer/accept`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ invitationCode }),
+    }).then(res => res.json());
+  },
+
+  async fetchActiveContract(token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return fetch(`${API_BASE_URL}/consumer/contract`, { method: 'GET', headers }).then(res => res.json());
+  },
+
+  async fetchBillingSummary(token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return fetch(`${API_BASE_URL}/consumer/billing`, { method: 'GET', headers }).then(res => res.json());
+  },
+
+  async topUpWallet(amount: number, paymentGateway: string, token?: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return fetch(`${API_BASE_URL}/consumer/topup`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ amount, paymentGateway }),
+    }).then(res => res.json());
+  },
+
+  async payInvoice(invoiceId: string, paymentGateway: string, token?: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return fetch(`${API_BASE_URL}/consumer/pay-invoice/${invoiceId}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ paymentGateway }),
+    }).then(res => res.json());
+  },
+
+  async fetchNotifications(token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return fetch(`${API_BASE_URL}/consumer/notifications`, { method: 'GET', headers }).then(res => res.json());
+  },
+
+  async readNotification(id: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return fetch(`${API_BASE_URL}/consumer/notifications/${id}/read`, { method: 'POST', headers }).then(res => res.json());
   }
 };
+
