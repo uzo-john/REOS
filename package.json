@@ -13,5 +13,8 @@
     "backend:build": "npm run build --workspace=apps/backend",
     "frontend:start": "npm run start --workspace=apps/frontend",
     "test": "npm run test --workspaces"
+  },
+  "dependencies": {
+    "react-native": "^0.85.3"
   }
 }

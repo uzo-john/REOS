@@ -1,846 +1,189 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  StyleSheet, 
-  Text, 
-  View, 
-  ScrollView, 
-  SafeAreaView, 
-  TouchableOpacity, 
-  StatusBar, 
-  Modal, 
-  TextInput,
-  ActivityIndicator 
-} from 'react-native';
-import { Colors, Spacing, BorderRadius } from '@reos/ui';
-import { useStore } from './src/store/useStore';
-import { UserRole } from '@reos/types';
-import { WorkspaceCard } from './src/components/WorkspaceCard';
-import { LoadAssessmentCard } from './src/components/LoadAssessmentCard';
-import { SolarPvCard } from './src/components/SolarPvCard';
-import { BatterySizingCard } from './src/components/BatterySizingCard';
-import { CableSizingCard } from './src/components/CableSizingCard';
-import { InverterSizingCard } from './src/components/InverterSizingCard';
-import { AiAssistantPanel } from './src/components/AiAssistantPanel';
-import { CustomerDashboard } from './src/components/CustomerDashboard';
-import { InstallerDashboard } from './src/components/InstallerDashboard';
-import { AiChatModal } from './src/components/AiChatModal';
-import { DownloadReportButton } from './src/components/DownloadReportButton';
-import { PlantOperatorDashboard } from './src/components/PlantOperatorDashboard';
-import { ConsumerPortal } from './src/components/ConsumerPortal';
+import "react-native-gesture-handler";
+import "./polyfill";
+import React, { useEffect } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { StatusBar } from "react-native";
+import { NavigationContainer } from "@react-navigation/native";
+import { createDrawerNavigator } from "@react-navigation/drawer";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { useStore } from "./src/store/useStore";
 
-export default function App() {
-  const { 
-    theme, 
-    userRole, 
-    userMode, 
-    results, 
-    setRole, 
-    setMode, 
-    toggleTheme,
-    // Auth State & Actions
-    token,
-    user,
-    isAuthenticated,
-    authError,
-    login,
-    register,
-    logout,
-    // Project State & Actions
-    currentProjectId,
-    projectsList,
-    isSaving,
-    isDbOffline,
-    saveProject,
-    loadProject,
-    fetchUserProjects,
-    fetchIotData,
-  } = useStore();
+// Screens
+import LoginScreen from "./src/screens/LoginScreen";
+import OverviewScreen from "./src/screens/OverviewScreen";
+import MonitoringScreen from "./src/screens/MonitoringScreen";
+import SolarDesignScreen from "./src/screens/SolarDesignScreen";
+import DeviceManagementScreen from "./src/screens/DeviceManagementScreen";
+import AIForecastingScreen from "./src/screens/AIForecastingScreen";
+import AIChatScreen from "./src/screens/AIChatScreen";
+import BillingScreen from "./src/screens/BillingScreen";
+import TradingScreen from "./src/screens/TradingScreen";
+import FleetScreen from "./src/screens/FleetScreen";
+import AlarmScreen from "./src/screens/AlarmScreen";
+import MaintenanceScreen from "./src/screens/MaintenanceScreen";
+import AnalyticsScreen from "./src/screens/AnalyticsScreen";
+import SettingsScreen from "./src/screens/SettingsScreen";
 
-  const activeColors = Colors[theme];
+// Drawer Content
+import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { DrawerContentScrollView } from "@react-navigation/drawer";
 
-  // Local UI States
-  const [expandedCard, setExpandedCard] = useState<string | null>('load');
-  const [isAuthModalVisible, setIsAuthModalVisible] = useState(false);
-  const [isProjectsModalVisible, setIsProjectsModalVisible] = useState(false);
-  const [isSaveModalVisible, setIsSaveModalVisible] = useState(false);
-  const [isAiChatVisible, setIsAiChatVisible] = useState(false);
+const Drawer = createDrawerNavigator();
+const Stack = createNativeStackNavigator();
 
-  // User type selection (shown after login)
-  const [userType, setUserType] = useState<'CUSTOMER' | 'PLATFORM_USER' | null>(null);
-  const [isUserTypeModalVisible, setIsUserTypeModalVisible] = useState(false);
+const NAV_ITEMS = [
+  { name: "Overview",    label: "Dashboard",         icon: "⚡" },
+  { name: "Monitoring",  label: "Live Monitoring",   icon: "📡" },
+  { name: "SolarDesign", label: "Solar Design",      icon: "☀️" },
+  { name: "Devices",     label: "Device Manager",    icon: "🔌" },
+  { name: "AIForecast",  label: "AI Forecasting",    icon: "🤖" },
+  { name: "AIChat",      label: "AI Assistant",      icon: "💬" },
+  { name: "Analytics",   label: "Energy Analytics",  icon: "📊" },
+  { name: "Billing",     label: "Billing",           icon: "💰" },
+  { name: "Trading",     label: "P2P Trading",       icon: "🔄" },
+  { name: "Fleet",       label: "Fleet Dashboard",   icon: "🏭" },
+  { name: "Alarms",      label: "Alarm Center",      icon: "🚨" },
+  { name: "Maintenance", label: "Maintenance",       icon: "🔧" },
+  { name: "Settings",    label: "Settings",          icon: "⚙️" },
+];
 
-  // Form Inputs
-  const [isRegisterMode, setIsRegisterMode] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [projectName, setProjectName] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
-
-  // Fetch projects on mount / auth change
-  useEffect(() => {
-    fetchUserProjects();
-  }, [isAuthenticated]);
-
-  // Poll live telemetry every 2.5 seconds
-  useEffect(() => {
-    fetchIotData();
-    const interval = setInterval(() => {
-      fetchIotData();
-    }, 2500);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleCardToggle = (card: string) => {
-    setExpandedCard(expandedCard === card ? null : card);
-  };
-
-  const handleAuthSubmit = async () => {
-    setErrorMessage('');
-    try {
-      if (isRegisterMode) {
-        await register({ email, password, firstName, lastName });
-      } else {
-        await login({ email, password });
-      }
-      setIsAuthModalVisible(false);
-      // Reset form
-      setEmail('');
-      setPassword('');
-      setFirstName('');
-      setLastName('');
-      // Show user-type picker after successful login
-      setIsUserTypeModalVisible(true);
-    } catch (err: any) {
-      setErrorMessage(err.message || 'Authentication failed');
-    }
-  };
-
-  const handleSelectUserType = (type: 'CUSTOMER' | 'PLATFORM_USER') => {
-    setUserType(type);
-    setIsUserTypeModalVisible(false);
-    if (type === 'CUSTOMER') {
-      setRole('CONSUMER');
-    } else {
-      setRole('SYSTEM_OWNER');
-    }
-  };
-
-  const handleLogout = () => {
-    logout();
-    setUserType(null);
-    setRole('SYSTEM_OWNER');
-  };
-
-  const handleSaveSubmit = async () => {
-    if (!projectName.trim()) return;
-    try {
-      await saveProject(projectName);
-      setIsSaveModalVisible(false);
-      setProjectName('');
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleLoadProject = async (id: string) => {
-    await loadProject(id);
-    setIsProjectsModalVisible(false);
-  };
-
-  const mainStyles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: activeColors.background,
-    },
-    header: {
-      paddingHorizontal: Spacing.md,
-      paddingTop: Spacing.sm,
-      paddingBottom: Spacing.xs,
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      borderBottomWidth: 1,
-      borderBottomColor: activeColors.border,
-      backgroundColor: activeColors.card,
-    },
-    headerTitle: {
-      color: activeColors.textPrimary,
-      fontWeight: '700',
-      fontSize: 18,
-    },
-    headerSubtitle: {
-      color: activeColors.primary,
-      fontWeight: '600',
-      fontSize: 10,
-      letterSpacing: 1,
-    },
-    navGroup: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    btnNav: {
-      paddingVertical: 6,
-      paddingHorizontal: 10,
-      borderRadius: BorderRadius.xs,
-      backgroundColor: activeColors.divider,
-      marginLeft: Spacing.xs,
-    },
-    btnNavText: {
-      color: activeColors.textSecondary,
-      fontSize: 12,
-      fontWeight: '500',
-    },
-    workspace: {
-      flex: 1,
-      padding: Spacing.md,
-    },
-    configBar: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      backgroundColor: activeColors.card,
-      borderColor: activeColors.border,
-      borderWidth: 1,
-      borderRadius: BorderRadius.sm,
-      padding: Spacing.sm,
-      marginBottom: Spacing.md,
-    },
-    configText: {
-      color: activeColors.textPrimary,
-      fontSize: 12,
-      fontWeight: '600',
-    },
-    roleSelector: {
-      flexDirection: 'row',
-      backgroundColor: activeColors.divider,
-      borderRadius: BorderRadius.xs,
-      padding: 2,
-    },
-    roleBtn: {
-      paddingVertical: 3,
-      paddingHorizontal: 6,
-      borderRadius: BorderRadius.xs,
-      marginLeft: 4,
-    },
-    roleBtnActive: {
-      backgroundColor: activeColors.primary,
-    },
-    roleBtnText: {
-      color: activeColors.textSecondary,
-      fontSize: 10,
-      fontWeight: '600',
-    },
-    roleBtnTextActive: {
-      color: '#fff',
-    },
-    // Modal Styles
-    modalOverlay: {
-      flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.6)',
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: Spacing.lg,
-    },
-    modalContent: {
-      width: '100%',
-      maxWidth: 400,
-      backgroundColor: activeColors.card,
-      borderColor: activeColors.border,
-      borderWidth: 1,
-      borderRadius: BorderRadius.md,
-      padding: Spacing.lg,
-    },
-    modalTitle: {
-      color: activeColors.textPrimary,
-      fontSize: 18,
-      fontWeight: '700',
-      marginBottom: Spacing.md,
-    },
-    inputGroup: {
-      marginBottom: Spacing.md,
-    },
-    inputLabel: {
-      color: activeColors.textSecondary,
-      fontSize: 12,
-      fontWeight: '500',
-      marginBottom: Spacing.xs,
-    },
-    input: {
-      backgroundColor: activeColors.divider,
-      borderColor: activeColors.border,
-      borderWidth: 1,
-      borderRadius: BorderRadius.xs,
-      padding: Spacing.xs,
-      color: activeColors.textPrimary,
-      fontSize: 14,
-    },
-    modalButtons: {
-      flexDirection: 'row',
-      justifyContent: 'flex-end',
-      marginTop: Spacing.xs,
-    },
-    btnModalClose: {
-      paddingVertical: 8,
-      paddingHorizontal: 12,
-      borderRadius: BorderRadius.xs,
-      backgroundColor: activeColors.divider,
-    },
-    btnModalSubmit: {
-      paddingVertical: 8,
-      paddingHorizontal: 12,
-      borderRadius: BorderRadius.xs,
-      backgroundColor: activeColors.primary,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginLeft: Spacing.xs,
-    },
-    btnModalSubmitText: {
-      color: '#fff',
-      fontWeight: '600',
-    },
-    errorText: {
-      color: activeColors.error,
-      fontSize: 12,
-    },
-    projectItem: {
-      padding: Spacing.sm,
-      backgroundColor: activeColors.divider,
-      borderColor: activeColors.border,
-      borderWidth: 1,
-      borderRadius: BorderRadius.xs,
-      marginBottom: Spacing.xs,
-    },
-    projectItemTitle: {
-      color: activeColors.textPrimary,
-      fontWeight: '600',
-      fontSize: 14,
-    },
-    projectItemMeta: {
-      color: activeColors.textSecondary,
-      fontSize: 11,
-      marginTop: 2,
-    },
-    badgeOffline: {
-      backgroundColor: activeColors.warningLight,
-      borderColor: activeColors.warning,
-      borderWidth: 1,
-      borderRadius: BorderRadius.xs,
-      paddingVertical: 4,
-      paddingHorizontal: 8,
-      marginBottom: Spacing.md,
-    },
-    badgeOfflineText: {
-      color: activeColors.warning,
-      fontSize: 11,
-      fontWeight: '600',
-      textAlign: 'center',
-    }
-  });
-
-  const getLoadStatus = () => results.load ? 'PASS' : 'PENDING';
-  const getSolarStatus = () => results.solar ? 'PASS' : 'PENDING';
-  const getBatteryStatus = () => results.battery ? 'PASS' : 'PENDING';
-  const getInverterStatus = () => results.inverter ? 'PASS' : 'PENDING';
-
-  const getCableStatus = () => {
-    if (!results.cable) return 'PENDING';
-    return results.cable.passesCheck ? 'PASS' : 'ERROR';
-  };
-
-  // CONSUMER is accessed via the login user-type picker, not the public role bar
-  const roles: { role: UserRole; icon: string; desc: string }[] = [
-    { role: 'SYSTEM_OWNER',    icon: '🏠', desc: 'System Owner' },
-    { role: 'INSTALLER',       icon: '🔧', desc: 'Site & BOM' },
-    { role: 'ENGINEER',        icon: '⚙️', desc: 'Full Workspace' },
-    { role: 'PLANT_OPERATOR',  icon: '🌱', desc: 'Mini-Grid Ops' },
-  ];
+function CustomDrawerContent(props: any) {
+  const { userRole, user, theme, logout, alerts } = useStore();
+  const isDark = theme === "dark";
+  const bg = isDark ? "#0A0E1A" : "#F8FAFC";
+  const cardBg = isDark ? "#111827" : "#FFFFFF";
+  const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
+  const textPrimary = isDark ? "#F1F5F9" : "#0F172A";
+  const textSecondary = isDark ? "#94A3B8" : "#64748B";
+  const activeBg = isDark ? "rgba(0,212,255,0.12)" : "rgba(0,162,194,0.10)";
+  const activeText = isDark ? "#00D4FF" : "#0284C7";
+  const activeAlarms = alerts?.filter((a: any) => !a.acknowledged)?.length || 0;
+  const currentRoute = props.state?.routeNames?.[props.state?.index] ?? "";
 
   return (
-    <SafeAreaView style={mainStyles.container}>
-      <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} />
-
-      {/* ── App Header ─────────────────────────────────────────────────── */}
-      <View style={mainStyles.header}>
-        <View>
-          <Text style={mainStyles.headerTitle}>REOS Workspace</Text>
-          <Text style={mainStyles.headerSubtitle}>RENEWABLE ENERGY OS</Text>
+    <View style={{ flex: 1, backgroundColor: bg }}>
+      <View style={{ padding: 20, paddingTop: 56, borderBottomWidth: 1, borderBottomColor: border }}>
+        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+          <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: isDark ? "rgba(0,212,255,0.15)" : "rgba(0,162,194,0.1)", alignItems: "center", justifyContent: "center", marginRight: 12, borderWidth: 1, borderColor: isDark ? "rgba(0,212,255,0.3)" : "rgba(0,162,194,0.3)" }}>
+            <Text style={{ fontSize: 22 }}>⚡</Text>
+          </View>
+          <View>
+            <Text style={{ color: activeText, fontSize: 18, fontWeight: "800", letterSpacing: 0.5 }}>REOS</Text>
+            <Text style={{ color: textSecondary, fontSize: 10, fontWeight: "600", letterSpacing: 1.5 }}>AI ENERGY OS</Text>
+          </View>
         </View>
-        <View style={mainStyles.navGroup}>
-          <TouchableOpacity style={mainStyles.btnNav} onPress={toggleTheme}>
-            <Text style={mainStyles.btnNavText}>{theme === 'dark' ? '☀️ Light' : '🌙 Dark'}</Text>
+        {user ? (
+          <View style={{ backgroundColor: cardBg, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: border }}>
+            <Text style={{ color: textPrimary, fontWeight: "700", fontSize: 14 }}>{user.firstName} {user.lastName}</Text>
+            <Text style={{ color: textSecondary, fontSize: 11, marginTop: 2 }}>{user.email}</Text>
+            <View style={{ marginTop: 6, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: isDark ? "rgba(0,212,255,0.12)" : "rgba(0,162,194,0.1)", borderRadius: 6, alignSelf: "flex-start" }}>
+              <Text style={{ color: activeText, fontSize: 10, fontWeight: "700", letterSpacing: 0.5 }}>{(userRole ?? "GUEST").replace(/_/g, " ")}</Text>
+            </View>
+          </View>
+        ) : (
+          <TouchableOpacity onPress={() => props.navigation.navigate("LoginStack")} style={{ backgroundColor: cardBg, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: border, alignItems: "center" }}>
+            <Text style={{ color: activeText, fontWeight: "700", fontSize: 14 }}>🔑 Sign In to REOS</Text>
           </TouchableOpacity>
-
-          {/* Pro Mode toggle — Engineer only */}
-          {userRole === 'ENGINEER' && (
-            <TouchableOpacity
-              style={[mainStyles.btnNav, { backgroundColor: activeColors.primary }]}
-              onPress={() => setMode(userMode === 'SIMPLE' ? 'PROFESSIONAL' : 'SIMPLE')}
-            >
-              <Text style={[mainStyles.btnNavText, { color: '#fff' }]}>
-                {userMode === 'SIMPLE' ? '⚡ Pro Mode' : '🌱 Simple Mode'}
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          {results.load && (
-            <TouchableOpacity style={mainStyles.btnNav} onPress={() => setIsSaveModalVisible(true)}>
-              <Text style={mainStyles.btnNavText}>💾 Save</Text>
-            </TouchableOpacity>
-          )}
-          <DownloadReportButton compact />
-          <TouchableOpacity style={mainStyles.btnNav} onPress={() => setIsProjectsModalVisible(true)}>
-            <Text style={mainStyles.btnNavText}>📂 Projects</Text>
-          </TouchableOpacity>
-
-          {isAuthenticated ? (
-            <TouchableOpacity style={[mainStyles.btnNav, { backgroundColor: activeColors.error }]} onPress={handleLogout}>
-              <Text style={[mainStyles.btnNavText, { color: '#fff' }]}>🚪 {user?.firstName}</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={[mainStyles.btnNav, { backgroundColor: activeColors.primary }]} onPress={() => setIsAuthModalVisible(true)}>
-              <Text style={[mainStyles.btnNavText, { color: '#fff' }]}>🔑 Login</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        )}
       </View>
 
-      {/* ── Role Selector Bar — hidden for Customer accounts ───────────── */}
-      {userType !== 'CUSTOMER' && (
-        <View style={[mainStyles.configBar, { flexDirection: 'row', alignItems: 'center' }]}>
-          <Text style={[mainStyles.configText, { marginRight: Spacing.sm }]}>View as:</Text>
-          <View style={mainStyles.roleSelector}>
-            {roles.map(({ role, icon, desc }) => (
-              <TouchableOpacity
-                key={role}
-                style={[
-                  mainStyles.roleBtn,
-                  userRole === role && mainStyles.roleBtnActive,
-                  { alignItems: 'center' },
-                ]}
-                onPress={() => setRole(role)}
-              >
-                <Text style={{ fontSize: 14 }}>{icon}</Text>
-                <Text style={[mainStyles.roleBtnText, userRole === role && mainStyles.roleBtnTextActive]}>
-                  {role}
-                </Text>
-                <Text style={{ fontSize: 9, color: userRole === role ? activeColors.primary : activeColors.textSecondary }}>
-                  {desc}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      )}
-
-      {/* ── Workspace ────────────────────────────────────────────────────── */}
-
-      {/* NOT LOGGED IN — show a prompt to login */}
-      {!isAuthenticated && (
-        <ScrollView
-          style={[mainStyles.workspace, { paddingHorizontal: Spacing.md }]}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}
-        >
-          <View style={{
-            backgroundColor: activeColors.card,
-            borderColor: activeColors.border,
-            borderWidth: 1,
-            borderRadius: 16,
-            padding: 32,
-            alignItems: 'center',
-            maxWidth: 360,
-            width: '100%',
-          }}>
-            <Text style={{ fontSize: 48, marginBottom: 12 }}>🌞</Text>
-            <Text style={{ color: activeColors.textPrimary, fontSize: 20, fontWeight: '800', marginBottom: 8, textAlign: 'center' }}>
-              Welcome to REOS
-            </Text>
-            <Text style={{ color: activeColors.textSecondary, fontSize: 13, textAlign: 'center', lineHeight: 20, marginBottom: 24 }}>
-              {'Renewable Energy Operating System.\nPlease log in to access your personalised dashboard.'}
-            </Text>
-            <TouchableOpacity
-              style={{
-                backgroundColor: activeColors.primary,
-                borderRadius: 10,
-                paddingVertical: 14,
-                paddingHorizontal: 32,
-                width: '100%',
-                alignItems: 'center',
-              }}
-              onPress={() => setIsAuthModalVisible(true)}
-            >
-              <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>🔑 Login / Register</Text>
+      <DrawerContentScrollView {...props} contentContainerStyle={{ paddingVertical: 12 }}>
+        {NAV_ITEMS.map((item) => {
+          const isActive = currentRoute === item.name;
+          return (
+            <TouchableOpacity key={item.name} onPress={() => props.navigation.navigate(item.name)}
+              style={{ flexDirection: "row", alignItems: "center", marginHorizontal: 12, marginVertical: 2, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12, backgroundColor: isActive ? activeBg : "transparent", borderWidth: isActive ? 1 : 0, borderColor: isActive ? (isDark ? "rgba(0,212,255,0.2)" : "rgba(0,162,194,0.2)") : "transparent" }}>
+              <Text style={{ fontSize: 18, marginRight: 12 }}>{item.icon}</Text>
+              <Text style={{ flex: 1, fontSize: 14, fontWeight: isActive ? "700" : "500", color: isActive ? activeText : textSecondary }}>{item.label}</Text>
+              {item.name === "Alarms" && activeAlarms > 0 && (
+                <View style={{ backgroundColor: "#EF4444", borderRadius: 10, minWidth: 20, paddingHorizontal: 5, paddingVertical: 2, alignItems: "center" }}>
+                  <Text style={{ color: "#fff", fontSize: 10, fontWeight: "800" }}>{activeAlarms}</Text>
+                </View>
+              )}
             </TouchableOpacity>
-          </View>
-        </ScrollView>
-      )}
+          );
+        })}
+      </DrawerContentScrollView>
 
-      {/* CUSTOMER — only Consumer Portal, no role switcher */}
-      {isAuthenticated && userType === 'CUSTOMER' && (
-        <ScrollView
-          style={[mainStyles.workspace, { paddingHorizontal: Spacing.md }]}
-          showsVerticalScrollIndicator={false}
-        >
-          {isDbOffline && (
-            <View style={mainStyles.badgeOffline}>
-              <Text style={mainStyles.badgeOfflineText}>
-                ⚠️ Running offline — energy telemetry simulated locally.
-              </Text>
-            </View>
-          )}
-          <ConsumerPortal />
-        </ScrollView>
-      )}
+      <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: border }}>
+        {user ? (
+          <TouchableOpacity onPress={logout} style={{ flexDirection: "row", alignItems: "center", padding: 12, borderRadius: 12, backgroundColor: "rgba(239,68,68,0.1)" }}>
+            <Text style={{ fontSize: 18, marginRight: 12 }}>🚪</Text>
+            <Text style={{ color: "#EF4444", fontWeight: "700", fontSize: 14 }}>Sign Out</Text>
+          </TouchableOpacity>
+        ) : null}
+        <Text style={{ color: textSecondary, fontSize: 10, textAlign: "center", marginTop: 8, letterSpacing: 0.5 }}>REOS v2.0 • AI Smart Energy Platform</Text>
+      </View>
+    </View>
+  );
+}
 
-      {/* PLATFORM USER — full role-based workspace */}
-      {isAuthenticated && userType === 'PLATFORM_USER' && (
-        <>
-          {/* SYSTEM OWNER view */}
-          {userRole === 'SYSTEM_OWNER' && (
-            <ScrollView
-              style={[mainStyles.workspace, { paddingHorizontal: Spacing.md }]}
-              showsVerticalScrollIndicator={false}
-            >
-              {isDbOffline && (
-                <View style={mainStyles.badgeOffline}>
-                  <Text style={mainStyles.badgeOfflineText}>
-                    ⚠️ Running offline — data saved locally in your browser.
-                  </Text>
+function DrawerNavigator() {
+  const { theme, alerts, toggleTheme } = useStore();
+  const isDark = theme === "dark";
+  const activeAlarms = alerts?.filter((a: any) => !a.acknowledged)?.length || 0;
+
+  return (
+    <Drawer.Navigator
+      drawerContent={(props) => <CustomDrawerContent {...props} />}
+      screenOptions={{
+        headerStyle: { backgroundColor: isDark ? "#0A0E1A" : "#FFFFFF" },
+        headerTintColor: isDark ? "#F1F5F9" : "#0F172A",
+        headerTitleStyle: { fontWeight: "700", fontSize: 16 },
+        drawerStyle: { width: 285 },
+        headerRight: () => (
+          <View style={{ flexDirection: "row", alignItems: "center", marginRight: 14, gap: 10 }}>
+            {activeAlarms > 0 && (
+              <View style={{ position: "relative" }}>
+                <Text style={{ fontSize: 20 }}>🚨</Text>
+                <View style={{ position: "absolute", top: -4, right: -4, backgroundColor: "#EF4444", borderRadius: 8, minWidth: 16, paddingHorizontal: 2, alignItems: "center" }}>
+                  <Text style={{ color: "#fff", fontSize: 9, fontWeight: "800" }}>{activeAlarms}</Text>
                 </View>
-              )}
-              <CustomerDashboard />
-            </ScrollView>
-          )}
-
-          {/* INSTALLER view */}
-          {userRole === 'INSTALLER' && (
-            <ScrollView
-              style={[mainStyles.workspace, { paddingHorizontal: Spacing.md }]}
-              showsVerticalScrollIndicator={false}
-            >
-              {isDbOffline && (
-                <View style={mainStyles.badgeOffline}>
-                  <Text style={mainStyles.badgeOfflineText}>
-                    ⚠️ Running offline — data saved locally in your browser.
-                  </Text>
-                </View>
-              )}
-              <InstallerDashboard />
-            </ScrollView>
-          )}
-
-          {/* PLANT OPERATOR view */}
-          {userRole === 'PLANT_OPERATOR' && (
-            <ScrollView
-              style={[mainStyles.workspace, { paddingHorizontal: Spacing.md }]}
-              showsVerticalScrollIndicator={false}
-            >
-              {isDbOffline && (
-                <View style={mainStyles.badgeOffline}>
-                  <Text style={mainStyles.badgeOfflineText}>
-                    ⚠️ Running offline — IoT telemetry is running on local simulation.
-                  </Text>
-                </View>
-              )}
-              <PlantOperatorDashboard />
-            </ScrollView>
-          )}
-          {/* ENGINEER view — full technical workspace */}
-          {userRole === 'ENGINEER' && (
-            <ScrollView style={mainStyles.workspace} showsVerticalScrollIndicator={false}>
-              {isDbOffline && (
-                <View style={mainStyles.badgeOffline}>
-                  <Text style={mainStyles.badgeOfflineText}>
-                    ⚠️ Database is offline. Sizing calculations are running locally, and projects will be saved to your browser storage.
-                  </Text>
-                </View>
-              )}
-              <AiAssistantPanel />
-              <View style={{ height: Spacing.md }} />
-
-              <WorkspaceCard title="1. Load Assessment" icon="🔌" status={getLoadStatus()}
-                summaryText={results.load ? `Peak demand: ${results.load.maximumDemandW.toFixed(0)}W` : 'Define connected load configurations'}
-                expanded={expandedCard === 'load'} onToggle={() => handleCardToggle('load')}>
-                <LoadAssessmentCard />
-              </WorkspaceCard>
-
-              <WorkspaceCard title="2. Solar PV Design" icon="☀️" status={getSolarStatus()}
-                summaryText={results.solar ? `Calculated PV capacity: ${results.solar.requiredPvSizeKw} kWp` : 'Calculate solar generation footprint'}
-                expanded={expandedCard === 'solar'} onToggle={() => handleCardToggle('solar')}>
-                <SolarPvCard />
-              </WorkspaceCard>
-
-              <WorkspaceCard title="3. Battery Capacity" icon="🔋" status={getBatteryStatus()}
-                summaryText={results.battery ? `Required capacity: ${results.battery.requiredCapacityKwh} kWh` : 'Determine storage autonomy requirements'}
-                expanded={expandedCard === 'battery'} onToggle={() => handleCardToggle('battery')}>
-                <BatterySizingCard />
-              </WorkspaceCard>
-
-              <WorkspaceCard title="4. Inverter Sizing" icon="🔌" status={getInverterStatus()}
-                summaryText={results.inverter ? `Recommended: ${results.inverter.recommendedInverterKw} kW inverter` : 'Size inverter for continuous & surge loads'}
-                expanded={expandedCard === 'inverter'} onToggle={() => handleCardToggle('inverter')}>
-                <InverterSizingCard />
-              </WorkspaceCard>
-
-              <WorkspaceCard title="5. Cable Coordination" icon="⚡" status={getCableStatus()}
-                summaryText={results.cable ? `Voltage drop: ${results.cable.voltageDropPercent.toFixed(2)}%` : 'Verify voltage drop standard limits'}
-                expanded={expandedCard === 'cable'} onToggle={() => handleCardToggle('cable')}>
-                <CableSizingCard />
-              </WorkspaceCard>
-
-              <View style={{ height: 48 }} />
-            </ScrollView>
-          )}
-        </>
-      )}
-
-      {/* Auth Modal (Login / Register) */}
-      <Modal visible={isAuthModalVisible} transparent animationType="fade">
-        <View style={mainStyles.modalOverlay}>
-          <View style={mainStyles.modalContent}>
-            <Text style={mainStyles.modalTitle}>{isRegisterMode ? 'Create REOS Account' : 'Login to REOS'}</Text>
-            
-            {isDbOffline && (
-              <Text style={{ color: activeColors.warning, fontSize: 12 }}>
-                Note: The backend database is offline. You can log in using any mock credentials, or close this modal and use local guest mode.
-              </Text>
-            )}
-
-            <View style={mainStyles.inputGroup}>
-              <Text style={mainStyles.inputLabel}>Email Address</Text>
-              <TextInput 
-                style={mainStyles.input} 
-                value={email} 
-                onChangeText={setEmail}
-                placeholder="engineering@reos.io"
-                placeholderTextColor={activeColors.placeholder}
-                autoCapitalize="none"
-              />
-            </View>
-
-            <View style={mainStyles.inputGroup}>
-              <Text style={mainStyles.inputLabel}>Password</Text>
-              <TextInput 
-                style={mainStyles.input} 
-                value={password} 
-                onChangeText={setPassword}
-                secureTextEntry
-                placeholder="******"
-                placeholderTextColor={activeColors.placeholder}
-              />
-            </View>
-
-            {isRegisterMode && (
-              <>
-                <View style={mainStyles.inputGroup}>
-                  <Text style={mainStyles.inputLabel}>First Name</Text>
-                  <TextInput 
-                    style={mainStyles.input} 
-                    value={firstName} 
-                    onChangeText={setFirstName}
-                    placeholder="John"
-                    placeholderTextColor={activeColors.placeholder}
-                  />
-                </View>
-                <View style={mainStyles.inputGroup}>
-                  <Text style={mainStyles.inputLabel}>Last Name</Text>
-                  <TextInput 
-                    style={mainStyles.input} 
-                    value={lastName} 
-                    onChangeText={setLastName}
-                    placeholder="Doe"
-                    placeholderTextColor={activeColors.placeholder}
-                  />
-                </View>
-              </>
-            )}
-
-            {errorMessage ? <Text style={mainStyles.errorText}>{errorMessage}</Text> : null}
-
-            <View style={mainStyles.modalButtons}>
-              <TouchableOpacity style={mainStyles.btnModalClose} onPress={() => setIsAuthModalVisible(false)}>
-                <Text style={mainStyles.btnNavText}>Cancel</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity style={mainStyles.btnModalSubmit} onPress={handleAuthSubmit}>
-                <Text style={mainStyles.btnModalSubmitText}>
-                  {isRegisterMode ? 'Register' : 'Login'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity style={{ marginTop: Spacing.xs }} onPress={() => setIsRegisterMode(!isRegisterMode)}>
-              <Text style={{ color: activeColors.primary, fontSize: 13, textAlign: 'center' }}>
-                {isRegisterMode ? 'Already have an account? Login' : 'Need an account? Register'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Projects Modal (Browse / Load) */}
-      <Modal visible={isProjectsModalVisible} transparent animationType="fade">
-        <View style={mainStyles.modalOverlay}>
-          <View style={mainStyles.modalContent}>
-            <Text style={mainStyles.modalTitle}>Saved Solar Projects</Text>
-            
-            <ScrollView style={{ maxHeight: 300, marginVertical: Spacing.xs }}>
-              {projectsList.length === 0 ? (
-                <Text style={{ color: activeColors.textSecondary, textAlign: 'center', marginVertical: Spacing.md }}>
-                  No saved projects found.
-                </Text>
-              ) : (
-                projectsList.map((p: any) => (
-                  <TouchableOpacity 
-                    key={p.id} 
-                    style={mainStyles.projectItem} 
-                    onPress={() => handleLoadProject(p.id)}
-                  >
-                    <Text style={mainStyles.projectItemTitle}>{p.name}</Text>
-                    <Text style={mainStyles.projectItemMeta}>
-                      {p.id.startsWith('local-') ? '📁 Local Browser Storage' : '🌐 Cloud Database'} • {new Date(p.createdAt || p.updatedAt).toLocaleDateString()}
-                    </Text>
-                  </TouchableOpacity>
-                ))
-              )}
-            </ScrollView>
-
-            <View style={mainStyles.modalButtons}>
-              <TouchableOpacity style={mainStyles.btnModalClose} onPress={() => setIsProjectsModalVisible(false)}>
-                <Text style={mainStyles.btnNavText}>Close</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Save Project Modal */}
-      <Modal visible={isSaveModalVisible} transparent animationType="fade">
-        <View style={mainStyles.modalOverlay}>
-          <View style={mainStyles.modalContent}>
-            <Text style={mainStyles.modalTitle}>Save Current Project</Text>
-
-            <View style={mainStyles.inputGroup}>
-              <Text style={mainStyles.inputLabel}>Project Name</Text>
-              <TextInput 
-                style={mainStyles.input} 
-                value={projectName} 
-                onChangeText={setProjectName}
-                placeholder="My Solar System"
-                placeholderTextColor={activeColors.placeholder}
-              />
-            </View>
-
-            <View style={mainStyles.modalButtons}>
-              <TouchableOpacity style={mainStyles.btnModalClose} onPress={() => setIsSaveModalVisible(false)}>
-                <Text style={mainStyles.btnNavText}>Cancel</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={mainStyles.btnModalSubmit} 
-                onPress={handleSaveSubmit}
-                disabled={isSaving}
-              >
-                {isSaving ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={mainStyles.btnModalSubmitText}>Save Project</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-      {/* ── User Type Picker Modal (shown after login) ──────────────────── */}
-      <Modal visible={isUserTypeModalVisible} transparent animationType="fade">
-        <View style={mainStyles.modalOverlay}>
-          <View style={[mainStyles.modalContent, { maxWidth: 420 }]}>
-            <Text style={{ fontSize: 36, textAlign: 'center', marginBottom: 8 }}>👋</Text>
-            <Text style={[mainStyles.modalTitle, { textAlign: 'center', fontSize: 20 }]}>
-              Welcome, {user?.firstName || 'User'}!
-            </Text>
-            <Text style={{ color: activeColors.textSecondary, fontSize: 13, textAlign: 'center', marginBottom: 24, lineHeight: 20 }}>
-              How would you like to access REOS today?
-            </Text>
-
-            {/* CUSTOMER option */}
-            <TouchableOpacity
-              style={{
-                backgroundColor: activeColors.surface,
-                borderColor: activeColors.primary,
-                borderWidth: 2,
-                borderRadius: 12,
-                padding: 20,
-                marginBottom: 12,
-                flexDirection: 'row',
-                alignItems: 'center',
-              }}
-              onPress={() => handleSelectUserType('CUSTOMER')}
-            >
-              <Text style={{ fontSize: 36, marginRight: 16 }}>🔌</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: activeColors.textPrimary, fontWeight: '800', fontSize: 15 }}>Energy Customer</Text>
-                <Text style={{ color: activeColors.textSecondary, fontSize: 11, marginTop: 4, lineHeight: 16 }}>
-                  View your live energy dashboard, billing, consumption analytics and notifications from your energy supplier.
-                </Text>
               </View>
-            </TouchableOpacity>
-
-            {/* PLATFORM USER option */}
-            <TouchableOpacity
-              style={{
-                backgroundColor: activeColors.surface,
-                borderColor: activeColors.success,
-                borderWidth: 2,
-                borderRadius: 12,
-                padding: 20,
-                marginBottom: 8,
-                flexDirection: 'row',
-                alignItems: 'center',
-              }}
-              onPress={() => handleSelectUserType('PLATFORM_USER')}
-            >
-              <Text style={{ fontSize: 36, marginRight: 16 }}>⚙️</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: activeColors.textPrimary, fontWeight: '800', fontSize: 15 }}>REOS Platform User</Text>
-                <Text style={{ color: activeColors.textSecondary, fontSize: 11, marginTop: 4, lineHeight: 16 }}>
-                  Access the full REOS platform — system design, IoT monitoring, plant operations, installer tools and engineering workspace.
-                </Text>
-              </View>
+            )}
+            <TouchableOpacity onPress={toggleTheme}>
+              <Text style={{ fontSize: 20 }}>{isDark ? "☀️" : "🌙"}</Text>
             </TouchableOpacity>
           </View>
-        </View>
-      </Modal>
+        ),
+      }}
+    >
+      <Drawer.Screen name="Overview"    component={OverviewScreen}          options={{ title: "Dashboard" }} />
+      <Drawer.Screen name="Monitoring"  component={MonitoringScreen}        options={{ title: "Live Monitoring" }} />
+      <Drawer.Screen name="SolarDesign" component={SolarDesignScreen}       options={{ title: "Solar Design Engine" }} />
+      <Drawer.Screen name="Devices"     component={DeviceManagementScreen}  options={{ title: "Device Manager" }} />
+      <Drawer.Screen name="AIForecast"  component={AIForecastingScreen}     options={{ title: "AI Forecasting" }} />
+      <Drawer.Screen name="AIChat"      component={AIChatScreen}            options={{ title: "AI Assistant" }} />
+      <Drawer.Screen name="Analytics"   component={AnalyticsScreen}         options={{ title: "Energy Analytics" }} />
+      <Drawer.Screen name="Billing"     component={BillingScreen}           options={{ title: "Billing" }} />
+      <Drawer.Screen name="Trading"     component={TradingScreen}           options={{ title: "P2P Trading" }} />
+      <Drawer.Screen name="Fleet"       component={FleetScreen}             options={{ title: "Fleet Dashboard" }} />
+      <Drawer.Screen name="Alarms"      component={AlarmScreen}             options={{ title: "Alarm Center" }} />
+      <Drawer.Screen name="Maintenance" component={MaintenanceScreen}       options={{ title: "Maintenance" }} />
+      <Drawer.Screen name="Settings"    component={SettingsScreen}          options={{ title: "Settings" }} />
+    </Drawer.Navigator>
+  );
+}
 
-      {/* Floating AI Chat Button */}
-      <TouchableOpacity 
-        style={{
-          position: 'absolute',
-          bottom: 24,
-          right: 24,
-          backgroundColor: activeColors.primary,
-          width: 56,
-          height: 56,
-          borderRadius: 28,
-          justifyContent: 'center',
-          alignItems: 'center',
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.3,
-          shadowRadius: 6,
-          elevation: 8,
-          zIndex: 9999,
-        }}
-        onPress={() => setIsAiChatVisible(true)}
-      >
-        <Text style={{ fontSize: 24 }}>💬</Text>
-      </TouchableOpacity>
+export default function App() {
+  const { fetchIotData, theme } = useStore();
+  const isDark = theme === "dark";
 
-      {/* AI Chat Modal */}
-      <AiChatModal visible={isAiChatVisible} onClose={() => setIsAiChatVisible(false)} />
-    </SafeAreaView>
+  useEffect(() => {
+    fetchIotData();
+    const iv = setInterval(fetchIotData, 3000);
+    return () => clearInterval(iv);
+  }, []);
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={isDark ? "#0A0E1A" : "#FFFFFF"} />
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Main" component={DrawerNavigator} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </GestureHandlerRootView>
   );
 }
