@@ -166,41 +166,41 @@ interface REOSState {
 
 const defaultInputs: ProjectInputs = {
   appliances: [
-    { name: 'LED Lights', powerW: 15, quantity: 0, hoursOn: [1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1] },
-    { name: 'Ceiling Fans', powerW: 80, quantity: 0, hoursOn: [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1] },
-    { name: 'TV / Laptops', powerW: 150, quantity: 0, hoursOn: [0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0] },
-    { name: 'Microwave / Kettle', powerW: 1000, quantity: 0, hoursOn: [0,0,0,0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0] },
+    { name: 'LED Lights', powerW: 15, quantity: 0, hoursOn: Array(24).fill(0) },
+    { name: 'Ceiling Fans', powerW: 80, quantity: 0, hoursOn: Array(24).fill(0) },
+    { name: 'TV / Laptops', powerW: 150, quantity: 0, hoursOn: Array(24).fill(0) },
+    { name: 'Microwave / Kettle', powerW: 1000, quantity: 0, hoursOn: Array(24).fill(0) },
   ],
-  demandFactor: 0.8,
-  diversityFactor: 0.9,
-  peakSunHours: 4.8, // Lagos/West African average daily equivalent
-  losses: 0.15,
-  tempDerating: 0.89,
-  panelRatingW: 450,
-  batteryVoltage: 48,
-  dod: 0.8,
-  autonomyDays: 1.0,
-  batteryEfficiency: 0.95,
-  loadSurgePowerW: 2500,
-  safetyMargin: 1.25,
+  demandFactor: 0,
+  diversityFactor: 0,
+  peakSunHours: 0,
+  losses: 0,
+  tempDerating: 0,
+  panelRatingW: 0,
+  batteryVoltage: 0,
+  dod: 0,
+  autonomyDays: 0,
+  batteryEfficiency: 0,
+  loadSurgePowerW: 0,
+  safetyMargin: 0,
   inverterType: 'HYBRID',
-  currentA: 25,
-  lengthMeters: 15,
-  cableVoltageV: 230,
-  areaMm2: 4,
+  currentA: 0,
+  lengthMeters: 0,
+  cableVoltageV: 0,
+  areaMm2: 0,
   // Financial
   currency: 'NGN',
-  gridTariffRate: 225,
-  capexBudget: 2500000,
+  gridTariffRate: 0,
+  capexBudget: 0,
   surplusTransferKwh: 0,
-  optimizationGoals: ['MEET_DEMAND'],
+  optimizationGoals: [],
   additionalPvCapacityKw: 0,
-  microgridTariff: 180,
-  gridAvailabilityHours: 24,
+  microgridTariff: 0,
+  gridAvailabilityHours: 0,
   // Customization Overrides
   batteryType: 'LITHIUM',
-  selectedBatteryAh: 200,
-  selectedLithiumKwh: 5.12,
+  selectedBatteryAh: 0,
+  selectedLithiumKwh: 0,
   inverterRatingKw: null,
   inverterOutputVoltage: '230V',
 };
@@ -282,6 +282,22 @@ export const useStore = create<REOSState>((set, get) => ({
   runAllCalculations: () => {
     const { inputs } = get();
     
+    // Check if key inputs are zero or unset, to avoid errors or NaN values
+    const hasActiveAppliance = inputs.appliances.some(app => app.quantity > 0);
+    if (!hasActiveAppliance || inputs.peakSunHours <= 0 || inputs.panelRatingW <= 0) {
+      set({
+        results: {
+          load: null,
+          solar: null,
+          battery: null,
+          inverter: null,
+          cable: null,
+        },
+        aiResponse: null
+      });
+      return;
+    }
+
     // 1. Load Profile
     const load = calculateLoadProfile(inputs.appliances, inputs.demandFactor, inputs.diversityFactor);
     

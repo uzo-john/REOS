@@ -129,7 +129,7 @@ export const BatterySizingCard: React.FC = () => {
   });
 
   const handleAutonomyChange = (change: number) => {
-    updateInputs({ autonomyDays: parseFloat(Math.max(0.5, inputs.autonomyDays + change).toFixed(1)) });
+    updateInputs({ autonomyDays: parseFloat(Math.max(0, inputs.autonomyDays + change).toFixed(1)) });
   };
 
   const handleTypeChange = (type: 'LITHIUM' | 'LEAD_ACID') => {

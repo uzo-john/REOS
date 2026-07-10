@@ -127,7 +127,7 @@ export const SolarPvCard: React.FC = () => {
   });
 
   const handlePshChange = (change: number) => {
-    updateInputs({ peakSunHours: parseFloat(Math.max(1.0, inputs.peakSunHours + change).toFixed(1)) });
+    updateInputs({ peakSunHours: parseFloat(Math.max(0, inputs.peakSunHours + change).toFixed(1)) });
   };
 
   return (

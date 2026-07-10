@@ -102,7 +102,7 @@ export const CableSizingCard: React.FC = () => {
   });
 
   const handleLengthChange = (change: number) => {
-    updateInputs({ lengthMeters: Math.max(1, inputs.lengthMeters + change) });
+    updateInputs({ lengthMeters: Math.max(0, inputs.lengthMeters + change) });
   };
 
   const handleAreaChange = (change: number) => {
