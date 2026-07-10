@@ -25,7 +25,7 @@ export class GeminiProvider implements IAiProvider {
         parts: [{ text: msg.content }]
       }));
 
-      const modelName = options?.model || 'gemini-1.5-flash';
+      const modelName = options?.model || this.configService.get<string>('GEMINI_MODEL') || 'gemini-3.5-flash';
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
       const response = await fetch(url, {
@@ -47,6 +47,8 @@ export class GeminiProvider implements IAiProvider {
         model: modelName,
       };
     } catch (e: any) {
+      console.error('Gemini error object:', e);
+      if (e.cause) console.error('Gemini error cause:', e.cause);
       throw new Error(`Gemini execution error: ${e.message}`);
     }
   }
