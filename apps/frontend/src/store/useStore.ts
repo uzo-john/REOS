@@ -282,69 +282,71 @@ export const useStore = create<REOSState>((set, get) => ({
   runAllCalculations: () => {
     const { inputs } = get();
     
-    // Check if key inputs are zero or unset, to avoid errors or NaN values
-    const hasActiveAppliance = inputs.appliances.some(app => app.quantity > 0);
-    if (!hasActiveAppliance || inputs.peakSunHours <= 0 || inputs.panelRatingW <= 0) {
-      set({
-        results: {
-          load: null,
-          solar: null,
-          battery: null,
-          inverter: null,
-          cable: null,
-        },
-        aiResponse: null
-      });
-      return;
-    }
+    let load = null;
+    let solar = null;
+    let battery = null;
+    let inverter = null;
+    let cable = null;
 
     // 1. Load Profile
-    const load = calculateLoadProfile(inputs.appliances, inputs.demandFactor, inputs.diversityFactor);
+    const hasActiveAppliance = inputs.appliances.some(app => app.quantity > 0);
+    if (hasActiveAppliance) {
+      load = calculateLoadProfile(inputs.appliances, inputs.demandFactor || 0, inputs.diversityFactor || 0);
+    }
     
     // 2. Solar PV
-    const solar = sizeSolarPV(load.dailyEnergyKwh, inputs.peakSunHours, inputs.losses, inputs.tempDerating, inputs.panelRatingW);
+    if (load && inputs.peakSunHours > 0 && inputs.panelRatingW > 0) {
+      solar = sizeSolarPV(load.dailyEnergyKwh, inputs.peakSunHours, inputs.losses || 0, inputs.tempDerating || 0, inputs.panelRatingW);
+    }
     
     // 3. Battery Storage
-    let battery = null;
-    if (inputs.inverterType === 'ON_GRID') {
-      battery = {
-        requiredCapacityKwh: 0,
-        requiredCapacityAh: 0,
-        batteryQty: 0,
-        explanation: "Batteries are not required for On-Grid (Grid-Tied) systems. All excess solar power is exported to the grid, and power deficits are drawn from the grid."
-      };
-    } else {
-      battery = sizeBattery(load.dailyEnergyKwh, inputs.batteryVoltage, inputs.dod, inputs.autonomyDays, inputs.batteryEfficiency);
-      // Override battery calculations based on custom selections
-      if (battery) {
-        if (inputs.batteryType === 'LITHIUM') {
-          battery.batteryQty = Math.ceil(battery.requiredCapacityKwh / inputs.selectedLithiumKwh);
-          battery.explanation = `Sized for ${inputs.autonomyDays} day(s) of autonomy. Requires ${battery.batteryQty} x ${inputs.selectedLithiumKwh} kWh Lithium batteries.`;
-        } else {
-          // Lead Acid: Qty = Ah / unit_Ah * (system_voltage / 12)
-          const seriesStrings = inputs.batteryVoltage / 12;
-          const parallelStrings = Math.ceil(battery.requiredCapacityAh / inputs.selectedBatteryAh);
-          battery.batteryQty = parallelStrings * seriesStrings;
-          battery.explanation = `Sized for ${inputs.autonomyDays} day(s) of autonomy. Requires ${battery.batteryQty} x 12V ${inputs.selectedBatteryAh} Ah Lead-Acid batteries (${parallelStrings} parallel string(s) of ${seriesStrings} in series).`;
+    if (load) {
+      if (inputs.inverterType === 'ON_GRID') {
+        battery = {
+          requiredCapacityKwh: 0,
+          requiredCapacityAh: 0,
+          batteryQty: 0,
+          explanation: "Batteries are not required for On-Grid (Grid-Tied) systems. All excess solar power is exported to the grid, and power deficits are drawn from the grid."
+        };
+      } else if (inputs.batteryVoltage > 0 && inputs.dod > 0 && inputs.autonomyDays >= 0 && inputs.batteryEfficiency > 0) {
+        battery = sizeBattery(load.dailyEnergyKwh, inputs.batteryVoltage, inputs.dod, inputs.autonomyDays, inputs.batteryEfficiency);
+        // Override battery calculations based on custom selections
+        if (battery) {
+          if (inputs.batteryType === 'LITHIUM') {
+            const unitCapacity = inputs.selectedLithiumKwh || 1;
+            battery.batteryQty = Math.ceil(battery.requiredCapacityKwh / unitCapacity);
+            battery.explanation = `Sized for ${inputs.autonomyDays} day(s) of autonomy. Requires ${battery.batteryQty} x ${unitCapacity} kWh Lithium batteries.`;
+          } else {
+            // Lead Acid: Qty = Ah / unit_Ah * (system_voltage / 12)
+            const unitCapacity = inputs.selectedBatteryAh || 1;
+            const seriesStrings = inputs.batteryVoltage / 12 || 1;
+            const parallelStrings = Math.ceil(battery.requiredCapacityAh / unitCapacity) || 0;
+            battery.batteryQty = parallelStrings * seriesStrings;
+            battery.explanation = `Sized for ${inputs.autonomyDays} day(s) of autonomy. Requires ${battery.batteryQty} x 12V ${unitCapacity} Ah Lead-Acid batteries (${parallelStrings} parallel string(s) of ${seriesStrings} in series).`;
+          }
         }
       }
     }
 
     // 4. Inverter
-    const inverter = sizeInverter(load.maximumDemandW, inputs.loadSurgePowerW, inputs.safetyMargin, inputs.inverterType, solar?.requiredPvSizeKw || 0);
-    
-    // Override inverter calculations if custom rating is selected
-    if (inverter && inputs.inverterRatingKw !== null) {
-      inverter.recommendedInverterKw = inputs.inverterRatingKw;
-      const isSufficient = (inputs.inverterRatingKw * 1000) >= load.maximumDemandW;
-      inverter.safetyMarginUsed = parseFloat((inputs.inverterRatingKw * 1000 / load.maximumDemandW).toFixed(2));
-      inverter.explanation = isSufficient 
-        ? `Selected ${inputs.inverterRatingKw} kW inverter is sufficient for peak load of ${load.maximumDemandW.toFixed(0)} W (safety margin: ×${inverter.safetyMarginUsed}).`
-        : `⚠️ Selected ${inputs.inverterRatingKw} kW inverter is INSUFFICIENT for peak load of ${load.maximumDemandW.toFixed(0)} W (requires at least ${(load.maximumDemandW / 1000).toFixed(1)} kW).`;
+    if (load) {
+      inverter = sizeInverter(load.maximumDemandW, inputs.loadSurgePowerW || 0, inputs.safetyMargin || 0, inputs.inverterType || 'HYBRID', solar?.requiredPvSizeKw || 0);
+      
+      // Override inverter calculations if custom rating is selected
+      if (inverter && inputs.inverterRatingKw !== null && inputs.inverterRatingKw > 0) {
+        inverter.recommendedInverterKw = inputs.inverterRatingKw;
+        const isSufficient = (inputs.inverterRatingKw * 1000) >= load.maximumDemandW;
+        inverter.safetyMarginUsed = parseFloat((inputs.inverterRatingKw * 1000 / load.maximumDemandW).toFixed(2));
+        inverter.explanation = isSufficient 
+          ? `Selected ${inputs.inverterRatingKw} kW inverter is sufficient for peak load of ${load.maximumDemandW.toFixed(0)} W (safety margin: ×${inverter.safetyMarginUsed}).`
+          : `⚠️ Selected ${inputs.inverterRatingKw} kW inverter is INSUFFICIENT for peak load of ${load.maximumDemandW.toFixed(0)} W (requires at least ${(load.maximumDemandW / 1000).toFixed(1)} kW).`;
+      }
     }
 
     // 5. Cable Sizing
-    const cable = calculateVoltageDrop(inputs.currentA, inputs.lengthMeters, inputs.cableVoltageV, inputs.areaMm2);
+    if (inputs.currentA > 0 && inputs.lengthMeters > 0 && inputs.cableVoltageV > 0 && inputs.areaMm2 > 0) {
+      cable = calculateVoltageDrop(inputs.currentA, inputs.lengthMeters, inputs.cableVoltageV, inputs.areaMm2);
+    }
 
     set({
       results: {
