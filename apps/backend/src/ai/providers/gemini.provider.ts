@@ -13,7 +13,10 @@ export class GeminiProvider implements IAiProvider {
   async generateResponse(messages: AiMessage[], options?: any): Promise<AiResponse> {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY');
     if (!apiKey) {
-      return { content: '[Mock Gemini Response] API key not configured. Gemini check: Confirm your DisCo tariff class (e.g. Band A) to estimate grid export ROI.' };
+      return {
+        content: '[Mock Gemini Response] API key not configured. Gemini check: Confirm your DisCo tariff class (e.g. Band A) to estimate grid export ROI.',
+        model: 'MOCK-GEMINI'
+      };
     }
 
     try {
@@ -41,6 +44,7 @@ export class GeminiProvider implements IAiProvider {
       return {
         content: data.candidates[0].content.parts[0].text,
         tokensUsed: 0,
+        model: modelName,
       };
     } catch (e: any) {
       throw new Error(`Gemini execution error: ${e.message}`);

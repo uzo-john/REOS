@@ -6,6 +6,7 @@ export interface AiMessage {
 export interface AiResponse {
   content: string;
   tokensUsed?: number;
+  model?: string;
 }
 
 export interface IAiProvider {

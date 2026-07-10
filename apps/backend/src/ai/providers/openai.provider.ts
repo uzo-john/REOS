@@ -13,10 +13,14 @@ export class OpenAiProvider implements IAiProvider {
   async generateResponse(messages: AiMessage[], options?: any): Promise<AiResponse> {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
     if (!apiKey) {
-      return { content: '[Mock OpenAI Response] API key not configured. Copilot sizing check: Design meets standard autonomy target of 1.0 days.' };
+      return {
+        content: '[Mock OpenAI Response] API key not configured. Copilot sizing check: Design meets standard autonomy target of 1.0 days.',
+        model: 'MOCK-OPENAI'
+      };
     }
 
     try {
+      const modelName = options?.model || 'gpt-4o-mini';
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -24,7 +28,7 @@ export class OpenAiProvider implements IAiProvider {
           'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: options?.model || 'gpt-4o-mini',
+          model: modelName,
           messages,
           temperature: options?.temperature ?? 0.7,
         }),
@@ -38,6 +42,7 @@ export class OpenAiProvider implements IAiProvider {
       return {
         content: data.choices[0].message.content,
         tokensUsed: data.usage?.total_tokens,
+        model: modelName,
       };
     } catch (e: any) {
       throw new Error(`OpenAI execution error: ${e.message}`);
