@@ -181,12 +181,12 @@ const defaultInputs: ProjectInputs = {
   losses: 0.15,
   tempDerating: 0.9,
   panelRatingW: 0,
-  batteryVoltage: 0,
-  dod: 0,
-  autonomyDays: 0,
-  batteryEfficiency: 0,
+  batteryVoltage: 48,       // Standard 48V system voltage
+  dod: 0.8,                 // 80% Depth of Discharge (LFP standard)
+  autonomyDays: 1,          // 1 day backup as default
+  batteryEfficiency: 0.95,  // 95% round-trip efficiency (LFP)
   loadSurgePowerW: 0,
-  safetyMargin: 0,
+  safetyMargin: 1.25,       // 25% safety margin (standard)
   inverterType: 'HYBRID',
   currentA: 0,
   lengthMeters: 0,
@@ -203,8 +203,8 @@ const defaultInputs: ProjectInputs = {
   gridAvailabilityHours: 0,
   // Customization Overrides
   batteryType: 'LITHIUM',
-  selectedBatteryAh: 0,
-  selectedLithiumKwh: 0,
+  selectedBatteryAh: 200,    // Standard 200Ah Lead-Acid unit
+  selectedLithiumKwh: 5.12,  // Standard 5.12 kWh Lithium unit
   inverterRatingKw: null,
   inverterOutputVoltage: '230V',
 };
