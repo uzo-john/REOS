@@ -220,7 +220,7 @@ export class ConsumerService {
           connectionStatus: 'ACTIVE',
           tariffRate: 180,
           billingCycle: 'PREPAID',
-          balance: 5000.0,
+          balance: 0.0,
           gatewayId: 'dev-gw-001',
           supplier: { id: 'mock-supplier-id', firstName: 'Sunshine', lastName: 'Supplier', email: 'supplier@reos.io' },
           consumer: { id: userId, firstName: 'Neighbor', lastName: 'Consumer', email: 'consumer@reos.io' },
@@ -302,70 +302,7 @@ export class ConsumerService {
 
     if (!this.prisma.isConnected) {
       let invoices = ConsumerService.mockInvoices.filter(i => i.contractId === contract.id);
-      if (invoices.length === 0) {
-        const today = new Date();
-        const lastMonth = new Date();
-        lastMonth.setMonth(today.getMonth() - 1);
-
-        const newInvoice1 = {
-          id: `invoice-${Date.now()}-1`,
-          contractId: contract.id,
-          amount: 4500.00,
-          tariffRate: contract.tariffRate,
-          energyReceivedKwh: 25.0,
-          billingPeriodStart: lastMonth,
-          billingPeriodEnd: today,
-          dueDate: new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000),
-          status: 'PAID',
-          createdAt: lastMonth,
-        };
-
-        const newInvoice2 = {
-          id: `invoice-${Date.now()}-2`,
-          contractId: contract.id,
-          amount: 1520.00,
-          tariffRate: contract.tariffRate,
-          energyReceivedKwh: 8.44,
-          billingPeriodStart: today,
-          billingPeriodEnd: new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000),
-          dueDate: new Date(today.getTime() + 15 * 24 * 60 * 60 * 1000),
-          status: 'UNPAID',
-          createdAt: today,
-        };
-
-        ConsumerService.mockInvoices.push(newInvoice2, newInvoice1);
-        invoices = [newInvoice2, newInvoice1];
-      }
-
       let transactions = ConsumerService.mockTransactions.filter(t => t.contractId === contract.id);
-      if (transactions.length === 0) {
-        const tx1 = {
-          id: `tx-${Date.now()}-1`,
-          contractId: contract.id,
-          type: 'PREPAID_PURCHASE',
-          amount: 5000.00,
-          currency: 'NGN',
-          paymentGateway: 'FLUTTERWAVE',
-          status: 'SUCCESSFUL',
-          reference: `ref-${Date.now()}-1`,
-          createdAt: new Date(),
-        };
-
-        const tx2 = {
-          id: `tx-${Date.now()}-2`,
-          contractId: contract.id,
-          type: 'BILL_PAYMENT',
-          amount: 4500.00,
-          currency: 'NGN',
-          paymentGateway: 'PAYSTACK',
-          status: 'SUCCESSFUL',
-          reference: `ref-${Date.now()}-2`,
-          createdAt: new Date(),
-        };
-
-        ConsumerService.mockTransactions.push(tx1, tx2);
-        transactions = [tx1, tx2];
-      }
 
       const unpaidInvoices = invoices.filter(i => i.status === 'UNPAID');
       const outstanding = unpaidInvoices.reduce((sum, inv) => sum + inv.amount, 0);

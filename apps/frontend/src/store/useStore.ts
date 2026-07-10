@@ -378,196 +378,71 @@ export const useStore = create<REOSState>((set, get) => ({
         isDbOffline: false,
       });
     } catch (error) {
-      // Fallback: client-side simulation when offline
+      // Fallback: client-side simulation starting in zero state for fresh testing
       const state = get();
       let devices = state.devices;
-      if (devices.length === 0) {
-        devices = [
-          { id: 'dev-inv-001', name: 'Main Hybrid Inverter (5kW)', type: 'INVERTER', status: 'ONLINE', projectId: 'default', firmwareVersion: 'v2.4.12', lastCommTime: new Date().toISOString(), signalStrength: -68, communicationQuality: 95 },
-          { id: 'dev-met-001', name: 'Bidirectional Smart Net Meter', type: 'SMART_METER', status: 'ONLINE', projectId: 'default', firmwareVersion: 'v1.0.8', lastCommTime: new Date().toISOString(), signalStrength: -72, communicationQuality: 92 },
-          { id: 'dev-bms-001', name: 'Lithium BMS Controller', type: 'BMS', status: 'ONLINE', projectId: 'default', firmwareVersion: 'v4.1.2', lastCommTime: new Date().toISOString(), signalStrength: -55, communicationQuality: 99 },
-          { id: 'dev-wth-001', name: 'Outdoor Weather Station', type: 'WEATHER_STATION', status: 'ONLINE', projectId: 'default', firmwareVersion: 'v0.9.4', lastCommTime: new Date().toISOString(), signalStrength: -88, communicationQuality: 74 },
-          { id: 'dev-ngb-001', name: 'Neighbour Grid Tie Link', type: 'NEIGHBOUR_METER', status: 'ONLINE', projectId: 'default', firmwareVersion: 'v1.2.0', lastCommTime: new Date().toISOString(), signalStrength: -81, communicationQuality: 81 },
-          { id: 'dev-gw-001', name: 'REOS Edge Gateway v1', type: 'EDGE_GATEWAY', status: 'ONLINE', projectId: 'default', firmwareVersion: 'v3.0.0', lastCommTime: new Date().toISOString(), signalStrength: -45, communicationQuality: 100 }
-        ];
-      }
-
-      const solarKw = state.results.solar ? state.results.solar.expectedAnnualGenKwh / 365 / 5.5 : 2.5; 
-      const solarP = Math.max(0, solarKw + (Math.random() * 0.4 - 0.2));
-      const loadP = (state.results.load ? state.results.load.maximumDemandW / 1000 * 0.4 : 1.2) + (Math.random() * 0.2 - 0.1);
-
-      let gridExportKw = 0;
-      let gridImportKw = 0;
-      let neighborExportKw = 0;
-
-      const surplus = solarP - loadP;
-      if (surplus > 0) {
-        if (state.neighbourTransferEnabled) {
-          neighborExportKw = Math.min(surplus, 0.6);
-        }
-        if (state.gridExportEnabled) {
-          gridExportKw = surplus - neighborExportKw;
-        }
-      } else {
-        gridImportKw = Math.abs(surplus);
-      }
-
-      const gridVolt = 228 + (Math.random() * 6 - 3);
-      const currentA = gridExportKw > 0 ? (gridExportKw * 1000) / gridVolt : (gridImportKw * 1000) / gridVolt;
-      const nbrVolt = 226 + (Math.random() * 4 - 2);
-
-      // Local Alert Engine
-      const localAlerts = [...state.alerts];
-      
-      // Undervoltage check (< 230V as specified by user)
-      if (gridVolt < 230 && !localAlerts.some(a => a.code === 'GRID_UNDERVOLTAGE')) {
-        localAlerts.push({
-          id: 'alert-undervoltage',
-          code: 'GRID_UNDERVOLTAGE',
-          title: 'Grid Undervoltage Fault',
-          severity: 'WARNING',
-          timestamp: new Date().toISOString(),
-          recommendedAction: 'Grid voltage falls below 230V threshold. Check automatic voltage regulator settings.',
-          acknowledged: false,
-        });
-      }
-
-      // Sync failure check
-      const synced = gridVolt >= 230 && gridVolt <= 253;
-      if (!synced && !localAlerts.some(a => a.code === 'GRID_SYNC_FAILURE')) {
-        localAlerts.push({
-          id: 'alert-sync-fail',
-          code: 'GRID_SYNC_FAILURE',
-          title: 'Inverter Synchronization Failure',
-          severity: 'CRITICAL',
-          timestamp: new Date().toISOString(),
-          recommendedAction: 'Inverter is out of sync with utility grid parameters. Check utility voltage/frequency ranges.',
-          acknowledged: false,
-        });
-      }
-
-      // Offline check
-      devices.forEach(d => {
-        if (d.status === 'OFFLINE' && !localAlerts.some(a => a.id === `alert-dev-${d.id}`)) {
-          localAlerts.push({
-            id: `alert-dev-${d.id}`,
-            code: 'DEVICE_OFFLINE',
-            title: `Device Offline: ${d.name}`,
-            severity: d.type === 'SMART_METER' || d.type === 'INVERTER' ? 'CRITICAL' : 'WARNING',
-            timestamp: new Date().toISOString(),
-            recommendedAction: `Inspect connection links, verify Zigbee/Wi-Fi signal strength, and restart the ${d.name}.`,
-            acknowledged: false,
-          });
-        }
-      });
-
-      // Reverse power check
-      if (!state.gridExportEnabled && gridExportKw > 0 && !localAlerts.some(a => a.code === 'REVERSE_POWER_FAULT')) {
-        localAlerts.push({
-          id: 'alert-rev-power',
-          code: 'REVERSE_POWER_FAULT',
-          title: 'Reverse Power Flow Detected',
-          severity: 'CRITICAL',
-          timestamp: new Date().toISOString(),
-          recommendedAction: 'Grid export is disabled but power export is detected. Check inverter export prevention settings.',
-          acknowledged: false,
-        });
-      }
-
-      // Filter resolved alerts
-      const activeAlerts = localAlerts.filter(a => {
-        if (a.code === 'GRID_UNDERVOLTAGE' && gridVolt >= 230) return false;
-        if (a.code === 'GRID_SYNC_FAILURE' && synced) return false;
-        const dev = devices.find(d => `alert-dev-${d.id}` === a.id);
-        if (dev && dev.status === 'ONLINE') return false;
-        if (a.code === 'REVERSE_POWER_FAULT' && (!state.gridExportEnabled && gridExportKw <= 0)) return false;
-        return true;
-      });
-
-      const updatedCredits = state.accumulatedCredits + ((gridExportKw * 2.5) / 3600) * state.inputs.gridTariffRate;
-
-      // Real-time wallet decrement for consumer prepaid wallet
-      const walletDec = ((neighborExportKw * 2.5) / 3600) * state.inputs.gridTariffRate;
-      const currentBilling = state.billingSummary;
-      const nextBilling = currentBilling 
-        ? { ...currentBilling, balance: Math.max(0, currentBilling.balance - walletDec) }
-        : { balance: Math.max(0, 5000.0 - walletDec), outstandingBalance: 1520.0, lastPayment: 4500.0, billingCycle: 'PREPAID', invoices: [], transactions: [] };
-
-      // Low balance alert
-      const finalAlerts = [...activeAlerts];
-      if (nextBilling.balance < 500 && !finalAlerts.some(a => a.code === 'LOW_CREDIT')) {
-        finalAlerts.push({
-          id: 'alert-low-credit',
-          code: 'LOW_CREDIT',
-          title: 'Prepaid Balance Low',
-          severity: 'WARNING',
-          timestamp: new Date().toISOString(),
-          recommendedAction: 'Your energy credit is below ₦500.00. Recharge soon to avoid supply interruption.',
-          acknowledged: false,
-        });
-      }
 
       set({
         devices,
-        alerts: finalAlerts,
-        accumulatedCredits: state.gridExportStatus === 'ACTIVE' ? updatedCredits : state.accumulatedCredits,
-        billingSummary: nextBilling,
+        alerts: [],
+        accumulatedCredits: 0,
+        billingSummary: state.billingSummary || { balance: 0, outstandingBalance: 0, lastPayment: 0, billingCycle: 'PREPAID', invoices: [], transactions: [] },
         telemetry: {
           timestamp: new Date().toISOString(),
           inverter: {
-            powerKw: solarP,
-            voltageV: gridVolt + 1,
-            currentA: (solarP * 1000) / (gridVolt + 1),
-            efficiencyPercent: 97.4,
-            frequencyHz: 50.0 + (Math.random() * 0.1 - 0.05),
-            gridSynchronized: synced,
+            powerKw: 0,
+            voltageV: 0,
+            currentA: 0,
+            efficiencyPercent: 0,
+            frequencyHz: 0,
+            gridSynchronized: false,
             antiIslandingActive: false,
-            status: solarP > 0.1 ? 'GENERATING' : 'STANDBY',
+            status: 'STANDBY',
           },
           smartMeter: {
-            voltageV: gridVolt,
-            currentA: currentA,
-            activePowerKw: gridExportKw > 0 ? gridExportKw : -gridImportKw,
-            reactivePowerKvar: 0.12,
-            apparentPowerKva: Math.abs(gridExportKw > 0 ? gridExportKw : gridImportKw) * 1.02,
-            powerFactor: 0.98,
-            frequencyHz: 50.0,
-            importEnergyKwh: 89.2 + (gridImportKw * 2.5) / 3600,
-            exportEnergyKwh: 142.8 + (gridExportKw * 2.5) / 3600,
-            netEnergyKwh: 142.8 - 89.2,
-            dailyExportKwh: 15.4,
-            monthlyExportKwh: 124.6,
-            lifetimeExportKwh: 142.8,
-            voltageImbalancePercent: 0.4,
-            harmonicsThdPercent: 1.8,
+            voltageV: 0,
+            currentA: 0,
+            activePowerKw: 0,
+            reactivePowerKvar: 0,
+            apparentPowerKva: 0,
+            powerFactor: 0,
+            frequencyHz: 0,
+            importEnergyKwh: 0,
+            exportEnergyKwh: 0,
+            netEnergyKwh: 0,
+            dailyExportKwh: 0,
+            monthlyExportKwh: 0,
+            lifetimeExportKwh: 0,
+            voltageImbalancePercent: 0,
+            harmonicsThdPercent: 0,
             phaseLoss: false,
           },
           battery: {
-            socPercent: Math.max(10, Math.min(100, (state.telemetry?.battery?.socPercent || 82) + (surplus > 0 ? 0.05 : -0.1))),
-            voltageV: 51.2,
-            currentA: surplus > 0 ? 15 : -25,
-            temperatureC: 28.5,
-            healthPercent: 98.0,
-            chargingState: surplus > 0 ? 'CHARGING' : 'DISCHARGING',
+            socPercent: 0,
+            voltageV: 0,
+            currentA: 0,
+            temperatureC: 0,
+            healthPercent: 0,
+            chargingState: 'STANDBY',
           },
           neighbourTrading: {
-            voltageV: nbrVolt,
-            currentA: (neighborExportKw * 1000) / nbrVolt,
-            instantaneousPowerKw: neighborExportKw,
-            energyDeliveredKwh: 45.6 + (neighborExportKw * 2.5) / 3600,
-            energyReceivedKwh: 12.3,
-            currentPricePerKwh: state.inputs.gridTariffRate,
-            earnedCredits: state.accumulatedCredits || 7492.5,
-            purchasedCredits: 12.3 * state.inputs.gridTariffRate,
-            settlementBalance: (state.accumulatedCredits || 7492.5) - (12.3 * state.inputs.gridTariffRate),
-            connectedNeighboursCount: 3,
-            activeTransactionsCount: neighborExportKw > 0 ? 1 : 0,
-            availableExportCapacityKw: Math.max(0, 1.5 - neighborExportKw),
+            voltageV: 0,
+            currentA: 0,
+            instantaneousPowerKw: 0,
+            energyDeliveredKwh: 0,
+            energyReceivedKwh: 0,
+            currentPricePerKwh: 0,
+            earnedCredits: 0,
+            purchasedCredits: 0,
+            settlementBalance: 0,
+            connectedNeighboursCount: 0,
+            activeTransactionsCount: 0,
+            availableExportCapacityKw: 0,
           },
           weather: {
-            solarIrradianceWm2: solarP > 0.5 ? 780 : 0,
-            ambientTempC: 31.0,
-            windSpeedMs: 3.4,
+            solarIrradianceWm2: 0,
+            ambientTempC: 0,
+            windSpeedMs: 0,
           }
         }
       });
@@ -882,8 +757,8 @@ export const useStore = create<REOSState>((set, get) => ({
       const data = await api.acceptInvitation(code, token || undefined);
       set({ activeContract: data });
       return data;
-    } catch (e) {
-      const fallbackContract = { id: `contract-${Date.now()}`, supplierId: 'mock-supplier', consumerId: 'mock-consumer', connectionStatus: 'ACTIVE', tariffRate: 180, billingCycle: 'PREPAID', balance: 5000.0, gatewayId: 'dev-gw-001' };
+     } catch (e) {
+      const fallbackContract = { id: `contract-${Date.now()}`, supplierId: 'mock-supplier', consumerId: 'mock-consumer', connectionStatus: 'ACTIVE', tariffRate: 180, billingCycle: 'PREPAID', balance: 0.0, gatewayId: 'dev-gw-001' };
       set({ activeContract: fallbackContract });
       return fallbackContract;
     }
@@ -896,7 +771,7 @@ export const useStore = create<REOSState>((set, get) => ({
       set({ activeContract: data });
     } catch (e) {
       if (!get().activeContract) {
-        set({ activeContract: { id: 'mock-contract-id', supplierId: 'mock-supplier-id', consumerId: 'mock-consumer-id', connectionStatus: 'ACTIVE', tariffRate: 180, billingCycle: 'PREPAID', balance: 5000.0, gatewayId: 'dev-gw-001', supplier: { firstName: 'Sunshine', lastName: 'Community', email: 'supplier@reos.io' }, consumer: { firstName: 'Demo', lastName: 'Consumer', email: 'consumer@reos.io' } } });
+        set({ activeContract: { id: 'mock-contract-id', supplierId: 'mock-supplier-id', consumerId: 'mock-consumer-id', connectionStatus: 'ACTIVE', tariffRate: 180, billingCycle: 'PREPAID', balance: 0.0, gatewayId: 'dev-gw-001', supplier: { firstName: 'Sunshine', lastName: 'Community', email: 'supplier@reos.io' }, consumer: { firstName: 'Demo', lastName: 'Consumer', email: 'consumer@reos.io' } } });
       }
     }
   },
@@ -961,13 +836,10 @@ export const useStore = create<REOSState>((set, get) => ({
     try {
       const data = await api.fetchNotifications(token || undefined);
       set({ notifications: data });
-    } catch (e) {
+     } catch (e) {
       if (get().notifications.length === 0) {
         set({
-          notifications: [
-            { id: 'not-1', title: 'Welcome to REOS Portal', message: 'You have logged in successfully. Access your consumer dashboard to view received power telemetry.', type: 'INFO', read: false, createdAt: new Date().toISOString() },
-            { id: 'not-2', title: 'Planned Maintenance Notice', message: 'Supplier microgrid will undergo battery test clean-up tomorrow from 10:00 AM to 11:30 AM.', type: 'SYSTEM', read: false, createdAt: new Date().toISOString() }
-          ]
+          notifications: []
         });
       }
     }

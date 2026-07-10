@@ -45,11 +45,12 @@ function KPICard({ label, value, unit, icon, color, trend }: any) {
 function EnergyFlowDiagram() {
   const { telemetry, theme } = useStore();
   const isDark = theme === "dark";
-  const solarKw = telemetry?.inverter?.powerKw?.toFixed(1) ?? "2.4";
-  const battSoc = telemetry?.battery?.socPercent?.toFixed(0) ?? "78";
-  const gridKw = telemetry?.smartMeter?.activePowerKw?.toFixed(1) ?? "0.8";
-  const chargingState = telemetry?.battery?.chargingState ?? "CHARGING";
+  const solarKw = telemetry?.inverter?.powerKw?.toFixed(1) ?? "0.0";
+  const battSoc = telemetry?.battery?.socPercent?.toFixed(0) ?? "0";
+  const gridKw = telemetry?.smartMeter?.activePowerKw?.toFixed(1) ?? "0.0";
+  const chargingState = telemetry?.battery?.chargingState ?? "STANDBY";
   const isExporting = parseFloat(gridKw) > 0;
+  const loadKw = telemetry ? Math.max(0, (telemetry.inverter?.powerKw || 0) - (telemetry.smartMeter?.activePowerKw || 0)).toFixed(1) : "0.0";
 
   const accent = "#00D4FF";
   const card = isDark ? "rgba(17,24,39,0.95)" : "#FFFFFF";
@@ -91,7 +92,7 @@ function EnergyFlowDiagram() {
         <View style={{ height: 2, width: 2, backgroundColor: "transparent", flex: 1 }} />
         <View style={{ alignItems: "center" }}>
           <View style={{ height: 20, width: 2, backgroundColor: isExporting ? "#10B981" : "#00D4FF", borderRadius: 1 }} />
-          <FlowNode icon="🏠" label="Load" value="1.2 kW" color="#00D4FF" />
+          <FlowNode icon="🏠" label="Load" value={`${loadKw} kW`} color="#00D4FF" />
           <View style={{ height: 20, width: 2, backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)", borderRadius: 1 }} />
           <FlowNode icon="⚡" label={isExporting ? "Exporting" : "Grid Import"} value={`${Math.abs(parseFloat(gridKw))} kW`} color={isExporting ? "#10B981" : "#EF4444"} />
         </View>
@@ -135,10 +136,10 @@ export default function OverviewScreen({ navigation }: any) {
     return () => clearInterval(interval);
   }, []);
 
-  const solarKw = telemetry?.inverter?.powerKw ?? 2.4;
-  const battSoc = telemetry?.battery?.socPercent ?? 78;
-  const gridKw = telemetry?.smartMeter?.activePowerKw ?? 0.8;
-  const totalExport = telemetry?.smartMeter?.lifetimeExportKwh ?? 142.8;
+  const solarKw = telemetry?.inverter?.powerKw ?? 0.0;
+  const battSoc = telemetry?.battery?.socPercent ?? 0;
+  const gridKw = telemetry?.smartMeter?.activePowerKw ?? 0.0;
+  const totalExport = telemetry?.smartMeter?.lifetimeExportKwh ?? 0.0;
   const co2Saved = (totalExport * 0.43).toFixed(0);
   const activeAlarms = alerts?.filter((a: any) => !a.acknowledged) ?? [];
 

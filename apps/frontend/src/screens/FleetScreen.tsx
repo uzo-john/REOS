@@ -3,12 +3,7 @@ import React from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { useStore } from "../store/useStore";
 
-const MOCK_PLANTS = [
-  { id: "p1", name: "Lekki Solar Plant", location: "Lekki, Lagos", capacityKwp: 50, status: "OPERATIONAL", todayGen: 245.8, pr: 94, alarms: 0, co2: 105.7 },
-  { id: "p2", name: "Victoria Island Hub", location: "VI, Lagos", capacityKwp: 35, status: "OPERATIONAL", todayGen: 162.3, pr: 91, alarms: 1, co2: 69.8 },
-  { id: "p3", name: "Abuja Office Array", location: "Maitama, FCT", capacityKwp: 20, status: "DEGRADED", todayGen: 65.4, pr: 74, alarms: 3, co2: 28.1 },
-  { id: "p4", name: "Port Harcourt Grid", location: "GRA, PH", capacityKwp: 100, status: "OPERATIONAL", todayGen: 482.1, pr: 96, alarms: 0, co2: 207.3 },
-];
+const MOCK_PLANTS: any[] = [];
 
 export function FleetScreen() {
   const { theme } = useStore();
