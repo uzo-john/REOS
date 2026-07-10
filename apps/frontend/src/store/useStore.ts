@@ -166,16 +166,20 @@ interface REOSState {
 
 const defaultInputs: ProjectInputs = {
   appliances: [
-    { name: 'LED Lights', powerW: 15, quantity: 0, hoursOn: Array(24).fill(0) },
-    { name: 'Ceiling Fans', powerW: 80, quantity: 0, hoursOn: Array(24).fill(0) },
-    { name: 'TV / Laptops', powerW: 150, quantity: 0, hoursOn: Array(24).fill(0) },
-    { name: 'Microwave / Kettle', powerW: 1000, quantity: 0, hoursOn: Array(24).fill(0) },
+    // LED Lights: 6pm to midnight (hours 18–23)
+    { name: 'LED Lights', powerW: 15, quantity: 0, hoursOn: Array(24).fill(0).map((_, h) => (h >= 18 && h <= 23 ? 1 : 0)) },
+    // Ceiling Fans: 8am to 10pm (hours 8–21)
+    { name: 'Ceiling Fans', powerW: 80, quantity: 0, hoursOn: Array(24).fill(0).map((_, h) => (h >= 8 && h <= 21 ? 1 : 0)) },
+    // TV / Laptops: 6pm to 11pm (hours 18–22)
+    { name: 'TV / Laptops', powerW: 150, quantity: 0, hoursOn: Array(24).fill(0).map((_, h) => (h >= 18 && h <= 22 ? 1 : 0)) },
+    // Microwave / Kettle: 7–8am and 12–1pm (hours 7, 12)
+    { name: 'Microwave / Kettle', powerW: 1000, quantity: 0, hoursOn: Array(24).fill(0).map((_, h) => (h === 7 || h === 12 ? 1 : 0)) },
   ],
-  demandFactor: 0,
-  diversityFactor: 0,
+  demandFactor: 1.0,
+  diversityFactor: 1.0,
   peakSunHours: 0,
-  losses: 0,
-  tempDerating: 0,
+  losses: 0.15,
+  tempDerating: 0.9,
   panelRatingW: 0,
   batteryVoltage: 0,
   dod: 0,
