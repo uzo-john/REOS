@@ -66,7 +66,7 @@ export const fetchAIInsights = async () => {
 
 // ── Mock Generators (used when backend unavailable) ──────────────────────────
 
-function generateMockAIResponse(messages: ChatMessage[]): string {
+export function generateMockAIResponse(messages: ChatMessage[]): string {
   const last = messages[messages.length - 1]?.content?.toLowerCase() || '';
   if (last.includes('battery') || last.includes('soc'))
     return '🔋 Based on current telemetry, your battery SoC is at 82%. I recommend setting a charge threshold of 90% during peak solar hours (10 AM–3 PM) to maximize storage. This can reduce your grid dependency by up to 35%.';
@@ -81,7 +81,7 @@ function generateMockAIResponse(messages: ChatMessage[]): string {
   return '🤖 I\'m your REOS AI Energy Assistant. I can help you analyze solar performance, optimize battery usage, explain billing, forecast generation, detect anomalies, and provide energy-saving recommendations. What would you like to explore?';
 }
 
-function generateMockSolarForecast() {
+export function generateMockSolarForecast() {
   const hourly = Array.from({ length: 24 }, (_, h) => {
     if (h < 6 || h > 18) return 0;
     const peak = Math.sin(((h - 6) / 12) * Math.PI);
@@ -93,7 +93,7 @@ function generateMockSolarForecast() {
   return { hourly, daily, confidence: 87, modelUsed: 'REOS-Solar-v2', generatedAt: new Date().toISOString() };
 }
 
-function generateMockLoadForecast() {
+export function generateMockLoadForecast() {
   const hourly = Array.from({ length: 24 }, (_, h) => {
     const base = h >= 6 && h <= 22 ? 1.8 : 0.6;
     const peak = (h >= 18 && h <= 21) ? 2.4 : base;
@@ -105,7 +105,7 @@ function generateMockLoadForecast() {
   return { hourly, daily, confidence: 91, modelUsed: 'REOS-Load-v2', generatedAt: new Date().toISOString() };
 }
 
-function generateMockInsights() {
+export function generateMockInsights() {
   return [
     {
       id: 'ins-1', type: 'SAVING', title: 'Battery Dispatch Optimization',

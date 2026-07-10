@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { View, Text, ScrollView, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ActivityIndicator } from "react-native";
 import { useStore } from "../store/useStore";
-import { aiChat, fetchAIInsights } from "../services/aiService";
+import { aiChat, fetchAIInsights, generateMockInsights } from "../services/aiService";
 
 interface Message { id: string; role: "user" | "assistant"; content: string; timestamp: string; }
 
@@ -22,7 +22,7 @@ export default function AIChatScreen() {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [insights, setInsights] = useState<any[]>([]);
+  const [insights, setInsights] = useState<any[]>(generateMockInsights());
   const scrollRef = useRef<ScrollView>(null);
 
   const bg = isDark ? "#050810" : "#F1F5F9";

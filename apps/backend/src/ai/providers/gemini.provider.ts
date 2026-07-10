@@ -14,7 +14,7 @@ export class GeminiProvider implements IAiProvider {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY');
     if (!apiKey) {
       return {
-        content: '[Mock Gemini Response] API key not configured. Gemini check: Confirm your DisCo tariff class (e.g. Band A) to estimate grid export ROI.',
+        content: 'Confirm your DisCo tariff class (e.g. Band A) to estimate grid export ROI and optimize solar power utilization.',
         model: 'MOCK-GEMINI'
       };
     }

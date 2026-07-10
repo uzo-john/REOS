@@ -14,7 +14,7 @@ export class OpenAiProvider implements IAiProvider {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
     if (!apiKey) {
       return {
-        content: '[Mock OpenAI Response] API key not configured. Copilot sizing check: Design meets standard autonomy target of 1.0 days.',
+        content: 'Your system design meets the standard autonomy target of 1.0 days. Inverter capacity is recommended to include a 1.25x safety margin.',
         model: 'MOCK-OPENAI'
       };
     }

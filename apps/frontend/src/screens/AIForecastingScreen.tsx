@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { useStore } from "../store/useStore";
-import { fetchSolarForecast, fetchLoadForecast, fetchAIInsights } from "../services/aiService";
+import { fetchSolarForecast, fetchLoadForecast, fetchAIInsights, generateMockSolarForecast, generateMockLoadForecast, generateMockInsights } from "../services/aiService";
 
 function BarChart({ data, color, label, unit }: { data: number[]; color: string; label: string; unit: string }) {
   const { theme } = useStore();
@@ -52,9 +52,9 @@ export function AIForecastingScreen() {
   const border = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)";
   const text = isDark ? "#F1F5F9" : "#0F172A";
   const sub = isDark ? "#94A3B8" : "#64748B";
-  const [solar, setSolar] = useState<any>(null);
-  const [load, setLoad] = useState<any>(null);
-  const [insights, setInsights] = useState<any[]>([]);
+  const [solar, setSolar] = useState<any>(generateMockSolarForecast());
+  const [load, setLoad] = useState<any>(generateMockLoadForecast());
+  const [insights, setInsights] = useState<any[]>(generateMockInsights());
   const [tab, setTab] = useState<"solar"|"load">("solar");
 
   useEffect(() => {

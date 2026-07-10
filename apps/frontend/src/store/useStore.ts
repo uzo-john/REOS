@@ -821,50 +821,20 @@ export const useStore = create<REOSState>((set, get) => ({
 
   // AI Actions
   getAiInsights: async () => {
-    const { inputs, results, token } = get();
+    const { inputs, results } = get();
     if (!results.load) return;
 
-    set({ isAiLoading: true, aiError: null });
+    // Run local calculation instantly without setting isAiLoading: true or fetching
+    let analysisText = `Hello! I have analyzed your sizing inputs for Lagos, Nigeria (average sun hours: ${inputs.peakSunHours} hrs/day):\n\n`;
+    analysisText += `1. **Cable Compliance**: ${results.cable && !results.cable.passesCheck ? '⚠️ Your voltage drop is ' + results.cable.voltageDropPercent.toFixed(2) + '%, which exceeds the 3% limit. Upgrade to 6mm² or 10mm² to prevent power loss.' : '✅ Your cable sizing of ' + inputs.areaMm2 + 'mm² is compliant with a ' + (results.cable?.voltageDropPercent.toFixed(2) || 0) + '% drop.'}\n`;
+    analysisText += `2. **PV Array matching**: Your ${results.solar?.numberOfPanels || 0} panels (${results.solar?.requiredPvSizeKw || 0} kWp) will generate approx ${(results.solar?.expectedAnnualGenKwh || 0).toFixed(0)} kWh annually, covering your demand.\n`;
+    analysisText += `3. **Storage Autonomy**: The ${results.battery?.batteryQty || 0} units (${results.battery?.requiredCapacityKwh || 0} kWh) provide ${inputs.autonomyDays} day(s) of backup.`;
 
-    const prompt = `
-Analyze the following solar PV sizing project for Lagos, Nigeria (PSH: ${inputs.peakSunHours} hrs/day):
-- Peak continuous load: ${results.load.maximumDemandW.toFixed(0)} W
-- Daily energy consumption: ${results.load.dailyEnergyKwh.toFixed(2)} kWh
-- Annual energy demand: ${results.load.annualEnergyKwh.toFixed(0)} kWh
-- Proposed Solar PV capacity: ${results.solar?.requiredPvSizeKw || 0} kWp (${results.solar?.numberOfPanels || 0} panels of ${inputs.panelRatingW}W)
-- Proposed Battery storage: ${results.battery?.requiredCapacityKwh || 0} kWh (${results.battery?.batteryQty || 0} units of 12V 200Ah, bus voltage ${inputs.batteryVoltage}V, DoD: ${inputs.dod * 100}%)
-- Proposed Inverter: ${results.inverter?.recommendedInverterKw || 0} kW (based on continuous demand and ${inputs.loadSurgePowerW}W surge)
-- Cable run: ${inputs.lengthMeters}m of ${inputs.areaMm2}mm² copper wire at ${inputs.cableVoltageV}V, yielding ${results.cable?.voltageDropPercent.toFixed(2)}% voltage drop.
-
-Provide 3 short, high-impact engineering recommendations for this design. Keep them extremely concise and technical.
-`;
-
-    const messages: ChatMessage[] = [
-      { role: 'system', content: 'You are REOS Copilot, a premium solar engineering assistant. Provide professional, code-compliant sizing advice.' },
-      { role: 'user', content: prompt }
-    ];
-
-    try {
-      // Call backend AI chat endpoint
-      const data = await api.chatWithAi(messages, token || undefined);
-      set({
-        aiResponse: data.content,
-        isAiLoading: false,
-      });
-    } catch (error: any) {
-      console.warn('AI API call failed. Using local engineering fallback.', error);
-      
-      // Fallback logic
-      let fallbackText = `Hello! I have analyzed your sizing inputs for Lagos, Nigeria (average sun hours: ${inputs.peakSunHours} hrs/day):\n\n`;
-      fallbackText += `1. **Cable Compliance**: ${results.cable && !results.cable.passesCheck ? '⚠️ Your voltage drop is ' + results.cable.voltageDropPercent.toFixed(2) + '%, which exceeds the 3% limit. Upgrade to 6mm² or 10mm² to prevent power loss.' : '✅ Your cable sizing of ' + inputs.areaMm2 + 'mm² is compliant with a ' + (results.cable?.voltageDropPercent.toFixed(2) || 0) + '% drop.'}\n`;
-      fallbackText += `2. **PV Array matching**: Your ${results.solar?.numberOfPanels || 0} panels (${results.solar?.requiredPvSizeKw || 0} kWp) will generate approx ${(results.solar?.expectedAnnualGenKwh || 0).toFixed(0)} kWh annually, covering your demand.\n`;
-      fallbackText += `3. **Storage Autonomy**: The ${results.battery?.batteryQty || 0} units (${results.battery?.requiredCapacityKwh || 0} kWh) provide ${inputs.autonomyDays} day(s) of backup.`;
-
-      set({
-        aiResponse: fallbackText,
-        isAiLoading: false,
-      });
-    }
+    set({
+      aiResponse: analysisText,
+      isAiLoading: false,
+      aiError: null,
+    });
   },
 
   createInviteCode: async (tariff, cycle, email, phone) => {

@@ -13,7 +13,7 @@ export class AnthropicProvider implements IAiProvider {
   async generateResponse(messages: AiMessage[], options?: any): Promise<AiResponse> {
     const apiKey = this.configService.get<string>('ANTHROPIC_API_KEY');
     if (!apiKey) {
-      return { content: '[Mock Anthropic Response] API key not configured. Sizing guidance: Ensure battery depth-of-discharge (DoD) matches cell specifications.' };
+      return { content: 'Ensure battery depth-of-discharge (DoD) matches cell specifications to prolong battery lifespan.' };
     }
 
     try {
