@@ -33,23 +33,27 @@ COPY apps/backend/src/ ./apps/backend/src/
 RUN npm run prisma:generate --workspace=apps/backend
 RUN npm run build --workspace=apps/backend
 
-# Prune devDependencies to make node_modules production-only
-RUN npm prune --production --legacy-peer-deps
-
 # ─── Production Runner ───
 FROM node:20-alpine AS runner
 
 WORKDIR /usr/src/app
 
+# Install openssl for Prisma runtime compatibility on Alpine Linux
+RUN apk add --no-cache openssl
+
 # Copy package descriptors (needed for runtime workspace linking)
 COPY package*.json ./
-# Copy compiled internal shared packages from builder stage
-COPY --from=builder /usr/src/app/packages ./packages
+COPY packages/ ./packages/
 COPY apps/backend/package*.json ./apps/backend/
 COPY apps/backend/prisma/ ./apps/backend/prisma/
 
-# Copy compiled production node_modules and dist folder from builder stage
-COPY --from=builder /usr/src/app/node_modules ./node_modules
+# Install only production dependencies
+RUN npm ci --omit=dev --legacy-peer-deps
+
+# Generate Prisma Client in production environment
+RUN npx prisma generate --schema=apps/backend/prisma/schema.prisma
+
+# Copy compiled dist folder from builder stage
 COPY --from=builder /usr/src/app/apps/backend/dist ./apps/backend/dist
 
 EXPOSE 3000
