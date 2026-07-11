@@ -4,7 +4,7 @@ services:
     name: reos-backend-api
     env: docker
     dockerfilePath: apps/backend/Dockerfile
-    dockerContext: apps/backend
+    dockerContext: .
     plan: free
     envVars:
       - key: PORT
@@ -22,4 +22,4 @@ services:
       - key: GEMINI_API_KEY
         sync: false
       - key: MQTT_BROKER_URL
-        value: "mqtt://public.mosquitto.org:1883" # Sandbox public broker or private HiveMQ
+        value: "mqtt://public.mosquitto.org:1883"
