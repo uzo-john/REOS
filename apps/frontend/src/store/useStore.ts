@@ -13,6 +13,8 @@ import {
   calculateVoltageDrop
 } from '@reos/engineering';
 
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api';
+
 export type UserMode = 'SIMPLE' | 'PROFESSIONAL';
 
 interface ProjectInputs {
@@ -742,7 +744,7 @@ export const useStore = create<REOSState>((set, get) => ({
     try {
       let savedProject;
       if (currentProjectId && !currentProjectId.startsWith('local-')) {
-        savedProject = await fetch(`http://localhost:3000/api/projects/${currentProjectId}`, {
+        savedProject = await fetch(`${API_BASE_URL}/projects/${currentProjectId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -751,7 +753,7 @@ export const useStore = create<REOSState>((set, get) => ({
           body: JSON.stringify(projectPayload),
         }).then(res => res.json());
       } else {
-        savedProject = await fetch('http://localhost:3000/api/projects', {
+        savedProject = await fetch(`${API_BASE_URL}/projects`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -792,7 +794,7 @@ export const useStore = create<REOSState>((set, get) => ({
     }
 
     try {
-      const project = await fetch(`http://localhost:3000/api/projects/${projectId}`, {
+      const project = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -820,7 +822,7 @@ export const useStore = create<REOSState>((set, get) => ({
     }
 
     try {
-      const backendProjects = await fetch('http://localhost:3000/api/projects', {
+      const backendProjects = await fetch(`${API_BASE_URL}/projects`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

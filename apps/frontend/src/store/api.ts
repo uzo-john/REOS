@@ -1,6 +1,6 @@
 import { UserRole } from '@reos/types';
 
-const API_BASE_URL = 'http://localhost:3000/api';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api';
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';

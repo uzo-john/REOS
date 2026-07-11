@@ -1,7 +1,7 @@
 // REOS AI Service — Real LLM integration with configurable provider
 // Configure your API key in apps/backend/.env (AI_PROVIDER, OPENAI_API_KEY, GEMINI_API_KEY)
 
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api';
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
