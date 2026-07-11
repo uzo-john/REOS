@@ -43,7 +43,8 @@ RUN apk add --no-cache openssl
 
 # Copy package descriptors (needed for runtime workspace linking)
 COPY package*.json ./
-COPY packages/ ./packages/
+# Copy compiled internal shared packages from builder stage (includes dist folders)
+COPY --from=builder /usr/src/app/packages ./packages
 COPY apps/backend/package*.json ./apps/backend/
 COPY apps/backend/prisma/ ./apps/backend/prisma/
 
