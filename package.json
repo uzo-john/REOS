@@ -13,6 +13,7 @@
     "backend:build": "npm run build --workspace=apps/backend",
     "frontend:start": "npm run start --workspace=apps/frontend",
     "frontend:web": "npm run web --workspace=apps/frontend",
+    "frontend:build": "npm run build --workspace=apps/frontend",
     "test": "npm run test --workspaces"
   },
   "dependencies": {
