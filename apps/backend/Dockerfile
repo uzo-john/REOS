@@ -57,4 +57,4 @@ EXPOSE 3000
 # Set environment to production
 ENV NODE_ENV=production
 
-CMD ["node", "apps/backend/dist/main"]
+CMD ["node", "apps/backend/dist/src/main"]
