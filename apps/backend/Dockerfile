@@ -15,32 +15,32 @@ COPY apps/backend/package*.json ./apps/backend/
 COPY apps/backend/tsconfig*.json ./apps/backend/
 COPY apps/backend/prisma/ ./apps/backend/prisma/
 
-# Install all monorepo dependencies
+# Install all monorepo dependencies (including devDependencies)
 RUN npm ci --legacy-peer-deps
 
 # Copy backend code
 COPY apps/backend/src/ ./apps/backend/src/
 
-# Generate Prisma Client & Build
+# Generate Prisma Client & Build the application
 RUN npx prisma generate --schema=apps/backend/prisma/schema.prisma
 RUN npm run build --workspace=apps/backend
+
+# Prune devDependencies to make node_modules production-only
+RUN npm prune --production --legacy-peer-deps
 
 # ─── Production Runner ───
 FROM node:20-alpine AS runner
 
 WORKDIR /usr/src/app
 
+# Copy package descriptors (needed for runtime workspace linking)
 COPY package*.json ./
-COPY tsconfig*.json ./
 COPY packages/ ./packages/
 COPY apps/backend/package*.json ./apps/backend/
 COPY apps/backend/prisma/ ./apps/backend/prisma/
 
-# Install only production dependencies
-RUN npm ci --only=production --legacy-peer-deps
-RUN npx prisma generate --schema=apps/backend/prisma/schema.prisma
-
-# Copy compiled resources from builder stage
+# Copy compiled production node_modules and dist folder from builder stage
+COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/apps/backend/dist ./apps/backend/dist
 
 EXPOSE 3000
