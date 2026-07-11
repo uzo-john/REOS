@@ -3,6 +3,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /usr/src/app
 
+# Install openssl for Prisma compatibility on Alpine Linux
+RUN apk add --no-cache openssl
+
 # Copy root workspace package lists
 COPY package*.json ./
 COPY tsconfig*.json ./
@@ -22,7 +25,7 @@ RUN npm ci --legacy-peer-deps
 COPY apps/backend/src/ ./apps/backend/src/
 
 # Generate Prisma Client & Build the application
-RUN npx prisma generate --schema=apps/backend/prisma/schema.prisma
+RUN npm run prisma:generate --workspace=apps/backend
 RUN npm run build --workspace=apps/backend
 
 # Prune devDependencies to make node_modules production-only
