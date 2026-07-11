@@ -47,13 +47,9 @@ COPY packages/ ./packages/
 COPY apps/backend/package*.json ./apps/backend/
 COPY apps/backend/prisma/ ./apps/backend/prisma/
 
-# Install only production dependencies
-RUN npm ci --omit=dev --legacy-peer-deps
-
-# Generate Prisma Client in production environment
-RUN npx prisma generate --schema=apps/backend/prisma/schema.prisma
-
-# Copy compiled dist folder from builder stage
+# Copy the entire node_modules and built dist from the builder stage
+# This bypasses runtime installation and prisma generation completely!
+COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/apps/backend/dist ./apps/backend/dist
 
 EXPOSE 3000
