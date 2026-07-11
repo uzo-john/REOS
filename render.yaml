@@ -1,0 +1,25 @@
+services:
+  # ─── REOS Backend Web Service ───
+  - type: web
+    name: reos-backend-api
+    env: docker
+    dockerfilePath: apps/backend/Dockerfile
+    dockerContext: apps/backend
+    plan: free
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: DATABASE_URL
+        sync: false # Set this in Render dashboard (e.g. Supabase DB Pooler url)
+      - key: DIRECT_URL
+        sync: false # Set this in Render dashboard (e.g. Supabase Direct DB url)
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: AI_PROVIDER
+        value: gemini
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: MQTT_BROKER_URL
+        value: "mqtt://public.mosquitto.org:1883" # Sandbox public broker or private HiveMQ

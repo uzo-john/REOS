@@ -21,12 +21,20 @@ export default function BillingScreen() {
 
   useEffect(() => { fetchConsumerBilling(); }, []);
 
-  const balance = billingSummary?.balance ?? 0;
-  const outstanding = billingSummary?.outstandingBalance ?? 0;
-  const lastPayment = billingSummary?.lastPayment ?? 0;
+  const balance = billingSummary?.balance ?? 4280.5;
+  const outstanding = billingSummary?.outstandingBalance ?? 1520;
+  const lastPayment = billingSummary?.lastPayment ?? 8500;
   const cycle = billingSummary?.billingCycle ?? "PREPAID";
-  const invoices = billingSummary?.invoices ?? [];
-  const txns = billingSummary?.transactions ?? [];
+  const invoices = billingSummary?.invoices ?? [
+    { id: "inv-1", amount: 8500, energyReceivedKwh: 37.8, status: "PAID", billingPeriodStart: "2026-06-01", billingPeriodEnd: "2026-06-30", dueDate: "2026-07-05" },
+    { id: "inv-2", amount: 7200, energyReceivedKwh: 32.0, status: "PAID", billingPeriodStart: "2026-05-01", billingPeriodEnd: "2026-05-31", dueDate: "2026-06-05" },
+    { id: "inv-3", amount: 1520, energyReceivedKwh: 6.8, status: "UNPAID", billingPeriodStart: "2026-07-01", billingPeriodEnd: "2026-07-08", dueDate: "2026-07-15" },
+  ];
+  const txns = billingSummary?.transactions ?? [
+    { id: "txn-1", type: "PREPAID_PURCHASE", amount: 5000, status: "SUCCESSFUL", createdAt: "2026-07-01T10:30:00Z", paymentGateway: "Paystack" },
+    { id: "txn-2", type: "CREDIT_TRANSFER", amount: 1250, status: "SUCCESSFUL", createdAt: "2026-06-28T14:15:00Z", paymentGateway: "P2P" },
+    { id: "txn-3", type: "BILL_PAYMENT", amount: 8500, status: "SUCCESSFUL", createdAt: "2026-06-15T09:00:00Z", paymentGateway: "Flutterwave" },
+  ];
 
   const handleRecharge = async () => {
     setLoading(true);

@@ -107,7 +107,74 @@ export class IotService {
   }
 
   private seedDefaultDevices() {
-    this.devices = [];
+    this.devices = [
+      {
+        id: 'dev-inv-001',
+        name: 'Hybrid Solar Inverter',
+        type: 'INVERTER',
+        status: 'ONLINE',
+        projectId: 'default',
+        firmwareVersion: 'v2.1.4',
+        lastCommTime: new Date().toISOString(),
+        signalStrength: -60,
+        communicationQuality: 95,
+      },
+      {
+        id: 'dev-met-001',
+        name: 'Bidirectional Smart Net Meter',
+        type: 'SMART_METER',
+        status: 'ONLINE',
+        projectId: 'default',
+        firmwareVersion: 'v1.0.8',
+        lastCommTime: new Date().toISOString(),
+        signalStrength: -72,
+        communicationQuality: 92,
+      },
+      {
+        id: 'dev-bms-001',
+        name: 'Lithium BMS Controller',
+        type: 'BMS',
+        status: 'ONLINE',
+        projectId: 'default',
+        firmwareVersion: 'v4.1.2',
+        lastCommTime: new Date().toISOString(),
+        signalStrength: -55,
+        communicationQuality: 99,
+      },
+      {
+        id: 'dev-wth-001',
+        name: 'Outdoor Weather Station',
+        type: 'WEATHER_STATION',
+        status: 'ONLINE',
+        projectId: 'default',
+        firmwareVersion: 'v0.9.4',
+        lastCommTime: new Date().toISOString(),
+        signalStrength: -88,
+        communicationQuality: 74,
+      },
+      {
+        id: 'dev-ngb-001',
+        name: 'Neighbour Grid Tie Link',
+        type: 'NEIGHBOUR_METER',
+        status: 'ONLINE',
+        projectId: 'default',
+        firmwareVersion: 'v1.2.0',
+        lastCommTime: new Date().toISOString(),
+        signalStrength: -81,
+        communicationQuality: 81,
+      },
+      {
+        id: 'dev-gw-001',
+        name: 'REOS Edge Gateway v1',
+        type: 'EDGE_GATEWAY',
+        status: 'ONLINE',
+        projectId: 'default',
+        firmwareVersion: 'v3.0.0',
+        lastCommTime: new Date().toISOString(),
+        signalStrength: -45,
+        communicationQuality: 100,
+      }
+    ];
   }
 
   // Registry Actions
@@ -169,8 +236,8 @@ export class IotService {
   getLiveTelemetry(): TelemetryData {
     // Dynamically advance accumulated states slightly on each request to simulate continuous usage
     const deltaSec = 2; // Simulated time passed between fetches
-    const solarP = 0; // Sized around 3 kWp
-    const loadP = 0; // Home consumption around 1.2 kW
+    const solarP = 2.8 + (Math.random() * 0.4 - 0.2); // Sized around 3 kWp
+    const loadP = 1.2 + (Math.random() * 0.2 - 0.1); // Home consumption around 1.2 kW
 
     // Calculate Grid Import / Export
     let gridExportKw = 0;
@@ -178,6 +245,17 @@ export class IotService {
     let neighborExportKw = 0;
 
     const surplus = solarP - loadP; // e.g. 1.5 kW
+    if (surplus > 0) {
+      if (this.neighbourTransferEnabled) {
+        // Share 0.6 kW with neighbor first
+        neighborExportKw = Math.min(surplus, 0.6);
+      }
+      if (this.gridExportEnabled) {
+        gridExportKw = surplus - neighborExportKw;
+      }
+    } else {
+      gridImportKw = Math.abs(surplus);
+    }
 
     // Advance accumulative counters
     this.totalExportKwh += (gridExportKw * deltaSec) / 3600;
@@ -185,76 +263,76 @@ export class IotService {
     this.totalNeighborDeliveredKwh += (neighborExportKw * deltaSec) / 3600;
     
     // Add export revenue credit
-    const rate = 0; // NGN per kWh
+    const rate = 225; // NGN per kWh
     this.earnedCredits += ((gridExportKw * deltaSec) / 3600) * rate;
     this.neighborSettlementBalance += ((neighborExportKw * deltaSec) / 3600) * rate;
 
     // Simulate fluctuations
-    const gridVolt = 0; // Hovering around 228V (slightly low, checking thresholds)
-    const currentA = 0;
-    const nbrVolt = 0;
+    const gridVolt = 228 + (Math.random() * 6 - 3); // Hovering around 228V (slightly low, checking thresholds)
+    const currentA = gridExportKw > 0 ? (gridExportKw * 1000) / gridVolt : (gridImportKw * 1000) / gridVolt;
+    const nbrVolt = 226 + (Math.random() * 4 - 2);
 
     // Evaluate alerts dynamically before returning telemetry
-    const gridSynced = false;
-    const activePowerKw = 0;
+    const gridSynced = gridVolt >= 230 && gridVolt <= 253;
+    const activePowerKw = gridExportKw > 0 ? gridExportKw : -gridImportKw;
     this.evaluateAlerts(gridVolt, gridSynced, activePowerKw);
 
     return {
       timestamp: new Date().toISOString(),
       inverter: {
-        powerKw: 0,
-        voltageV: 0,
-        currentA: 0,
-        efficiencyPercent: 0,
-        frequencyHz: 0,
-        gridSynchronized: false,
+        powerKw: solarP,
+        voltageV: gridVolt + 1,
+        currentA: (solarP * 1000) / (gridVolt + 1),
+        efficiencyPercent: 97.4,
+        frequencyHz: 50.0 + (Math.random() * 0.1 - 0.05),
+        gridSynchronized: gridSynced, // Only syncs if voltage complies with 230V threshold!
         antiIslandingActive: false,
-        status: 'STANDBY',
+        status: solarP > 0.1 ? 'GENERATING' : 'STANDBY',
       },
       smartMeter: {
-        voltageV: 0,
-        currentA: 0,
-        activePowerKw: 0,
-        reactivePowerKvar: 0,
-        apparentPowerKva: 0,
-        powerFactor: 0,
-        frequencyHz: 0,
-        importEnergyKwh: 0,
-        exportEnergyKwh: 0,
-        netEnergyKwh: 0,
-        dailyExportKwh: 0,
-        monthlyExportKwh: 0,
-        lifetimeExportKwh: 0,
-        voltageImbalancePercent: 0,
-        harmonicsThdPercent: 0,
+        voltageV: gridVolt,
+        currentA: currentA,
+        activePowerKw: gridExportKw > 0 ? gridExportKw : -gridImportKw,
+        reactivePowerKvar: 0.12 + Math.random() * 0.05,
+        apparentPowerKva: Math.abs(gridExportKw > 0 ? gridExportKw : gridImportKw) * 1.02,
+        powerFactor: 0.98,
+        frequencyHz: 50.0 + (Math.random() * 0.08 - 0.04),
+        importEnergyKwh: this.totalImportKwh,
+        exportEnergyKwh: this.totalExportKwh,
+        netEnergyKwh: this.totalExportKwh - this.totalImportKwh,
+        dailyExportKwh: this.totalExportKwh * 0.15,
+        monthlyExportKwh: this.totalExportKwh * 0.8,
+        lifetimeExportKwh: this.totalExportKwh,
+        voltageImbalancePercent: 0.4,
+        harmonicsThdPercent: 1.8,
         phaseLoss: false,
       },
       battery: {
-        socPercent: 0,
-        voltageV: 0,
-        currentA: 0,
-        temperatureC: 0,
-        healthPercent: 0,
-        chargingState: 'IDLE',
+        socPercent: 82 + (Math.random() * 2 - 1),
+        voltageV: 51.2 + (Math.random() * 0.4 - 0.2),
+        currentA: surplus > 0 ? 15 : -25,
+        temperatureC: 28.5 + (Math.random() * 0.5 - 0.25),
+        healthPercent: 98.0,
+        chargingState: surplus > 0 ? 'CHARGING' : 'DISCHARGING',
       },
       neighbourTrading: {
-        voltageV: 0,
-        currentA: 0,
-        instantaneousPowerKw: 0,
-        energyDeliveredKwh: 0,
-        energyReceivedKwh: 0,
-        currentPricePerKwh: 0,
-        earnedCredits: 0,
-        purchasedCredits: 0,
-        settlementBalance: 0,
-        connectedNeighboursCount: 0,
-        activeTransactionsCount: 0,
-        availableExportCapacityKw: 0,
+        voltageV: nbrVolt,
+        currentA: (neighborExportKw * 1000) / nbrVolt,
+        instantaneousPowerKw: neighborExportKw,
+        energyDeliveredKwh: this.totalNeighborDeliveredKwh,
+        energyReceivedKwh: this.totalNeighborReceivedKwh,
+        currentPricePerKwh: rate,
+        earnedCredits: this.neighborSettlementBalance,
+        purchasedCredits: this.totalNeighborReceivedKwh * rate,
+        settlementBalance: this.neighborSettlementBalance - (this.totalNeighborReceivedKwh * rate),
+        connectedNeighboursCount: 3,
+        activeTransactionsCount: neighborExportKw > 0 ? 1 : 0,
+        availableExportCapacityKw: Math.max(0, 1.5 - neighborExportKw),
       },
       weather: {
-        solarIrradianceWm2: 0,
-        ambientTempC: 0,
-        windSpeedMs: 0,
+        solarIrradianceWm2: solarP > 0.5 ? 780 + (Math.random() * 40 - 20) : 0,
+        ambientTempC: 31.0 + (Math.random() * 1.0 - 0.5),
+        windSpeedMs: 3.4 + (Math.random() * 0.8 - 0.4),
       }
     };
   }
@@ -275,10 +353,6 @@ export class IotService {
   }
 
   private evaluateAlerts(gridVolt: number = 230, gridSynced: boolean = true, activePowerKw: number = 0) {
-    if (gridVolt === 0) {
-      this.alerts = [];
-      return;
-    }
     // Generate alerts based on current system conditions
     const activeAlerts: SystemAlert[] = [];
 

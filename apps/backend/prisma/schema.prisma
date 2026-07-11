@@ -1,12 +1,17 @@
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  directUrl         = env("DIRECT_URL")
 }
 
 generator client {
   provider   = "prisma-client-js"
   engineType = "binary"
 }
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
 
 enum UserRole {
   CUSTOMER
@@ -16,7 +21,166 @@ enum UserRole {
   ENGINEER
   ADMIN
   PLANT_OPERATOR
+  ENERGY_TRADER
+  UTILITY_PROVIDER
+  MAINTENANCE_ENGINEER
+  SUPER_ADMIN
 }
+
+enum OrgType {
+  RESIDENTIAL
+  COMMERCIAL
+  INDUSTRIAL
+  SOLAR_COMPANY
+  UTILITY_PROVIDER
+  MICROGRID_OPERATOR
+  ENERGY_TRADER
+  PLANT_OWNER
+}
+
+enum OrgStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+  DECOMMISSIONED
+}
+
+enum PlantType {
+  SOLAR_FARM
+  MICROGRID
+  HYBRID
+  WIND
+  HYDRO
+  DIESEL_BACKUP
+  VIRTUAL_POWER_PLANT
+}
+
+enum DeviceType {
+  SOLAR_INVERTER
+  SMART_METER
+  BATTERY_BMS
+  IOT_GATEWAY
+  WEATHER_STATION
+  ENERGY_SENSOR
+  CHARGE_CONTROLLER
+  RELAY
+  EV_CHARGER
+  GENERIC
+}
+
+enum DeviceStatus {
+  ONLINE
+  OFFLINE
+  MAINTENANCE
+  FAULT
+  DECOMMISSIONED
+  PROVISIONED
+}
+
+enum CommunicationProtocol {
+  MQTT
+  MODBUS_RTU
+  MODBUS_TCP
+  HTTP
+  WEBSOCKET
+  LORAWAN
+  ZIGBEE
+}
+
+enum TradeStatus {
+  PENDING
+  MATCHED
+  EXECUTING
+  EXECUTED
+  CANCELLED
+  EXPIRED
+  FAILED
+}
+
+enum TradeType {
+  BUY
+  SELL
+}
+
+enum MaintenanceStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  OVERDUE
+}
+
+enum MaintenanceType {
+  PREVENTIVE
+  CORRECTIVE
+  EMERGENCY
+  INSPECTION
+  CALIBRATION
+  FIRMWARE_UPDATE
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+  EMERGENCY
+}
+
+enum WalletTxType {
+  CREDIT
+  DEBIT
+  P2P_SENT
+  P2P_RECEIVED
+  REFUND
+  PAYOUT
+  TOP_UP
+  WITHDRAWAL
+  ENERGY_PURCHASE
+  ENERGY_SALE
+  CARBON_CREDIT
+}
+
+enum ReportType {
+  ENERGY_SUMMARY
+  BILLING_SUMMARY
+  DEVICE_PERFORMANCE
+  TRADING_SUMMARY
+  MAINTENANCE_REPORT
+  AI_FORECAST_REPORT
+  CARBON_REPORT
+  SYSTEM_HEALTH
+}
+
+enum ReportStatus {
+  PENDING
+  GENERATING
+  READY
+  FAILED
+  EXPIRED
+}
+
+enum PredictionType {
+  LOAD_FORECAST
+  GENERATION_FORECAST
+  PRICE_FORECAST
+  FAULT_DETECTION
+  OPTIMIZATION
+  BATTERY_DEGRADATION
+}
+
+enum NotificationType {
+  INFO
+  ALERT
+  BILLING
+  SYSTEM
+  MAINTENANCE
+  TRADING
+  SECURITY
+}
+
+// ─────────────────────────────────────────────
+// CORE IDENTITY & ACCESS
+// ─────────────────────────────────────────────
 
 model User {
   id                  String               @id @default(uuid())
@@ -24,10 +188,22 @@ model User {
   passwordHash        String
   firstName           String
   lastName            String
+  phone               String?
+  avatarUrl           String?
   role                UserRole             @default(SYSTEM_OWNER)
+  isEmailVerified     Boolean              @default(false)
+  twoFactorEnabled    Boolean              @default(false)
+  twoFactorSecret     String?
+  lastLoginAt         DateTime?
+  lastLoginIp         String?
+  status              String               @default("ACTIVE") // ACTIVE, SUSPENDED, PENDING
+  metadata            Json?
+  deletedAt           DateTime?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   refreshToken        String?
+
+  // Original relations
   projects            Project[]
   auditLogs           AuditLog[]
   contractsAsSupplier EnergyContract[]     @relation("SupplierContracts")
@@ -35,31 +211,402 @@ model User {
   invitationsSent     ConsumerInvitation[] @relation("SentInvitations")
   notifications       Notification[]
   devices             Device[]
+
+  // New relations
+  orgMemberships          OrganizationMember[]
+  loadProfiles            LoadProfile[]
+  wallets                 EnergyWallet[]
+  tradingOrders           TradingOrder[]
+  p2pAsSeller             P2PSession[]         @relation("P2PSeller")
+  p2pAsBuyer              P2PSession[]         @relation("P2PBuyer")
+  bills                   Bill[]
+  payments                Payment[]
+  apiKeys                 ApiKey[]
+  sessions                UserSession[]
+  reports                 Report[]
+  carbonCredits           CarbonCredit[]
+  aiPredictions           AIPrediction[]
+  assignedMaintenance     MaintenanceRecord[]  @relation("MaintenanceAssignee")
+  reportedMaintenance     MaintenanceRecord[]  @relation("MaintenanceReporter")
+
+  @@index([email])
+  @@index([role, status])
 }
 
+// ─────────────────────────────────────────────
+// ORGANIZATIONS & PLANTS
+// ─────────────────────────────────────────────
+
+model Organization {
+  id          String      @id @default(uuid())
+  name        String
+  type        OrgType
+  status      OrgStatus   @default(ACTIVE)
+  code        String?     @unique
+  email       String?
+  phone       String?
+  address     String?
+  city        String?
+  state       String?
+  country     String      @default("NG")
+  website     String?
+  logoUrl     String?
+  taxId       String?
+  metadata    Json?
+  deletedAt   DateTime?
+  createdBy   String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  plants      Plant[]
+  members     OrganizationMember[]
+  wallets     EnergyWallet[]
+  apiKeys     ApiKey[]
+
+  @@index([type, status])
+  @@index([code])
+}
+
+model OrganizationMember {
+  id             String       @id @default(uuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           String       @default("MEMBER") // OWNER, ADMIN, MEMBER, VIEWER
+  joinedAt       DateTime     @default(now())
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+}
+
+model Plant {
+  id                   String       @id @default(uuid())
+  name                 String
+  type                 PlantType    @default(SOLAR_FARM)
+  status               String       @default("ACTIVE")
+  organizationId       String
+  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  latitude             Float?
+  longitude            Float?
+  address              String?
+  city                 String?
+  state                String?
+  country              String       @default("NG")
+  timezone             String       @default("Africa/Lagos")
+  installedCapacityKw  Float?
+  commissionedAt       DateTime?
+  metadata             Json?
+  deletedAt            DateTime?
+  createdBy            String?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  sites                Site[]
+  plantDevices         PlantDevice[]
+
+  @@index([organizationId, status])
+}
+
+model Site {
+  id          String        @id @default(uuid())
+  name        String
+  plantId     String
+  plant       Plant         @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  description String?
+  areaM2      Float?
+  status      String        @default("ACTIVE")
+  deletedAt   DateTime?
+  createdBy   String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  plantDevices PlantDevice[]
+
+  @@index([plantId])
+}
+
+model PlantDevice {
+  id          String   @id @default(uuid())
+  plantId     String
+  plant       Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  siteId      String?
+  site        Site?    @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  deviceId    String
+  device      Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  installedAt DateTime @default(now())
+
+  @@unique([plantId, deviceId])
+  @@index([plantId])
+}
+
+// ─────────────────────────────────────────────
+// DEVICES
+// ─────────────────────────────────────────────
+
+model Device {
+  id                   String                @id @default(uuid())
+  name                 String
+  serialNumber         String?               @unique
+  qrCode               String?               @unique
+  type                 DeviceType            @default(GENERIC)
+  manufacturer         String?
+  model                String?
+  firmwareVersion      String?
+  hardwareVersion      String?
+  protocol             CommunicationProtocol @default(MQTT)
+  status               DeviceStatus          @default(PROVISIONED)
+  deviceAuthToken      String?               @unique
+  signalStrength       Int?
+  communicationQuality Int?
+  lastCommTime         DateTime?
+  diagnosticsJson      Json?
+  ownerId              String?
+  owner                User?                 @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  projectId            String?
+  project              Project?              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  metadata             Json?
+  deletedAt            DateTime?
+  createdBy            String?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+
+  // Original relations
+  telemetry            Telemetry[]
+
+  // New relations
+  plantDevices         PlantDevice[]
+  solarInverter        SolarInverter?
+  smartMeter           SmartMeter?
+  iotGateway           IoTGateway?
+  batterySystem        BatterySystem?
+  weatherStation       WeatherStation?
+  telemetryBatches     TelemetryBatch[]
+  powerReadings        PowerReading[]
+  solarGenerations     SolarGeneration[]
+  batteryData          BatteryData[]
+  maintenanceRecords   MaintenanceRecord[]
+  faultLogs            FaultLog[]
+  aiPredictions        AIPrediction[]
+  deviceLogs           DeviceLog[]
+
+  @@index([ownerId, status])
+  @@index([type, status])
+  @@index([serialNumber])
+}
+
+model SolarInverter {
+  id             String   @id @default(uuid())
+  deviceId       String   @unique
+  device         Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  brand          String?
+  model          String?
+  ratedPowerKw   Float?
+  maxVoltageV    Float?
+  maxCurrentA    Float?
+  mpptChannels   Int?
+  gridTied       Boolean  @default(true)
+  phaseType      String   @default("THREE_PHASE") // SINGLE_PHASE, THREE_PHASE
+  efficiency     Float?   // percentage
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model SmartMeter {
+  id               String   @id @default(uuid())
+  deviceId         String   @unique
+  device           Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  meterNumber      String?  @unique
+  meterType        String   @default("BIDIRECTIONAL") // IMPORT_ONLY, EXPORT_ONLY, BIDIRECTIONAL
+  utilityAccountId String?
+  tariffCode       String?
+  ctRatio          Float?
+  ptRatio          Float?
+  phaseType        String   @default("THREE_PHASE")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model IoTGateway {
+  id               String   @id @default(uuid())
+  deviceId         String   @unique
+  device           Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  ipAddress        String?
+  macAddress       String?
+  mqttClientId     String?  @unique
+  mqttTopic        String?
+  connectedDevices Int      @default(0)
+  vpnEnabled       Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model BatterySystem {
+  id                 String   @id @default(uuid())
+  deviceId           String   @unique
+  device             Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  chemistry          String   @default("LITHIUM_ION") // LITHIUM_ION, LITHIUM_FERRO, LEAD_ACID, FLOW
+  nominalCapacityKwh Float?
+  nominalVoltage     Float?
+  maxChargeRateKw    Float?
+  maxDischargeRateKw Float?
+  minSocPercent      Float    @default(20.0)
+  maxSocPercent      Float    @default(95.0)
+  cycleCount         Int      @default(0)
+  warrantyYears      Int?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model WeatherStation {
+  id          String   @id @default(uuid())
+  deviceId    String   @unique
+  device      Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  latitude    Float?
+  longitude   Float?
+  altitude    Float?
+  sensorTypes String[] // IRRADIANCE, TEMPERATURE, WIND_SPEED, HUMIDITY, RAINFALL
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model DeviceLog {
+  id        String   @id @default(uuid())
+  deviceId  String
+  device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  level     String   @default("INFO") // INFO, WARN, ERROR, DEBUG
+  message   String
+  payload   Json?
+  createdAt DateTime @default(now())
+
+  @@index([deviceId, createdAt])
+  @@index([level])
+}
+
+// ─────────────────────────────────────────────
+// TELEMETRY
+// ─────────────────────────────────────────────
+
+model Telemetry {
+  id             String   @id @default(uuid())
+  deviceId       String
+  device         Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  timestamp      DateTime @default(now())
+  voltage        Float?
+  current        Float?
+  activePower    Float?
+  reactivePower  Float?
+  apparentPower  Float?
+  frequency      Float?
+  powerFactor    Float?
+  energyImported Float?
+  energyExported Float?
+  batterySoc     Float?
+  status         String?
+  alarmStatus    String?
+  commQuality    Float?
+  rawPayload     Json?
+
+  @@index([deviceId, timestamp])
+}
+
+model TelemetryBatch {
+  id        String   @id @default(uuid())
+  deviceId  String
+  device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  batchSize Int
+  startTs   DateTime
+  endTs     DateTime
+  payload   Json
+  processed Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([deviceId, processed])
+  @@index([deviceId, startTs])
+}
+
+model PowerReading {
+  id               String   @id @default(uuid())
+  deviceId         String
+  device           Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  timestamp        DateTime
+  phase            String   @default("TOTAL") // L1, L2, L3, TOTAL
+  voltageV         Float?
+  currentA         Float?
+  activePowerW     Float?
+  reactivePowerVar Float?
+  apparentPowerVa  Float?
+  powerFactor      Float?
+  frequencyHz      Float?
+  createdAt        DateTime @default(now())
+
+  @@index([deviceId, timestamp])
+}
+
+model SolarGeneration {
+  id             String   @id @default(uuid())
+  deviceId       String
+  device         Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  timestamp      DateTime
+  dcPowerW       Float?
+  acPowerW       Float?
+  energyTodayKwh Float?
+  energyTotalKwh Float?
+  irradianceWm2  Float?
+  moduleTempC    Float?
+  ambientTempC   Float?
+  efficiency     Float?
+  createdAt      DateTime @default(now())
+
+  @@index([deviceId, timestamp])
+}
+
+model BatteryData {
+  id           String   @id @default(uuid())
+  deviceId     String
+  device       Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  timestamp    DateTime
+  socPercent   Float?
+  sohPercent   Float?
+  voltageV     Float?
+  currentA     Float?
+  temperatureC Float?
+  chargeKwh    Float?
+  dischargeKwh Float?
+  cycleCount   Int?
+  state        String?  // CHARGING, DISCHARGING, IDLE, FAULT
+  createdAt    DateTime @default(now())
+
+  @@index([deviceId, timestamp])
+}
+
+// ─────────────────────────────────────────────
+// EXISTING PROJECT MODELS (preserved)
+// ─────────────────────────────────────────────
+
 model Project {
-  id           String             @id @default(uuid())
-  name         String
-  description  String?
-  location     String?
-  latitude     Float?
-  longitude    Float?
-  userId       String
-  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
-  appliances   ProjectAppliance[]
-  designs      ProjectDesign[]
-  simulations  SimulationResult[]
-  quotations   Quotation[]
-  devices      Device[]
+  id          String             @id @default(uuid())
+  name        String
+  description String?
+  location    String?
+  latitude    Float?
+  longitude   Float?
+  userId      String
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  appliances  ProjectAppliance[]
+  designs     ProjectDesign[]
+  simulations SimulationResult[]
+  quotations  Quotation[]
+  devices     Device[]
 }
 
 model Appliance {
   id           String             @id @default(uuid())
   name         String
-  defaultPower Float              // In Watts
-  category     String             // e.g., Kitchen, Cooling, Lighting
+  defaultPower Float
+  category     String
   isCustom     Boolean            @default(false)
   projects     ProjectAppliance[]
 }
@@ -71,76 +618,532 @@ model ProjectAppliance {
   applianceId String
   appliance   Appliance @relation(fields: [applianceId], references: [id])
   quantity    Int       @default(1)
-  hoursOnDay  Float[]   // Array of 24 floats representing load profile per hour (0.0 to 1.0)
+  hoursOnDay  Float[]
   createdAt   DateTime  @default(now())
 }
 
 model ProjectDesign {
-  id                     String   @id @default(uuid())
-  projectId              String
-  project                Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
-  
-  // PV Parameters
-  pvModulePower          Float?   // Watts
-  pvModuleQty            Int?
-  pvTotalPower           Float?   // kW
-  
-  // Battery Parameters
-  batteryCapacityAh      Float?
-  batteryVoltage         Float?
+  id                      String   @id @default(uuid())
+  projectId               String
+  project                 Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  pvModulePower           Float?
+  pvModuleQty             Int?
+  pvTotalPower            Float?
+  batteryCapacityAh       Float?
+  batteryVoltage          Float?
   batteryDepthOfDischarge Float?
-  batteryQty             Int?
-  
-  // Inverter Parameters
-  inverterPowerRating    Float?   // kW
-  inverterEfficiency     Float?   // percentage
-  
-  // MPPT Parameters
-  mpptCurrentRating      Float?   // Amps
-  
-  // Cables & Protection
-  cableSizeMm2           Float?
-  fuseRatingAmps         Float?
-  circuitBreakerAmps     Float?
+  batteryQty              Int?
+  inverterPowerRating     Float?
+  inverterEfficiency      Float?
+  mpptCurrentRating       Float?
+  cableSizeMm2            Float?
+  fuseRatingAmps          Float?
+  circuitBreakerAmps      Float?
 }
 
 model SimulationResult {
-  id                String   @id @default(uuid())
-  projectId         String
-  project           Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  createdAt         DateTime @default(now())
-  
-  // Generation & Demand Profiles
-  hourlySolarGen    Float[]  // 24 hours of solar generation in kWh
-  hourlyLoadDemand  Float[]  // 24 hours of load demand in kWh
-  hourlyBatterySoC  Float[]  // 24 hours of Battery State-of-Charge percentage
-  
-  // Financial Outcomes
-  totalCost         Float
-  paybackPeriodYrs  Float
-  roiPercentage     Float
-  exportedGridKwh   Float
+  id               String   @id @default(uuid())
+  projectId        String
+  project          Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+  hourlySolarGen   Float[]
+  hourlyLoadDemand Float[]
+  hourlyBatterySoC Float[]
+  totalCost        Float
+  paybackPeriodYrs Float
+  roiPercentage    Float
+  exportedGridKwh  Float
   gridRevenueEarned Float
 }
+
+model LoadProfile {
+  id             String   @id @default(uuid())
+  name           String
+  userId         String?
+  user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organizationId String?
+  source         String   @default("MEASURED") // MEASURED, ESTIMATED, AI_GENERATED
+  resolution     Int      @default(60)          // minutes per interval
+  hourlyData     Float[]                        // 24-point profile
+  peakKw         Float?
+  avgKw          Float?
+  totalKwh       Float?
+  recordedDate   DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ─────────────────────────────────────────────
+// AUDIT & SECURITY
+// ─────────────────────────────────────────────
 
 model AuditLog {
   id        String   @id @default(uuid())
   userId    String?
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  action    String   // e.g., "USER_LOGIN", "PROJECT_CREATE", "CALCULATION_RUN"
-  details   String?  // JSON string or summary
+  action    String
+  details   String?
   ipAddress String?
+  userAgent String?
+  resource  String?
+  resourceId String?
   createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action])
 }
+
+model ApiKey {
+  id             String        @id @default(uuid())
+  name           String
+  keyHash        String        @unique
+  keyPrefix      String
+  userId         String?
+  user           User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  scopes         String[]
+  lastUsedAt     DateTime?
+  expiresAt      DateTime?
+  status         String        @default("ACTIVE") // ACTIVE, REVOKED, EXPIRED
+  metadata       Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([userId])
+  @@index([keyPrefix])
+}
+
+model UserSession {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceInfo String?
+  ipAddress  String?
+  userAgent  String?
+  isActive   Boolean  @default(true)
+  lastSeenAt DateTime @default(now())
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([userId, isActive])
+}
+
+model SystemSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  type        String   @default("STRING") // STRING, NUMBER, BOOLEAN, JSON
+  category    String   @default("GENERAL")
+  description String?
+  isPublic    Boolean  @default(false)
+  updatedBy   String?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  @@index([category])
+}
+
+// ─────────────────────────────────────────────
+// ENERGY CONTRACTS & P2P (existing + extended)
+// ─────────────────────────────────────────────
+
+model ConsumerInvitation {
+  id             String   @id @default(uuid())
+  invitationCode String   @unique
+  supplierId     String
+  supplier       User     @relation("SentInvitations", fields: [supplierId], references: [id], onDelete: Cascade)
+  email          String?
+  phoneNumber    String?
+  tariffRate     Float?
+  billingCycle   String   @default("PREPAID")
+  status         String   @default("PENDING") // PENDING, ACCEPTED, REJECTED, EXPIRED
+  expiresAt      DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model EnergyContract {
+  id               String        @id @default(uuid())
+  supplierId       String
+  supplier         User          @relation("SupplierContracts", fields: [supplierId], references: [id], onDelete: Cascade)
+  consumerId       String
+  consumer         User          @relation("ConsumerContracts", fields: [consumerId], references: [id], onDelete: Cascade)
+  connectionStatus String        @default("ACTIVE") // ACTIVE, SUSPENDED, TERMINATED
+  contractDate     DateTime      @default(now())
+  tariffRate       Float
+  billingCycle     String        @default("PREPAID")
+  balance          Float         @default(0.0)
+  gatewayId        String?
+  metadata         Json?
+  deletedAt        DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  invoices         Invoice[]
+  transactions     Transaction[]
+  bills            Bill[]        @relation("BillContract")
+}
+
+// ─────────────────────────────────────────────
+// WALLET & PAYMENTS
+// ─────────────────────────────────────────────
+
+model EnergyWallet {
+  id             String        @id @default(uuid())
+  userId         String?
+  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  currency       String        @default("NGN")
+  balance        Float         @default(0.0)
+  lockedBalance  Float         @default(0.0)
+  status         String        @default("ACTIVE") // ACTIVE, FROZEN, CLOSED
+  metadata       Json?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  transactions   WalletTransaction[]
+
+  @@index([userId, currency])
+  @@index([organizationId, currency])
+}
+
+model WalletTransaction {
+  id            String       @id @default(uuid())
+  walletId      String
+  wallet        EnergyWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  type          WalletTxType
+  amount        Float
+  currency      String       @default("NGN")
+  balanceBefore Float
+  balanceAfter  Float
+  reference     String?      @unique
+  description   String?
+  metadata      Json?
+  status        String       @default("COMPLETED") // PENDING, COMPLETED, FAILED, REVERSED
+  createdBy     String?
+  createdAt     DateTime     @default(now())
+
+  @@index([walletId, createdAt])
+  @@index([reference])
+}
+
+model Bill {
+  id                 String          @id @default(uuid())
+  userId             String?
+  user               User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  contractId         String?
+  contract           EnergyContract? @relation("BillContract", fields: [contractId], references: [id], onDelete: SetNull)
+  billNumber         String          @unique
+  billingPeriodStart DateTime
+  billingPeriodEnd   DateTime
+  energyConsumedKwh  Float
+  energyExportedKwh  Float           @default(0.0)
+  tariffRate         Float
+  currency           String          @default("NGN")
+  baseAmount         Float
+  taxAmount          Float           @default(0.0)
+  discountAmount     Float           @default(0.0)
+  totalAmount        Float
+  status             String          @default("DRAFT") // DRAFT, ISSUED, PAID, OVERDUE, DISPUTED, VOID
+  dueDate            DateTime
+  paidAt             DateTime?
+  pdfUrl             String?
+  notes              String?
+  metadata           Json?
+  deletedAt          DateTime?
+  createdBy          String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  payments           Payment[]
+
+  @@index([userId, status])
+  @@index([billNumber])
+}
+
+model Payment {
+  id              String   @id @default(uuid())
+  billId          String?
+  bill            Bill?    @relation(fields: [billId], references: [id], onDelete: SetNull)
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  amount          Float
+  currency        String   @default("NGN")
+  gateway         String   @default("PAYSTACK") // PAYSTACK, FLUTTERWAVE, STRIPE, BANK_TRANSFER
+  gatewayRef      String?  @unique
+  gatewayResponse Json?
+  status          String   @default("PENDING") // PENDING, SUCCESS, FAILED, REFUNDED
+  paidAt          DateTime?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([gatewayRef])
+}
+
+// ─────────────────────────────────────────────
+// P2P TRADING
+// ─────────────────────────────────────────────
+
+model P2PSession {
+  id               String      @id @default(uuid())
+  sellerId         String
+  seller           User        @relation("P2PSeller", fields: [sellerId], references: [id])
+  buyerId          String?
+  buyer            User?       @relation("P2PBuyer", fields: [buyerId], references: [id])
+  status           TradeStatus @default(PENDING)
+  offerPricePerKwh Float
+  currency         String      @default("NGN")
+  energyAmountKwh  Float
+  minimumKwh       Float?
+  expiresAt        DateTime?
+  matchedAt        DateTime?
+  executedAt       DateTime?
+  metadata         Json?
+  deletedAt        DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  p2pTransactions  P2PTransaction[]
+
+  @@index([sellerId, status])
+  @@index([buyerId, status])
+}
+
+model P2PTransaction {
+  id             String      @id @default(uuid())
+  sessionId      String
+  session        P2PSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sellerId       String
+  buyerId        String
+  energyKwh      Float
+  pricePerKwh    Float
+  totalAmount    Float
+  currency       String      @default("NGN")
+  status         TradeStatus @default(EXECUTING)
+  settlementRef  String?     @unique
+  settledAt      DateTime?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([sessionId])
+  @@index([sellerId])
+  @@index([buyerId])
+}
+
+model TradingOrder {
+  id           String      @id @default(uuid())
+  userId       String
+  user         User        @relation(fields: [userId], references: [id])
+  type         TradeType
+  status       TradeStatus @default(PENDING)
+  energyKwh    Float
+  pricePerKwh  Float
+  currency     String      @default("NGN")
+  filledKwh    Float       @default(0.0)
+  remainingKwh Float
+  expiresAt    DateTime?
+  metadata     Json?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([userId, status])
+  @@index([type, status, pricePerKwh])
+}
+
+// ─────────────────────────────────────────────
+// BILLING (existing Invoice + Transaction preserved)
+// ─────────────────────────────────────────────
+
+model Invoice {
+  id                 String         @id @default(uuid())
+  contractId         String
+  contract           EnergyContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  amount             Float
+  tariffRate         Float
+  energyReceivedKwh  Float
+  billingPeriodStart DateTime
+  billingPeriodEnd   DateTime
+  dueDate            DateTime
+  status             String         @default("UNPAID") // PAID, UNPAID, OVERDUE
+  pdfUrl             String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+}
+
+model Transaction {
+  id             String         @id @default(uuid())
+  contractId     String
+  contract       EnergyContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+  type           String         // PREPAID_PURCHASE, BILL_PAYMENT, CREDIT_TRANSFER
+  amount         Float
+  currency       String         @default("NGN")
+  paymentGateway String?
+  status         String         @default("SUCCESSFUL")
+  reference      String?        @unique
+  createdAt      DateTime       @default(now())
+}
+
+// ─────────────────────────────────────────────
+// MAINTENANCE & FAULTS
+// ─────────────────────────────────────────────
+
+model MaintenanceRecord {
+  id           String            @id @default(uuid())
+  deviceId     String?
+  device       Device?           @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  plantId      String?
+  title        String
+  description  String?
+  type         MaintenanceType   @default(PREVENTIVE)
+  status       MaintenanceStatus @default(SCHEDULED)
+  priority     String            @default("MEDIUM") // LOW, MEDIUM, HIGH, CRITICAL
+  scheduledAt  DateTime?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  assignedTo   String?
+  assignedUser User?             @relation("MaintenanceAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
+  reportedBy   String?
+  reporter     User?             @relation("MaintenanceReporter", fields: [reportedBy], references: [id], onDelete: SetNull)
+  cost         Float?
+  currency     String            @default("NGN")
+  notes        String?
+  attachments  String[]
+  metadata     Json?
+  deletedAt    DateTime?
+  createdBy    String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  faultLogs    FaultLog[]
+
+  @@index([deviceId, status])
+  @@index([status, scheduledAt])
+}
+
+model FaultLog {
+  id                  String             @id @default(uuid())
+  deviceId            String
+  device              Device             @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  maintenanceRecordId String?
+  maintenance         MaintenanceRecord? @relation(fields: [maintenanceRecordId], references: [id], onDelete: SetNull)
+  code                String
+  description         String?
+  severity            AlertSeverity      @default(WARNING)
+  occurredAt          DateTime           @default(now())
+  resolvedAt          DateTime?
+  acknowledgedBy      String?
+  metadata            Json?
+  createdAt           DateTime           @default(now())
+
+  @@index([deviceId, occurredAt])
+  @@index([severity, resolvedAt])
+}
+
+// ─────────────────────────────────────────────
+// AI & FORECASTING
+// ─────────────────────────────────────────────
+
+model AIPrediction {
+  id         String         @id @default(uuid())
+  userId     String?
+  user       User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  deviceId   String?
+  device     Device?        @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  type       PredictionType
+  model      String         @default("gemini")
+  inputData  Json
+  outputData Json
+  confidence Float?
+  horizon    Int?           // forecast horizon in hours
+  status     String         @default("COMPLETED")
+  metadata   Json?
+  createdAt  DateTime       @default(now())
+
+  forecasts  ForecastResult[]
+
+  @@index([userId, type])
+  @@index([deviceId, type])
+}
+
+model ForecastResult {
+  id           String       @id @default(uuid())
+  predictionId String
+  prediction   AIPrediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+  timestamp    DateTime
+  value        Float
+  unit         String       // kW, kWh, NGN/kWh
+  lower95      Float?
+  upper95      Float?
+
+  @@index([predictionId, timestamp])
+}
+
+// ─────────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      NotificationType @default(INFO)
+  channel   String           @default("IN_APP") // IN_APP, EMAIL, SMS, PUSH
+  read      Boolean          @default(false)
+  readAt    DateTime?
+  actionUrl String?
+  metadata  Json?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+}
+
+// ─────────────────────────────────────────────
+// REPORTS
+// ─────────────────────────────────────────────
+
+model Report {
+  id             String       @id @default(uuid())
+  userId         String?
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organizationId String?
+  title          String
+  type           ReportType
+  status         ReportStatus @default(PENDING)
+  parameters     Json?
+  fileUrl        String?
+  fileSize       Int?
+  expiresAt      DateTime?
+  errorMessage   String?
+  metadata       Json?
+  deletedAt      DateTime?
+  createdBy      String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([userId, type])
+  @@index([status])
+}
+
+// ─────────────────────────────────────────────
+// PROCUREMENT (existing models preserved)
+// ─────────────────────────────────────────────
 
 model Product {
   id        String            @id @default(uuid())
   name      String
-  category  String            // e.g. PANEL, BATTERY, INVERTER
+  category  String
   model     String
-  rating    Float             // e.g., watts, Ah, kW
+  rating    Float
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
   suppliers SupplierProduct[]
@@ -164,7 +1167,7 @@ model SupplierProduct {
   supplier   Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
   price      Float
   stock      Int      @default(0)
-  leadTime   Int      @default(1) // in days
+  leadTime   Int      @default(1)
 }
 
 model Installer {
@@ -172,7 +1175,7 @@ model Installer {
   name      String
   contact   String
   rating    Float       @default(5.0)
-  baseRate  Float       // base rate for standard install in local currency
+  baseRate  Float
   location  String
   quotes    Quotation[]
 }
@@ -186,118 +1189,27 @@ model Quotation {
   totalHardwareCost Float
   installationCost  Float
   grandTotal        Float
-  itemsJson         String     // JSON serialized list of products included
+  itemsJson         String
   createdAt         DateTime   @default(now())
 }
 
-model ConsumerInvitation {
-  id             String    @id @default(uuid())
-  invitationCode String    @unique
-  supplierId     String
-  supplier       User      @relation("SentInvitations", fields: [supplierId], references: [id], onDelete: Cascade)
-  email          String?
-  phoneNumber    String?
-  status         String    @default("PENDING") // PENDING, ACCEPTED, REJECTED, EXPIRED
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-}
+// ─────────────────────────────────────────────
+// CARBON CREDITS (future-proof)
+// ─────────────────────────────────────────────
 
-model EnergyContract {
-  id               String        @id @default(uuid())
-  supplierId       String
-  supplier         User          @relation("SupplierContracts", fields: [supplierId], references: [id], onDelete: Cascade)
-  consumerId       String
-  consumer         User          @relation("ConsumerContracts", fields: [consumerId], references: [id], onDelete: Cascade)
-  connectionStatus String        @default("ACTIVE") // ACTIVE, SUSPENDED, TERMINATED
-  contractDate     DateTime      @default(now())
-  tariffRate       Float         // Price in local currency per kWh (e.g. NGN/kWh)
-  billingCycle     String        @default("PREPAID") // PREPAID, POSTPAID, HYBRID
-  balance          Float         @default(0.0) // wallet balance for prepaid or outstanding for postpaid
-  gatewayId        String?       // Edge gateway handling the link
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  invoices         Invoice[]
-  transactions     Transaction[]
-}
-
-model Device {
-  id                   String        @id @default(uuid())
-  name                 String
-  type                 String        // SMART_METER, INVERTER, BMS, CHARGE_CONTROLLER, EDGE_GATEWAY, etc.
-  manufacturer         String?
-  model                String?
-  firmwareVersion      String?
-  protocol             String        @default("MQTT") // MODBUS_RTU, MODBUS_TCP, MQTT, HTTP
-  status               String        @default("ONLINE") // ONLINE, OFFLINE, MAINTENANCE
-  signalStrength       Int?          // dBm
-  communicationQuality Int?          // 0-100%
-  lastCommTime         DateTime      @default(now())
-  ownerId              String?
-  owner                User?         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  projectId            String?
-  project              Project?      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
-  telemetry            Telemetry[]
-}
-
-model Telemetry {
+model CarbonCredit {
   id              String   @id @default(uuid())
-  deviceId        String
-  device          Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-  timestamp       DateTime @default(now())
-  voltage         Float?
-  current         Float?
-  activePower     Float?
-  reactivePower   Float?
-  apparentPower   Float?
-  frequency       Float?
-  powerFactor     Float?
-  energyImported  Float?
-  energyExported  Float?
-  batterySoc      Float?
-  status          String?
-  alarmStatus     String?
-  commQuality     Float?
-}
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organizationId  String?
+  credits         Float
+  source          String   // SOLAR_GENERATION, BATTERY_STORAGE, DEMAND_RESPONSE
+  verificationRef String?
+  status          String   @default("PENDING") // PENDING, VERIFIED, SOLD, RETIRED
+  vintageYear     Int?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-model Invoice {
-  id                String         @id @default(uuid())
-  contractId        String
-  contract          EnergyContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  amount            Float
-  tariffRate        Float
-  energyReceivedKwh Float
-  billingPeriodStart DateTime
-  billingPeriodEnd  DateTime
-  dueDate           DateTime
-  status            String         @default("UNPAID") // PAID, UNPAID, OVERDUE
-  pdfUrl            String?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  @@index([userId])
 }
-
-model Transaction {
-  id             String         @id @default(uuid())
-  contractId     String
-  contract       EnergyContract @relation(fields: [contractId], references: [id], onDelete: Cascade)
-  type           String         // PREPAID_PURCHASE, BILL_PAYMENT, CREDIT_TRANSFER
-  amount         Float
-  currency       String         @default("NGN")
-  paymentGateway String?
-  status         String         @default("SUCCESSFUL") // PENDING, SUCCESSFUL, FAILED
-  reference      String?        @unique
-  createdAt      DateTime       @default(now())
-}
-
-model Notification {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title     String
-  message   String
-  type      String   @default("INFO") // ALERT, BILLING, SYSTEM, INFO
-  read      Boolean  @default(false)
-  createdAt DateTime @default(now())
-}
-
