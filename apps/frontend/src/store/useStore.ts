@@ -111,6 +111,7 @@ interface REOSState {
   // Auth Actions
   login: (credentials: any) => Promise<void>;
   register: (data: any) => Promise<void>;
+  loginAsGuest: () => void;
   logout: () => void;
 
   // Project Actions
@@ -687,6 +688,21 @@ export const useStore = create<REOSState>((set, get) => ({
       set({ authError: error.message });
       throw error;
     }
+  },
+
+  loginAsGuest: () => {
+    set({
+      token: 'guest-token',
+      user: {
+        id: 'guest',
+        firstName: 'Guest',
+        lastName: 'User',
+        email: 'guest@reos.io',
+        role: 'VIEWER' as UserRole,
+      },
+      userRole: 'VIEWER' as UserRole,
+      isAuthenticated: true,
+    });
   },
 
   logout: () => {

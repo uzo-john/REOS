@@ -6,7 +6,7 @@ import {
 import { useStore } from "../store/useStore";
 
 export default function LoginScreen({ navigation }: any) {
-  const { login, register, theme, isAuthenticated } = useStore();
+  const { login, register, loginAsGuest, theme, isAuthenticated } = useStore();
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,7 +17,10 @@ export default function LoginScreen({ navigation }: any) {
   const isDark = theme === "dark";
 
   React.useEffect(() => {
-    if (isAuthenticated) navigation.replace("Main");
+    if (isAuthenticated) {
+      // In exclusive Stack mapping, React Navigation automatically handles unmount/remount,
+      // but if we are manually replacing we can fallback or skip.
+    }
   }, [isAuthenticated]);
 
   const bg = isDark ? "#050810" : "#F1F5F9";
@@ -38,7 +41,6 @@ export default function LoginScreen({ navigation }: any) {
       } else {
         await login({ email, password });
       }
-      navigation.replace("Main");
     } catch (e: any) {
       setError(e.message || "Authentication failed. Please try again.");
     } finally { setLoading(false); }
@@ -129,7 +131,7 @@ export default function LoginScreen({ navigation }: any) {
 
         {/* Demo access */}
         <TouchableOpacity
-          onPress={() => navigation.replace("Main")}
+          onPress={() => loginAsGuest()}
           style={{ marginTop: 20, alignItems: "center", padding: 12 }}
         >
           <Text style={{ color: sub, fontSize: 13 }}>🔍 Continue as Guest (Demo Mode)</Text>

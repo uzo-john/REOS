@@ -222,8 +222,9 @@ export default function AppNavigator() {
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!isAuthenticated ? (
           <Stack.Screen name="Login" component={LoginScreen} />
-        ) : null}
-        <Stack.Screen name="Main" component={DrawerNavigator} />
+        ) : (
+          <Stack.Screen name="Main" component={DrawerNavigator} />
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );
