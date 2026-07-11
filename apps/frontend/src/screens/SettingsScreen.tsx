@@ -1,97 +1,94 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { useStore } from "../store/useStore";
 
-export default function AlarmScreen() {
-  const { alerts, theme, acknowledgeAlert, fetchIotData } = useStore();
+export default function SettingsScreen() {
+  const { user, userRole, theme, toggleTheme, logout } = useStore();
   const isDark = theme === "dark";
   const bg = isDark ? "#050810" : "#F1F5F9";
   const card = isDark ? "rgba(17,24,39,0.95)" : "#FFFFFF";
   const border = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)";
   const text = isDark ? "#F1F5F9" : "#0F172A";
   const sub = isDark ? "#94A3B8" : "#64748B";
-  const [filter, setFilter] = useState("ALL");
-
-  useEffect(() => { fetchIotData(); const iv = setInterval(fetchIotData, 5000); return () => clearInterval(iv); }, []);
-
-  const sevColor: Record<string, string> = { CRITICAL:"#EF4444", HIGH:"#F97316", MEDIUM:"#F59E0B", LOW:"#3B82F6", WARNING:"#F97316", INFO:"#64748B" };
-  const sevIcon: Record<string, string> = { CRITICAL:"🔴", HIGH:"🟠", MEDIUM:"🟡", LOW:"🔵", WARNING:"🟠", INFO:"⚪" };
-
-  const allAlerts = [...(alerts ?? []),
-    { id: "mock-1", code: "BATTERY_TEMP", title: "Battery Temperature High", severity: "HIGH", acknowledged: false, timestamp: new Date(Date.now()-300000).toISOString(), recommendedAction: "Check battery cooling. Ensure ventilation is not blocked.", status: "ACTIVE" },
-    { id: "mock-2", code: "MPPT_DERATING", title: "MPPT Derating Active", severity: "MEDIUM", acknowledged: true, timestamp: new Date(Date.now()-1800000).toISOString(), recommendedAction: "Panel temperature exceeds optimal range. Performance will recover by afternoon.", status: "ACKNOWLEDGED" },
-    { id: "mock-3", code: "LOW_PF", title: "Low Power Factor Detected", severity: "LOW", acknowledged: false, timestamp: new Date(Date.now()-3600000).toISOString(), recommendedAction: "PF < 0.95. Consider adding PF correction capacitor bank.", status: "ACTIVE" },
-  ];
-
-  const filtered = filter === "ALL" ? allAlerts : filter === "ACTIVE" ? allAlerts.filter(a => !a.acknowledged) : allAlerts.filter(a => a.acknowledged);
+  const accent = "#00D4FF";
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: bg }} contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
-      {/* Summary */}
-      <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
-        {[
-          { label: "Active", v: allAlerts.filter(a => !a.acknowledged).length, c: "#EF4444" },
-          { label: "Acknowledged", v: allAlerts.filter(a => a.acknowledged).length, c: "#F59E0B" },
-          { label: "Total", v: allAlerts.length, c: "#00D4FF" },
-        ].map(s => (
-          <View key={s.label} style={{ flex: 1, backgroundColor: `${s.c}12`, borderRadius: 16, padding: 14, borderWidth: 1, borderColor: `${s.c}25`, alignItems: "center" }}>
-            <Text style={{ color: s.c, fontSize: 24, fontWeight: "900" }}>{s.v}</Text>
-            <Text style={{ color: sub, fontSize: 11, fontWeight: "600" }}>{s.label}</Text>
-          </View>
-        ))}
-      </View>
-
-      {/* Filter */}
-      <View style={{ flexDirection: "row", backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)", borderRadius: 14, padding: 4, marginBottom: 16 }}>
-        {["ALL","ACTIVE","ACKNOWLEDGED"].map(f => (
-          <TouchableOpacity key={f} onPress={() => setFilter(f)} style={{ flex: 1, backgroundColor: filter === f ? "#EF4444" : "transparent", borderRadius: 10, padding: 10, alignItems: "center" }}>
-            <Text style={{ color: filter === f ? "#FFF" : sub, fontWeight: "700", fontSize: 12 }}>{f}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {filtered.length === 0 ? (
-        <View style={{ backgroundColor: card, borderRadius: 20, padding: 40, alignItems: "center", borderWidth: 1, borderColor: border }}>
-          <Text style={{ fontSize: 48, marginBottom: 12 }}>✅</Text>
-          <Text style={{ color: text, fontSize: 16, fontWeight: "700", marginBottom: 8 }}>No Alarms Found</Text>
-          <Text style={{ color: sub, fontSize: 13, textAlign: "center" }}>All systems operating within normal parameters.</Text>
+      {/* User Profile Info Section */}
+      <Text style={{ color: sub, fontSize: 11, fontWeight: "700", letterSpacing: 1.5, marginBottom: 10, textTransform: "uppercase" }}>User Profile</Text>
+      
+      <View style={{ backgroundColor: card, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: border, marginBottom: 20 }}>
+        <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: isDark ? "rgba(0,212,255,0.15)" : "rgba(0,162,194,0.1)", alignItems: "center", justifyContent: "center", marginBottom: 14, borderWidth: 1, borderColor: isDark ? "rgba(0,212,255,0.3)" : "rgba(0,162,194,0.3)" }}>
+          <Text style={{ fontSize: 32 }}>👤</Text>
         </View>
-      ) : (
-        filtered.map((alarm: any) => {
-          const sc = sevColor[alarm.severity] ?? "#64748B";
-          return (
-            <View key={alarm.id} style={{ backgroundColor: card, borderRadius: 18, padding: 18, marginBottom: 12, borderWidth: 1, borderLeftWidth: 4, borderColor: border, borderLeftColor: sc, opacity: alarm.acknowledged ? 0.6 : 1 }}>
-              <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 10 }}>
-                <Text style={{ fontSize: 22, marginRight: 10 }}>{sevIcon[alarm.severity] ?? "⚪"}</Text>
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 4 }}>
-                    <Text style={{ flex: 1, color: text, fontSize: 14, fontWeight: "800" }}>{alarm.title}</Text>
-                    <View style={{ backgroundColor: `${sc}15`, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
-                      <Text style={{ color: sc, fontSize: 11, fontWeight: "700" }}>{alarm.severity}</Text>
-                    </View>
-                  </View>
-                  <Text style={{ color: sub, fontSize: 11 }}>{alarm.code} • {new Date(alarm.timestamp).toLocaleString()}</Text>
-                </View>
-              </View>
-              {alarm.recommendedAction && (
-                <View style={{ backgroundColor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)", borderRadius: 10, padding: 12, marginBottom: 12 }}>
-                  <Text style={{ color: sub, fontSize: 12 }}>💡 <Text style={{ fontWeight: "600" }}>Recommended:</Text> {alarm.recommendedAction}</Text>
-                </View>
-              )}
-              <View style={{ flexDirection: "row", gap: 10 }}>
-                {!alarm.acknowledged && (
-                  <TouchableOpacity onPress={() => acknowledgeAlert(alarm.id)} style={{ flex: 1, backgroundColor: "#F59E0B", borderRadius: 12, padding: 10, alignItems: "center" }}>
-                    <Text style={{ color: "#000", fontWeight: "700", fontSize: 13 }}>✓ Acknowledge</Text>
-                  </TouchableOpacity>
-                )}
-                <View style={{ flex: 1, backgroundColor: alarm.acknowledged ? "rgba(16,185,129,0.1)" : "rgba(16,185,129,0.08)", borderRadius: 12, padding: 10, alignItems: "center", borderWidth: 1, borderColor: "rgba(16,185,129,0.2)" }}>
-                  <Text style={{ color: "#10B981", fontWeight: "700", fontSize: 13 }}>{alarm.acknowledged ? "✅ Acknowledged" : "🔧 Investigate"}</Text>
-                </View>
+        
+        {user ? (
+          <View>
+            <Text style={{ color: text, fontSize: 18, fontWeight: "800", marginBottom: 4 }}>{user.firstName} {user.lastName}</Text>
+            <Text style={{ color: sub, fontSize: 14, marginBottom: 12 }}>{user.email}</Text>
+            <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+              <View style={{ backgroundColor: isDark ? "rgba(0,212,255,0.12)" : "rgba(0,162,194,0.1)", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 }}>
+                <Text style={{ color: isDark ? accent : "#0284C7", fontSize: 11, fontWeight: "700" }}>
+                  {(userRole ?? "GUEST").replace(/_/g, " ")}
+                </Text>
               </View>
             </View>
-          );
-        })
-      )}
+          </View>
+        ) : (
+          <View>
+            <Text style={{ color: text, fontSize: 16, fontWeight: "800", marginBottom: 4 }}>Guest Session</Text>
+            <Text style={{ color: sub, fontSize: 13 }}>Please sign in to access professional design features.</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Preferences Section */}
+      <Text style={{ color: sub, fontSize: 11, fontWeight: "700", letterSpacing: 1.5, marginBottom: 10, textTransform: "uppercase" }}>Preferences</Text>
+      
+      <View style={{ backgroundColor: card, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: border, marginBottom: 20, gap: 16 }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <View>
+            <Text style={{ color: text, fontSize: 14, fontWeight: "800" }}>Color Mode</Text>
+            <Text style={{ color: sub, fontSize: 12, marginTop: 2 }}>Toggle between light and dark theme</Text>
+          </View>
+          <TouchableOpacity onPress={toggleTheme} style={{ backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 }}>
+            <Text style={{ color: text, fontWeight: "700", fontSize: 13 }}>{isDark ? "☀️ Light Mode" : "🌙 Dark Mode"}</Text>
+          </TouchableOpacity>
+        </View>
+        
+        <View style={{ height: 1, backgroundColor: border }} />
+        
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <View>
+            <Text style={{ color: text, fontSize: 14, fontWeight: "800" }}>System Status</Text>
+            <Text style={{ color: sub, fontSize: 12, marginTop: 2 }}>Connectivity and database status</Text>
+          </View>
+          <View style={{ backgroundColor: "rgba(16,185,129,0.12)", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
+            <Text style={{ color: "#10B981", fontSize: 11, fontWeight: "700" }}>● Online</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Account Actions Section */}
+      <Text style={{ color: sub, fontSize: 11, fontWeight: "700", letterSpacing: 1.5, marginBottom: 10, textTransform: "uppercase" }}>Session Management</Text>
+      
+      <TouchableOpacity
+        onPress={() => logout()}
+        style={{
+          backgroundColor: "rgba(239,68,68,0.1)",
+          borderRadius: 20,
+          padding: 18,
+          borderWidth: 1,
+          borderColor: "rgba(239,68,68,0.2)",
+          alignItems: "center",
+          flexDirection: "row",
+          justifyContent: "center"
+        }}
+      >
+        <Text style={{ fontSize: 18, marginRight: 10 }}>🚪</Text>
+        <Text style={{ color: "#EF4444", fontWeight: "800", fontSize: 15 }}>Sign Out of REOS</Text>
+      </TouchableOpacity>
+
       <View style={{ height: 32 }} />
     </ScrollView>
   );
