@@ -50,6 +50,7 @@ COPY apps/backend/prisma/ ./apps/backend/prisma/
 # Copy the entire node_modules and built dist from the builder stage
 # This bypasses runtime installation and prisma generation completely!
 COPY --from=builder /usr/src/app/node_modules ./node_modules
+COPY --from=builder /usr/src/app/apps/backend/node_modules ./apps/backend/node_modules
 COPY --from=builder /usr/src/app/apps/backend/dist ./apps/backend/dist
 
 EXPOSE 3000
