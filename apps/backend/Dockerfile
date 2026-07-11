@@ -22,7 +22,7 @@ RUN npm ci --legacy-peer-deps
 COPY apps/backend/src/ ./apps/backend/src/
 
 # Generate Prisma Client & Build
-RUN npx prisma generate --schema=apps/backend/prisma/schema.prisma
+RUN npx --no-install prisma generate --schema=apps/backend/prisma/schema.prisma
 RUN npm run build --workspace=apps/backend
 
 # ─── Production Runner ───
@@ -38,7 +38,7 @@ COPY apps/backend/prisma/ ./apps/backend/prisma/
 
 # Install only production dependencies
 RUN npm ci --only=production --legacy-peer-deps
-RUN npx prisma generate --schema=apps/backend/prisma/schema.prisma
+RUN npx --no-install prisma generate --schema=apps/backend/prisma/schema.prisma
 
 # Copy compiled resources from builder stage
 COPY --from=builder /usr/src/app/apps/backend/dist ./apps/backend/dist
