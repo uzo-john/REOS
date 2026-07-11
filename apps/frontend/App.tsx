@@ -81,7 +81,7 @@ function CustomDrawerContent(props: any) {
             </View>
           </View>
         ) : (
-          <TouchableOpacity onPress={() => props.navigation.navigate("LoginStack")} style={{ backgroundColor: cardBg, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: border, alignItems: "center" }}>
+          <TouchableOpacity onPress={() => logout()} style={{ backgroundColor: cardBg, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: border, alignItems: "center" }}>
             <Text style={{ color: activeText, fontWeight: "700", fontSize: 14 }}>🔑 Sign In to REOS</Text>
           </TouchableOpacity>
         )}
@@ -166,7 +166,7 @@ function DrawerNavigator() {
 }
 
 export default function App() {
-  const { fetchIotData, theme } = useStore();
+  const { fetchIotData, theme, isAuthenticated } = useStore();
   const isDark = theme === "dark";
 
   useEffect(() => {
@@ -180,8 +180,11 @@ export default function App() {
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={isDark ? "#0A0E1A" : "#FFFFFF"} />
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="Main" component={DrawerNavigator} />
+          {!isAuthenticated ? (
+            <Stack.Screen name="Login" component={LoginScreen} />
+          ) : (
+            <Stack.Screen name="Main" component={DrawerNavigator} />
+          )}
         </Stack.Navigator>
       </NavigationContainer>
     </GestureHandlerRootView>
