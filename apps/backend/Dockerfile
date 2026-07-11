@@ -21,6 +21,11 @@ COPY apps/backend/prisma/ ./apps/backend/prisma/
 # Install all monorepo dependencies (including devDependencies)
 RUN npm ci --legacy-peer-deps
 
+# Build internal shared packages first
+RUN npm run build --workspace=@reos/types
+RUN npm run build --workspace=@reos/validation
+RUN npm run build --workspace=@reos/engineering
+
 # Copy backend code
 COPY apps/backend/src/ ./apps/backend/src/
 
@@ -38,7 +43,8 @@ WORKDIR /usr/src/app
 
 # Copy package descriptors (needed for runtime workspace linking)
 COPY package*.json ./
-COPY packages/ ./packages/
+# Copy compiled internal shared packages from builder stage
+COPY --from=builder /usr/src/app/packages ./packages
 COPY apps/backend/package*.json ./apps/backend/
 COPY apps/backend/prisma/ ./apps/backend/prisma/
 
