@@ -71,6 +71,26 @@ export default function SettingsScreen() {
         </View>
         
         <View style={{ height: 1, backgroundColor: border }} />
+
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <View>
+            <Text style={{ color: text, fontSize: 14, fontWeight: "800" }}>Startup Experience Selector</Text>
+            <Text style={{ color: sub, fontSize: 12, marginTop: 2 }}>Force choose screen to pop up on startup</Text>
+          </View>
+          <TouchableOpacity 
+            onPress={() => {
+              try {
+                localStorage.removeItem('reos_user_type');
+              } catch (e) {}
+              useStore.setState({ hasSelectedMode: false });
+            }} 
+            style={{ backgroundColor: "rgba(0,212,255,0.1)", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 }}
+          >
+            <Text style={{ color: accent, fontWeight: "700", fontSize: 13 }}>🔄 Force Popup</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={{ height: 1, backgroundColor: border }} />
         
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
           <View>
@@ -100,10 +120,8 @@ export default function SettingsScreen() {
         }}
       >
         <Text style={{ fontSize: 18, marginRight: 10 }}>🚪</Text>
-        <Text style={{ color: "#EF4444", fontWeight: "800", fontSize: 15 }}>Sign Out of REOS</Text>
+        <Text style={{ color: "#EF4444", fontWeight: "700", fontSize: 14 }}>Sign Out of Session</Text>
       </TouchableOpacity>
-
-      <View style={{ height: 32 }} />
     </ScrollView>
   );
 }
