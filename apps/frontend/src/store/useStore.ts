@@ -846,9 +846,10 @@ export const useStore = create<REOSState>((set, get) => ({
       }).then(res => res.json());
 
       // Merge backend and local projects
+      const backendArray = Array.isArray(backendProjects) ? backendProjects : [];
       set({
-        projectsList: [...localProjects, ...backendProjects],
-        isDbOffline: false,
+        projectsList: [...localProjects, ...backendArray],
+        isDbOffline: !Array.isArray(backendProjects),
       });
     } catch (error) {
       console.warn('Failed to fetch from backend. Using local projects list.', error);

@@ -12,6 +12,23 @@ export class ProjectsService {
   ) {}
 
   async create(userId: string, dto: CreateProjectDto) {
+    if (!this.prisma.isConnected) {
+      const mockProject = {
+        id: `mock-project-${Date.now()}`,
+        userId,
+        name: dto.name,
+        description: dto.description || null,
+        location: dto.location || null,
+        peakSunHours: Number(dto.peakSunHours || 5),
+        loadSafetyFactor: Number(dto.loadSafetyFactor || 1.2),
+        batteryDepthOfDischarge: Number(dto.batteryDepthOfDischarge || 0.8),
+        systemVoltage: Number(dto.systemVoltage || 48),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      return mockProject;
+    }
+
     const project = await this.prisma.project.create({
       data: {
         ...dto,
@@ -24,6 +41,9 @@ export class ProjectsService {
   }
 
   async findAll(userId: string) {
+    if (!this.prisma.isConnected) {
+      return [];
+    }
     return this.prisma.project.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
@@ -31,6 +51,28 @@ export class ProjectsService {
   }
 
   async findOne(userId: string, id: string) {
+    if (!this.prisma.isConnected) {
+      if (id.startsWith('mock-project-')) {
+        return {
+          id,
+          userId,
+          name: 'Offline Mock Project',
+          description: null,
+          location: null,
+          peakSunHours: 5,
+          loadSafetyFactor: 1.2,
+          batteryDepthOfDischarge: 0.8,
+          systemVoltage: 48,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          appliances: [],
+          designs: [],
+          simulations: [],
+        };
+      }
+      throw new NotFoundException('Project not found (Database offline)');
+    }
+
     const project = await this.prisma.project.findFirst({
       where: { id, userId },
       include: {
@@ -48,6 +90,22 @@ export class ProjectsService {
   }
 
   async update(userId: string, id: string, dto: UpdateProjectDto) {
+    if (!this.prisma.isConnected) {
+      return {
+        id,
+        userId,
+        name: dto.name || 'Offline Mock Project',
+        description: dto.description || null,
+        location: dto.location || null,
+        peakSunHours: Number(dto.peakSunHours || 5),
+        loadSafetyFactor: Number(dto.loadSafetyFactor || 1.2),
+        batteryDepthOfDischarge: Number(dto.batteryDepthOfDischarge || 0.8),
+        systemVoltage: Number(dto.systemVoltage || 48),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    }
+
     await this.findOne(userId, id); // validates existence & ownership
 
     const project = await this.prisma.project.update({
@@ -60,6 +118,10 @@ export class ProjectsService {
   }
 
   async remove(userId: string, id: string) {
+    if (!this.prisma.isConnected) {
+      return { success: true };
+    }
+
     await this.findOne(userId, id);
 
     await this.prisma.project.delete({
