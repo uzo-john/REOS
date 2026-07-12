@@ -73,17 +73,12 @@ function CustomDrawerContent(props: any) {
           </View>
         </View>
         {user ? (
-          <View style={{ gap: 10 }}>
-            <View style={{ backgroundColor: cardBg, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: border }}>
-              <Text style={{ color: textPrimary, fontWeight: "700", fontSize: 14 }}>{user.firstName} {user.lastName}</Text>
-              <Text style={{ color: textSecondary, fontSize: 11, marginTop: 2 }}>{user.email}</Text>
-              <View style={{ marginTop: 8, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: isDark ? "rgba(0,212,255,0.12)" : "rgba(0,162,194,0.1)", borderRadius: 6, alignSelf: "flex-start" }}>
-                <Text style={{ color: activeText, fontSize: 10, fontWeight: "700", letterSpacing: 0.5 }}>{(userRole ?? "GUEST").replace(/_/g, " ")}</Text>
-              </View>
+          <View style={{ backgroundColor: cardBg, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: border }}>
+            <Text style={{ color: textPrimary, fontWeight: "700", fontSize: 14 }}>{user.firstName} {user.lastName}</Text>
+            <Text style={{ color: textSecondary, fontSize: 11, marginTop: 2 }}>{user.email}</Text>
+            <View style={{ marginTop: 8, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: isDark ? "rgba(0,212,255,0.12)" : "rgba(0,162,194,0.1)", borderRadius: 6, alignSelf: "flex-start" }}>
+              <Text style={{ color: activeText, fontSize: 10, fontWeight: "700", letterSpacing: 0.5 }}>{(userRole ?? "GUEST").replace(/_/g, " ")}</Text>
             </View>
-            <TouchableOpacity onPress={() => logout()} style={{ backgroundColor: "rgba(239,68,68,0.1)", borderRadius: 12, padding: 14, borderWidth: 1, borderColor: "rgba(239,68,68,0.2)", alignItems: "center" }}>
-              <Text style={{ color: "#EF4444", fontWeight: "700", fontSize: 14 }}>🚪 Sign Out of REOS</Text>
-            </TouchableOpacity>
           </View>
         ) : (
           <TouchableOpacity onPress={() => logout()} style={{ backgroundColor: cardBg, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: border, alignItems: "center" }}>
