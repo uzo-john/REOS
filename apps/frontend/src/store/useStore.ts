@@ -119,6 +119,7 @@ interface REOSState {
   loadProject: (projectId: string) => Promise<void>;
   fetchUserProjects: () => Promise<void>;
   autoSaveProject: () => Promise<void>;
+  fetchProfile: () => Promise<void>;
 
   // AI Actions
   getAiInsights: () => Promise<void>;
@@ -1002,6 +1003,28 @@ export const useStore = create<REOSState>((set, get) => ({
       }
     } catch (error) {
       console.warn('Failed to auto-save project:', error);
+    }
+  },
+
+  fetchProfile: async () => {
+    const { token } = get();
+    if (!token || token === 'guest-token') return;
+    try {
+      const user = await api.fetchCurrentUser(token);
+      try {
+        localStorage.setItem('reos_user', JSON.stringify(user));
+      } catch (e) {
+        console.warn('Failed to save user to localStorage', e);
+      }
+      set({
+        user,
+        userRole: user.role as UserRole,
+        isAuthenticated: true,
+      });
+    } catch (error) {
+      console.error('Failed to fetch user profile:', error);
+      // Log out on invalid token
+      get().logout();
     }
   },
 

@@ -171,14 +171,17 @@ function DrawerNavigator() {
 }
 
 export default function App() {
-  const { fetchIotData, fetchUserProjects, loadProject, currentProjectId, projectsList, theme, isAuthenticated } = useStore();
+  const { fetchIotData, fetchUserProjects, fetchProfile, user, token, theme, isAuthenticated } = useStore();
   const isDark = theme === "dark";
 
   useEffect(() => {
     fetchIotData();
     if (isAuthenticated) {
-      fetchUserProjects().then(() => {
-        // Auto-load the first online project if not already set
+      const loadData = async () => {
+        if (!user && token && token !== 'guest-token') {
+          await fetchProfile();
+        }
+        await fetchUserProjects();
         const state = useStore.getState();
         if (!state.currentProjectId) {
           const onlineProjects = state.projectsList.filter((p: any) => p.id && !p.id.startsWith('local-'));
@@ -186,11 +189,12 @@ export default function App() {
             state.loadProject(onlineProjects[0].id);
           }
         }
-      });
+      };
+      loadData();
     }
     const iv = setInterval(fetchIotData, 3000);
     return () => clearInterval(iv);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user, token]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
