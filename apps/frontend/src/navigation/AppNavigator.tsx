@@ -166,7 +166,7 @@ function DrawerNavigator() {
 
   return (
     <Drawer.Navigator
-      drawerContent={(props) => <CustomDrawerContent {...props} />}
+      drawerContent={(props: any) => <CustomDrawerContent {...props} />}
       screenOptions={{
         headerStyle: { backgroundColor: isDark ? "#0A0E1A" : "#FFFFFF" },
         headerTintColor: isDark ? "#F1F5F9" : "#0F172A",

@@ -118,6 +118,7 @@ interface REOSState {
   saveProject: (name: string) => Promise<void>;
   loadProject: (projectId: string) => Promise<void>;
   fetchUserProjects: () => Promise<void>;
+  autoSaveProject: () => Promise<void>;
 
   // AI Actions
   getAiInsights: () => Promise<void>;
@@ -212,6 +213,26 @@ const defaultInputs: ProjectInputs = {
   inverterOutputVoltage: '230V',
 };
 
+const getStoredToken = () => {
+  try {
+    return localStorage.getItem('reos_token') || null;
+  } catch {
+    return null;
+  }
+};
+
+const getStoredUser = () => {
+  try {
+    const user = localStorage.getItem('reos_user');
+    return user ? JSON.parse(user) : null;
+  } catch {
+    return null;
+  }
+};
+
+const savedToken = getStoredToken();
+const savedUser = getStoredUser();
+
 // Local storage helpers for database-offline mode fallback
 const getLocalProjects = () => {
   try {
@@ -231,7 +252,7 @@ const saveLocalProjects = (projects: any[]) => {
 };
 
 export const useStore = create<REOSState>((set, get) => ({
-  userRole: 'CUSTOMER',
+  userRole: savedUser ? (savedUser.role as UserRole) : 'CUSTOMER',
   userMode: 'SIMPLE',
   theme: 'dark',
   inputs: defaultInputs,
@@ -244,9 +265,9 @@ export const useStore = create<REOSState>((set, get) => ({
   },
 
   // Auth State
-  token: null,
-  user: null,
-  isAuthenticated: false,
+  token: savedToken,
+  user: savedUser,
+  isAuthenticated: !!savedToken,
   authError: null,
 
   // Project State
@@ -282,9 +303,12 @@ export const useStore = create<REOSState>((set, get) => ({
   setMode: (mode) => set({ userMode: mode }),
   toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
   
-  updateInputs: (updates) => set((state) => ({
-    inputs: { ...state.inputs, ...updates }
-  })),
+  updateInputs: (updates) => {
+    set((state) => ({
+      inputs: { ...state.inputs, ...updates }
+    }));
+    get().runAllCalculations();
+  },
 
   runAllCalculations: () => {
     const { inputs } = get();
@@ -364,6 +388,9 @@ export const useStore = create<REOSState>((set, get) => ({
         cable,
       }
     });
+
+    // Automatically trigger saving to backend
+    get().autoSaveProject();
   },
 
   // Grid Export Actions
@@ -662,12 +689,26 @@ export const useStore = create<REOSState>((set, get) => ({
     set({ authError: null });
     try {
       const data = await api.login(credentials);
+      try {
+        localStorage.setItem('reos_token', data.accessToken);
+        localStorage.setItem('reos_user', JSON.stringify(data.user));
+      } catch (e) {
+        console.warn('Failed to save auth to localStorage', e);
+      }
       set({
         token: data.accessToken,
         user: data.user,
+        userRole: data.user.role as UserRole,
         isAuthenticated: true,
       });
       await get().fetchUserProjects();
+
+      // Auto-load the first online project if available
+      const state = get();
+      const onlineProjects = state.projectsList.filter((p: any) => p.id && !p.id.startsWith('local-'));
+      if (onlineProjects.length > 0) {
+        await get().loadProject(onlineProjects[0].id);
+      }
     } catch (error: any) {
       set({ authError: error.message });
       throw error;
@@ -678,9 +719,16 @@ export const useStore = create<REOSState>((set, get) => ({
     set({ authError: null });
     try {
       const data = await api.register(registerData);
+      try {
+        localStorage.setItem('reos_token', data.accessToken);
+        localStorage.setItem('reos_user', JSON.stringify(data.user));
+      } catch (e) {
+        console.warn('Failed to save auth to localStorage', e);
+      }
       set({
         token: data.accessToken,
         user: data.user,
+        userRole: data.user.role as UserRole,
         isAuthenticated: true,
       });
       await get().fetchUserProjects();
@@ -691,6 +739,18 @@ export const useStore = create<REOSState>((set, get) => ({
   },
 
   loginAsGuest: () => {
+    try {
+      localStorage.setItem('reos_token', 'guest-token');
+      localStorage.setItem('reos_user', JSON.stringify({
+        id: 'guest',
+        firstName: 'Guest',
+        lastName: 'User',
+        email: 'guest@reos.io',
+        role: 'VIEWER',
+      }));
+    } catch (e) {
+      console.warn('Failed to save guest auth to localStorage', e);
+    }
     set({
       token: 'guest-token',
       user: {
@@ -706,10 +766,17 @@ export const useStore = create<REOSState>((set, get) => ({
   },
 
   logout: () => {
+    try {
+      localStorage.removeItem('reos_token');
+      localStorage.removeItem('reos_user');
+    } catch (e) {
+      console.warn('Failed to remove auth from localStorage', e);
+    }
     set({
       token: null,
       user: null,
       isAuthenticated: false,
+      userRole: 'CUSTOMER' as UserRole,
       currentProjectId: null,
       projectsList: [],
     });
@@ -717,7 +784,7 @@ export const useStore = create<REOSState>((set, get) => ({
 
   // Project Actions
   saveProject: async (name) => {
-    const { token, inputs, results, currentProjectId, projectsList, isAuthenticated } = get();
+    const { token, inputs, results, currentProjectId, isAuthenticated } = get();
     set({ isSaving: true });
     
     const projectPayload = {
@@ -726,10 +793,12 @@ export const useStore = create<REOSState>((set, get) => ({
       location: 'Lagos, Nigeria',
       latitude: 6.5244,
       longitude: 3.3792,
+      inputs,
+      results,
     };
 
     // If not authenticated or if the database is offline, save locally
-    if (!isAuthenticated || get().isDbOffline) {
+    if (!isAuthenticated || get().isDbOffline || token === 'guest-token') {
       const localProjects = getLocalProjects();
       const newProject = {
         id: currentProjectId || `local-${Date.now()}`,
@@ -817,12 +886,19 @@ export const useStore = create<REOSState>((set, get) => ({
         },
       }).then(res => res.json());
 
-      // Map backend project back to inputs if saved
-      // (For now, since we only save basic details on the backend, we load what we have and run calculations)
-      set({
-        currentProjectId: project.id,
-      });
-      get().runAllCalculations();
+      if (project && project.inputs) {
+        set({
+          currentProjectId: project.id,
+          inputs: project.inputs,
+          results: project.results || { load: null, solar: null, battery: null, inverter: null, cable: null },
+          isDbOffline: false,
+        });
+      } else {
+        set({
+          currentProjectId: project.id,
+        });
+        get().runAllCalculations();
+      }
     } catch (error) {
       console.error('Failed to load project from backend:', error);
     }
@@ -832,7 +908,7 @@ export const useStore = create<REOSState>((set, get) => ({
     const { token, isAuthenticated } = get();
     const localProjects = getLocalProjects();
 
-    if (!isAuthenticated || get().isDbOffline) {
+    if (!isAuthenticated || get().isDbOffline || token === 'guest-token') {
       set({ projectsList: localProjects });
       return;
     }
@@ -857,6 +933,75 @@ export const useStore = create<REOSState>((set, get) => ({
         projectsList: localProjects,
         isDbOffline: true,
       });
+    }
+  },
+
+  autoSaveProject: async () => {
+    const { token, inputs, results, currentProjectId, isAuthenticated, isSaving } = get();
+    if (!isAuthenticated || token === 'guest-token' || isSaving) return;
+
+    let projectId = currentProjectId;
+    const projectPayload = {
+      name: 'My Solar Project',
+      description: `Solar PV Design with ${results.solar?.numberOfPanels || 0} panels`,
+      location: 'Lagos, Nigeria',
+      latitude: 6.5244,
+      longitude: 3.3792,
+      inputs,
+      results,
+    };
+
+    try {
+      let savedProject;
+      if (projectId && !projectId.startsWith('local-')) {
+        savedProject = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(projectPayload),
+        }).then(res => res.json());
+      } else {
+        // If there's no project ID, check if they already have an existing project in the database.
+        // If they do, update that one. Otherwise, create a new one.
+        const projects = await fetch(`${API_BASE_URL}/projects`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }).then(res => res.json());
+
+        if (Array.isArray(projects) && projects.length > 0) {
+          projectId = projects[0].id;
+          savedProject = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(projectPayload),
+          }).then(res => res.json());
+        } else {
+          savedProject = await fetch(`${API_BASE_URL}/projects`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            body: JSON.stringify(projectPayload),
+          }).then(res => res.json());
+        }
+      }
+
+      if (savedProject && savedProject.id) {
+        set({
+          currentProjectId: savedProject.id,
+          isDbOffline: false,
+        });
+      }
+    } catch (error) {
+      console.warn('Failed to auto-save project:', error);
     }
   },
 

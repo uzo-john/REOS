@@ -600,6 +600,8 @@ model Project {
   simulations SimulationResult[]
   quotations  Quotation[]
   devices     Device[]
+  inputs      Json?
+  results     Json?
 }
 
 model Appliance {

@@ -130,7 +130,7 @@ function DrawerNavigator() {
 
   return (
     <Drawer.Navigator
-      drawerContent={(props) => <CustomDrawerContent {...props} />}
+      drawerContent={(props: any) => <CustomDrawerContent {...props} />}
       screenOptions={{
         headerStyle: { backgroundColor: isDark ? "#0A0E1A" : "#FFFFFF" },
         headerTintColor: isDark ? "#F1F5F9" : "#0F172A",
@@ -171,14 +171,26 @@ function DrawerNavigator() {
 }
 
 export default function App() {
-  const { fetchIotData, theme, isAuthenticated } = useStore();
+  const { fetchIotData, fetchUserProjects, loadProject, currentProjectId, projectsList, theme, isAuthenticated } = useStore();
   const isDark = theme === "dark";
 
   useEffect(() => {
     fetchIotData();
+    if (isAuthenticated) {
+      fetchUserProjects().then(() => {
+        // Auto-load the first online project if not already set
+        const state = useStore.getState();
+        if (!state.currentProjectId) {
+          const onlineProjects = state.projectsList.filter((p: any) => p.id && !p.id.startsWith('local-'));
+          if (onlineProjects.length > 0) {
+            state.loadProject(onlineProjects[0].id);
+          }
+        }
+      });
+    }
     const iv = setInterval(fetchIotData, 3000);
     return () => clearInterval(iv);
-  }, []);
+  }, [isAuthenticated]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

@@ -25,6 +25,8 @@ export class ProjectsService {
         systemVoltage: Number((dto as any).systemVoltage || 48),
         createdAt: new Date(),
         updatedAt: new Date(),
+        inputs: dto.inputs || null,
+        results: dto.results || null,
       };
       return mockProject;
     }
@@ -68,6 +70,8 @@ export class ProjectsService {
           appliances: [],
           designs: [],
           simulations: [],
+          inputs: null,
+          results: null,
         };
       }
       throw new NotFoundException('Project not found (Database offline)');
@@ -103,6 +107,8 @@ export class ProjectsService {
         systemVoltage: Number((dto as any).systemVoltage || 48),
         createdAt: new Date(),
         updatedAt: new Date(),
+        inputs: dto.inputs || null,
+        results: dto.results || null,
       };
     }
 

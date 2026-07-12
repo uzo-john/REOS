@@ -23,4 +23,10 @@ export class CreateProjectDto {
   @Min(-180)
   @Max(180)
   longitude?: number;
+
+  @IsOptional()
+  inputs?: any;
+
+  @IsOptional()
+  results?: any;
 }
