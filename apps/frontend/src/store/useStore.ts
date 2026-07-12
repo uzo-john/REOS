@@ -697,10 +697,10 @@ export const useStore = create<REOSState>((set, get) => ({
         console.warn('Failed to save auth to localStorage', e);
       }
       set({
-        token: data.accessToken,
-        user: data.user,
-        userRole: data.user.role as UserRole,
-        isAuthenticated: true,
+        token: data?.accessToken || null,
+        user: data?.user || null,
+        userRole: (data?.user?.role || 'CUSTOMER') as UserRole,
+        isAuthenticated: !!data?.accessToken,
       });
       await get().fetchUserProjects();
 
@@ -727,10 +727,10 @@ export const useStore = create<REOSState>((set, get) => ({
         console.warn('Failed to save auth to localStorage', e);
       }
       set({
-        token: data.accessToken,
-        user: data.user,
-        userRole: data.user.role as UserRole,
-        isAuthenticated: true,
+        token: data?.accessToken || null,
+        user: data?.user || null,
+        userRole: (data?.user?.role || 'CUSTOMER') as UserRole,
+        isAuthenticated: !!data?.accessToken,
       });
       await get().fetchUserProjects();
     } catch (error: any) {
@@ -1017,8 +1017,8 @@ export const useStore = create<REOSState>((set, get) => ({
         console.warn('Failed to save user to localStorage', e);
       }
       set({
-        user,
-        userRole: user.role as UserRole,
+        user: user || null,
+        userRole: (user?.role || 'CUSTOMER') as UserRole,
         isAuthenticated: true,
       });
     } catch (error) {
