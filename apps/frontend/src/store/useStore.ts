@@ -70,6 +70,8 @@ interface REOSState {
   // UI & Global Preferences
   userRole: UserRole;
   userMode: UserMode;
+  userType: 'PROSUMER' | 'CONSUMER';
+  hasSelectedMode: boolean;
   theme: 'light' | 'dark';
   
   // Inputs
@@ -104,9 +106,11 @@ interface REOSState {
   // Actions
   setRole: (role: UserRole) => void;
   setMode: (mode: UserMode) => void;
+  setUserType: (type: 'PROSUMER' | 'CONSUMER') => void;
   toggleTheme: () => void;
   updateInputs: (updates: Partial<ProjectInputs>) => void;
   runAllCalculations: () => void;
+  createNewProject: () => void;
 
   // Auth Actions
   login: (credentials: any) => Promise<void>;
@@ -227,12 +231,40 @@ const getStoredUser = () => {
     const user = localStorage.getItem('reos_user');
     return user ? JSON.parse(user) : null;
   } catch {
+  }
+};
+
+const getStoredUserType = (): 'PROSUMER' | 'CONSUMER' | null => {
+  try {
+    return (localStorage.getItem('reos_user_type') as 'PROSUMER' | 'CONSUMER') || null;
+  } catch {
+    return null;
+  }
+};
+
+const getStoredInputs = () => {
+  try {
+    const data = localStorage.getItem('reos_current_inputs');
+    return data ? JSON.parse(data) : null;
+  } catch {
+    return null;
+  }
+};
+
+const getStoredResults = () => {
+  try {
+    const data = localStorage.getItem('reos_current_results');
+    return data ? JSON.parse(data) : null;
+  } catch {
     return null;
   }
 };
 
 const savedToken = getStoredToken();
 const savedUser = getStoredUser();
+const savedUserType = getStoredUserType();
+const savedInputs = getStoredInputs();
+const savedResults = getStoredResults();
 
 // Local storage helpers for database-offline mode fallback
 const getLocalProjects = () => {
@@ -255,9 +287,11 @@ const saveLocalProjects = (projects: any[]) => {
 export const useStore = create<REOSState>((set, get) => ({
   userRole: savedUser ? (savedUser.role as UserRole) : 'CUSTOMER',
   userMode: 'SIMPLE',
+  userType: savedUserType || 'PROSUMER',
+  hasSelectedMode: !!savedUserType,
   theme: 'dark',
-  inputs: defaultInputs,
-  results: {
+  inputs: savedInputs || defaultInputs,
+  results: savedResults || {
     load: null,
     solar: null,
     battery: null,
@@ -302,12 +336,22 @@ export const useStore = create<REOSState>((set, get) => ({
 
   setRole: (role) => set({ userRole: role }),
   setMode: (mode) => set({ userMode: mode }),
+  setUserType: (type) => {
+    try {
+      localStorage.setItem('reos_user_type', type);
+    } catch (e) {}
+    set({ userType: type, hasSelectedMode: true });
+  },
   toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
   
   updateInputs: (updates) => {
-    set((state) => ({
-      inputs: { ...state.inputs, ...updates }
-    }));
+    set((state) => {
+      const newInputs = { ...state.inputs, ...updates };
+      try {
+        localStorage.setItem('reos_current_inputs', JSON.stringify(newInputs));
+      } catch (e) {}
+      return { inputs: newInputs };
+    });
     get().runAllCalculations();
   },
 
@@ -380,18 +424,40 @@ export const useStore = create<REOSState>((set, get) => ({
       cable = calculateVoltageDrop(inputs.currentA, inputs.lengthMeters, inputs.cableVoltageV, inputs.areaMm2);
     }
 
-    set({
-      results: {
-        load,
-        solar,
-        battery,
-        inverter,
-        cable,
-      }
-    });
+    const results = {
+      load,
+      solar,
+      battery,
+      inverter,
+      cable,
+    };
+
+    try {
+      localStorage.setItem('reos_current_results', JSON.stringify(results));
+    } catch (e) {}
+
+    set({ results });
 
     // Automatically trigger saving to backend
     get().autoSaveProject();
+  },
+
+  createNewProject: () => {
+    try {
+      localStorage.removeItem('reos_current_inputs');
+      localStorage.removeItem('reos_current_results');
+    } catch (e) {}
+    set({
+      currentProjectId: null,
+      inputs: defaultInputs,
+      results: {
+        load: null,
+        solar: null,
+        battery: null,
+        inverter: null,
+        cable: null,
+      },
+    });
   },
 
   // Grid Export Actions

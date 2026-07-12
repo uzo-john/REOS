@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Animated, Dimensions } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { View, Text, ScrollView, TouchableOpacity, Animated, Dimensions, TextInput, ActivityIndicator } from "react-native";
 import { useStore } from "../store/useStore";
 
 const { width } = Dimensions.get("window");
@@ -120,8 +120,18 @@ function RecentAlarmBanner({ alarm }: { alarm: any }) {
   );
 }
 
-export default function OverviewScreen({ navigation }: any) {
-  const { telemetry, theme, alerts, user, userRole, fetchIotData, isAuthenticated } = useStore();
+function OverviewScreenConsumer({ navigation }: any) {
+  const { 
+    telemetry, 
+    theme, 
+    user, 
+    activeContract, 
+    billingSummary, 
+    fetchConsumerContract, 
+    fetchConsumerBilling, 
+    acceptEnergySharing 
+  } = useStore();
+
   const isDark = theme === "dark";
   const bg = isDark ? "#050810" : "#F1F5F9";
   const text = isDark ? "#F1F5F9" : "#0F172A";
@@ -129,6 +139,217 @@ export default function OverviewScreen({ navigation }: any) {
   const card = isDark ? "rgba(17,24,39,0.9)" : "#FFFFFF";
   const border = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)";
   const accent = "#00D4FF";
+
+  const [inviteCode, setInviteCode] = useState("");
+  const [linking, setLinking] = useState(false);
+  const [linkError, setLinkError] = useState("");
+
+  useEffect(() => {
+    fetchConsumerContract();
+    fetchConsumerBilling();
+  }, []);
+
+  const handleLinkSupplier = async () => {
+    if (!inviteCode.trim()) return;
+    setLinking(true);
+    setLinkError("");
+    try {
+      const res = await acceptEnergySharing(inviteCode.trim());
+      if (res) {
+        await fetchConsumerContract();
+        await fetchConsumerBilling();
+        setInviteCode("");
+      }
+    } catch (e: any) {
+      setLinkError(e.message || "Failed to link supplier.");
+    } finally {
+      setLinking(false);
+    }
+  };
+
+  const walletBalance = billingSummary?.balance ?? 5000;
+  const tariffRate = activeContract?.tariffRate ?? 180;
+  const billingCycle = activeContract?.billingCycle ?? "PREPAID";
+  const supplierName = activeContract?.supplier ? `${activeContract.supplier.firstName} ${activeContract.supplier.lastName}` : "Sunshine Microgrid Supplier";
+  
+  // Power metrics
+  const activePowerKw = telemetry?.smartMeter?.activePowerKw ?? 1.25;
+  const dailyEnergyKwh = 8.4;
+  const microgridEnergyKwh = 6.2;
+  const gridEnergyKwh = 2.2;
+  const todayCost = (microgridEnergyKwh * tariffRate) + (gridEnergyKwh * 225); // Supplier rate + Utility rate
+
+  return (
+    <ScrollView style={{ flex: 1, backgroundColor: bg }} showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16 }}>
+      {/* Welcome Header */}
+      <View style={{ backgroundColor: isDark ? "rgba(0,212,255,0.08)" : "rgba(0,162,194,0.06)", borderRadius: 20, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: isDark ? "rgba(0,212,255,0.15)" : "rgba(0,162,194,0.15)" }}>
+        <Text style={{ color: sub, fontSize: 11, fontWeight: "700", letterSpacing: 0.5, marginBottom: 4 }}>
+          {new Date().toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long" }).toUpperCase()}
+        </Text>
+        <Text style={{ color: text, fontSize: 20, fontWeight: "900" }}>
+          Welcome, {user?.firstName || "Consumer"} 👋
+        </Text>
+        <Text style={{ color: sub, fontSize: 13, marginTop: 6, lineHeight: 18 }}>
+          Connected to Bidirectional Meter. Your load is currently drawing <Text style={{ color: accent, fontWeight: "700" }}>{activePowerKw.toFixed(2)} kW</Text>.
+        </Text>
+      </View>
+
+      {/* Wallet Card */}
+      <View style={{ backgroundColor: isDark ? "rgba(17,24,39,0.95)" : "rgba(0,212,255,0.06)", borderRadius: 24, padding: 24, marginBottom: 16, borderWidth: 1, borderColor: "rgba(0,212,255,0.2)" }}>
+        <Text style={{ color: sub, fontSize: 11, fontWeight: "700", letterSpacing: 0.5, marginBottom: 8 }}>⚡ PREPAID UTILITY WALLET</Text>
+        <Text style={{ color: accent, fontSize: 32, fontWeight: "900", letterSpacing: -1 }}>₦{walletBalance.toLocaleString("en-NG", { minimumFractionDigits: 2 })}</Text>
+        <Text style={{ color: sub, fontSize: 11, marginTop: 4, marginBottom: 16 }}>Billing Cycle: {billingCycle}</Text>
+        <TouchableOpacity onPress={() => navigation.navigate("Billing")} style={{ backgroundColor: accent, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}>
+          <Text style={{ color: "#000", fontSize: 13, fontWeight: "900" }}>💳 Top Up Wallet</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Supplier Bidirectional Link Card */}
+      <View style={{ backgroundColor: card, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: border, marginBottom: 16 }}>
+        <Text style={{ color: text, fontSize: 15, fontWeight: "800", marginBottom: 12 }}>🔗 Energy Supplier Link</Text>
+        
+        {activeContract && activeContract.connectionStatus === "ACTIVE" ? (
+          <View>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <Text style={{ color: sub, fontSize: 13 }}>Status</Text>
+              <View style={{ backgroundColor: "rgba(16,185,129,0.12)", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
+                <Text style={{ color: "#10B981", fontSize: 11, fontWeight: "700" }}>● Connected</Text>
+              </View>
+            </View>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
+              <Text style={{ color: sub, fontSize: 13 }}>Supplier</Text>
+              <Text style={{ color: text, fontSize: 13, fontWeight: "700" }}>{supplierName}</Text>
+            </View>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
+              <Text style={{ color: sub, fontSize: 13 }}>Prepaid Tariff Rate</Text>
+              <Text style={{ color: accent, fontSize: 13, fontWeight: "700" }}>₦{tariffRate}/kWh</Text>
+            </View>
+            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+              <Text style={{ color: sub, fontSize: 13 }}>Meter Link ID</Text>
+              <Text style={{ color: text, fontSize: 13, fontWeight: "500" }}>{activeContract.gatewayId || "reos-bidir-001"}</Text>
+            </View>
+          </View>
+        ) : (
+          <View>
+            <Text style={{ color: sub, fontSize: 12, lineHeight: 18, marginBottom: 12 }}>
+              Link your bidirectional smart meter with your solar supplier to activate microgrid power supply and automatic wallet billing.
+            </Text>
+            {linkError ? (
+              <Text style={{ color: "#EF4444", fontSize: 11, marginBottom: 8 }}>⚠️ {linkError}</Text>
+            ) : null}
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <TextInput
+                placeholder="Enter Supplier Code (e.g. REOS-1234)"
+                placeholderTextColor={sub}
+                value={inviteCode}
+                onChangeText={setInviteCode}
+                style={{ flex: 1, height: 40, borderRadius: 10, borderWidth: 1, borderColor: border, paddingHorizontal: 12, color: text, backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F8FAFC", fontSize: 12 }}
+              />
+              <TouchableOpacity 
+                disabled={linking}
+                onPress={handleLinkSupplier}
+                style={{ backgroundColor: accent, borderRadius: 10, paddingHorizontal: 14, justifyContent: "center", alignItems: "center" }}
+              >
+                {linking ? (
+                  <ActivityIndicator size="small" color="#000" />
+                ) : (
+                  <Text style={{ color: "#000", fontWeight: "900", fontSize: 12 }}>Link</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </View>
+
+      {/* KPI Grid */}
+      <Text style={{ color: sub, fontSize: 11, fontWeight: "700", letterSpacing: 1.5, marginBottom: 10, textTransform: "uppercase" }}>Usage Details</Text>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 16 }}>
+        <KPICard label="Current Load" value={activePowerKw.toFixed(2)} unit="kW" icon="🏠" color="#00D4FF" />
+        <KPICard label="Daily Usage" value={dailyEnergyKwh.toFixed(1)} unit="kWh" icon="📊" color="#7C3AED" />
+        <KPICard label="Microgrid Recv." value={microgridEnergyKwh.toFixed(1)} unit="kWh" icon="🔄" color="#10B981" />
+        <KPICard label="Grid Import" value={gridEnergyKwh.toFixed(1)} unit="kWh" icon="🔌" color="#EF4444" />
+        <KPICard label="Est. Cost Today" value={"₦" + todayCost.toFixed(0)} unit="" icon="💰" color="#F59E0B" />
+        <KPICard label="Active Tariff" value={"₦" + tariffRate} unit="/kWh" icon="📊" color="#10B981" />
+      </View>
+
+      {/* Live Energy Flow */}
+      <View style={{ backgroundColor: card, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: border, marginBottom: 16 }}>
+        <Text style={{ color: text, fontSize: 15, fontWeight: "800", marginBottom: 16 }}>⚡ Bidirectional Smart Flow</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          {/* Supplier Node */}
+          <View style={{ alignItems: "center", minWidth: 80 }}>
+            <View style={{ width: 56, height: 56, borderRadius: 16, backgroundColor: "rgba(16,185,129,0.12)", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#10B98150", marginBottom: 8 }}>
+              <Text style={{ fontSize: 24 }}>☀️</Text>
+            </View>
+            <Text style={{ color: text, fontSize: 12, fontWeight: "800" }}>Microgrid</Text>
+            <Text style={{ color: sub, fontSize: 9, fontWeight: "600", textAlign: "center" }}>Supplier</Text>
+          </View>
+
+          {/* Flow Arrow */}
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+            <View style={{ height: 2, width: "100%", backgroundColor: "#10B981", borderRadius: 1 }} />
+            <Text style={{ color: "#10B981", fontSize: 9, fontWeight: "700", marginTop: 4 }}>{tariffRate} ₦/kWh</Text>
+          </View>
+
+          {/* Bidirectional Meter Node */}
+          <View style={{ alignItems: "center", minWidth: 80 }}>
+            <View style={{ width: 56, height: 56, borderRadius: 16, backgroundColor: "rgba(0,212,255,0.12)", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#00D4FF50", marginBottom: 8 }}>
+              <Text style={{ fontSize: 24 }}>🔌</Text>
+            </View>
+            <Text style={{ color: text, fontSize: 12, fontWeight: "800" }}>Smart Meter</Text>
+            <Text style={{ color: sub, fontSize: 9, fontWeight: "600", textAlign: "center" }}>{activePowerKw.toFixed(1)} kW</Text>
+          </View>
+
+          {/* Flow Arrow */}
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+            <View style={{ height: 2, width: "100%", backgroundColor: accent, borderRadius: 1 }} />
+            <Text style={{ color: accent, fontSize: 9, fontWeight: "700", marginTop: 4 }}>Supply</Text>
+          </View>
+
+          {/* Consumer Home Node */}
+          <View style={{ alignItems: "center", minWidth: 80 }}>
+            <View style={{ width: 56, height: 56, borderRadius: 16, backgroundColor: "rgba(124,58,237,0.12)", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#7C3AED50", marginBottom: 8 }}>
+              <Text style={{ fontSize: 24 }}>🏠</Text>
+            </View>
+            <Text style={{ color: text, fontSize: 12, fontWeight: "800" }}>Home Load</Text>
+            <Text style={{ color: sub, fontSize: 9, fontWeight: "600", textAlign: "center" }}>Consumer</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Quick Actions */}
+      <Text style={{ color: sub, fontSize: 11, fontWeight: "700", letterSpacing: 1.5, marginBottom: 10, textTransform: "uppercase" }}>Quick Actions</Text>
+      <View style={{ flexDirection: "row", gap: 8, marginBottom: 24 }}>
+        <TouchableOpacity onPress={() => navigation.navigate("Billing")} style={{ flex: 1, backgroundColor: "rgba(0,212,255,0.1)", borderRadius: 16, padding: 14, borderWidth: 1, borderColor: "rgba(0,212,255,0.25)", alignItems: "center" }}>
+          <Text style={{ fontSize: 22, marginBottom: 6 }}>💰</Text>
+          <Text style={{ color: accent, fontSize: 12, fontWeight: "700" }}>Wallet & Billing</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate("Trading")} style={{ flex: 1, backgroundColor: "rgba(16,185,129,0.1)", borderRadius: 16, padding: 14, borderWidth: 1, borderColor: "rgba(16,185,129,0.25)", alignItems: "center" }}>
+          <Text style={{ fontSize: 22, marginBottom: 6 }}>🔄</Text>
+          <Text style={{ color: "#10B981", fontSize: 12, fontWeight: "700" }}>P2P Energy</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate("AIChat")} style={{ flex: 1, backgroundColor: "rgba(124,58,237,0.1)", borderRadius: 16, padding: 14, borderWidth: 1, borderColor: "rgba(124,58,237,0.25)", alignItems: "center" }}>
+          <Text style={{ fontSize: 22, marginBottom: 6 }}>💬</Text>
+          <Text style={{ color: "#7C3AED", fontSize: 12, fontWeight: "700" }}>AI Assistant</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
+  );
+}
+
+export default function OverviewScreen({ navigation }: any) {
+  const { telemetry, theme, alerts, user, userRole, fetchIotData, isAuthenticated, userType } = useStore();
+  const isDark = theme === "dark";
+  const bg = isDark ? "#050810" : "#F1F5F9";
+  const text = isDark ? "#F1F5F9" : "#0F172A";
+  const sub = isDark ? "#94A3B8" : "#64748B";
+  const card = isDark ? "rgba(17,24,39,0.9)" : "#FFFFFF";
+  const border = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)";
+  const accent = "#00D4FF";
+
+  if (userType === 'CONSUMER') {
+    return <OverviewScreenConsumer navigation={navigation} />;
+  }
 
   useEffect(() => {
     fetchIotData();

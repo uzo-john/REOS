@@ -26,23 +26,23 @@ const Stack = createNativeStackNavigator();
 
 // ── Nav Items config ──────────────────────────────────────────────────────
 const NAV_ITEMS = [
-  { name: "Overview",    label: "Dashboard",         icon: "⚡", roles: ["all"] },
-  { name: "Monitoring",  label: "Live Monitoring",   icon: "📡", roles: ["all"] },
-  { name: "SolarDesign", label: "Solar Design",      icon: "☀️", roles: ["ENGINEER","INSTALLER","SYSTEM_OWNER","PLANT_OPERATOR"] },
-  { name: "Devices",     label: "Device Manager",    icon: "🔌", roles: ["all"] },
-  { name: "AIForecast",  label: "AI Forecasting",    icon: "🤖", roles: ["all"] },
-  { name: "AIChat",      label: "AI Assistant",      icon: "💬", roles: ["all"] },
-  { name: "Analytics",   label: "Energy Analytics",  icon: "📊", roles: ["all"] },
-  { name: "Billing",     label: "Billing",           icon: "💰", roles: ["all"] },
-  { name: "Trading",     label: "P2P Trading",       icon: "🔄", roles: ["all"] },
-  { name: "Fleet",       label: "Fleet Dashboard",   icon: "🏭", roles: ["PLANT_OPERATOR","ENGINEER","ADMIN","SUPER_ADMIN"] },
-  { name: "Alarms",      label: "Alarm Center",      icon: "🚨", roles: ["all"] },
-  { name: "Maintenance", label: "Maintenance",       icon: "🔧", roles: ["ENGINEER","INSTALLER","MAINTENANCE_ENGINEER"] },
-  { name: "Settings",    label: "Settings",          icon: "⚙️", roles: ["all"] },
+  { name: "Overview",    label: "Dashboard",         icon: "⚡", userTypes: ["PROSUMER", "CONSUMER"] },
+  { name: "Monitoring",  label: "Live Monitoring",   icon: "📡", userTypes: ["PROSUMER", "CONSUMER"] },
+  { name: "SolarDesign", label: "Solar Design",      icon: "☀️", userTypes: ["PROSUMER"] },
+  { name: "Devices",     label: "Device Manager",    icon: "🔌", userTypes: ["PROSUMER"] },
+  { name: "AIForecast",  label: "AI Forecasting",    icon: "🤖", userTypes: ["PROSUMER"] },
+  { name: "AIChat",      label: "AI Assistant",      icon: "💬", userTypes: ["PROSUMER", "CONSUMER"] },
+  { name: "Analytics",   label: "Energy Analytics",  icon: "📊", userTypes: ["PROSUMER", "CONSUMER"] },
+  { name: "Billing",     label: "Billing",           icon: "💰", userTypes: ["PROSUMER", "CONSUMER"] },
+  { name: "Trading",     label: "P2P Trading",       icon: "🔄", userTypes: ["PROSUMER", "CONSUMER"] },
+  { name: "Fleet",       label: "Fleet Dashboard",   icon: "🏭", userTypes: ["PROSUMER"] },
+  { name: "Alarms",      label: "Alarm Center",      icon: "🚨", userTypes: ["PROSUMER", "CONSUMER"] },
+  { name: "Maintenance", label: "Maintenance",       icon: "🔧", userTypes: ["PROSUMER"] },
+  { name: "Settings",    label: "Settings",          icon: "⚙️", userTypes: ["PROSUMER", "CONSUMER"] },
 ];
 
 function CustomDrawerContent(props: any) {
-  const { userRole, user, theme, logout, alerts } = useStore();
+  const { userRole, userType, user, theme, logout, alerts } = useStore();
   const isDark = theme === "dark";
   const activeAlarms = alerts?.filter((a: any) => !a.acknowledged)?.length || 0;
 
@@ -100,7 +100,7 @@ function CustomDrawerContent(props: any) {
 
       {/* Nav Items */}
       <DrawerContentScrollView {...props} contentContainerStyle={{ paddingVertical: 12 }} scrollIndicatorInsets={{ right: 1 }}>
-        {NAV_ITEMS.map((item) => {
+        {NAV_ITEMS.filter(item => item.userTypes.includes(userType)).map((item) => {
           const isActive = currentRoute === item.name;
           return (
             <TouchableOpacity
@@ -161,8 +161,24 @@ function CustomDrawerContent(props: any) {
 }
 
 function DrawerNavigator() {
-  const { theme } = useStore();
+  const { theme, userType } = useStore();
   const isDark = theme === "dark";
+
+  const screensConfig = [
+    { name: "Overview",    component: OverviewScreen,         title: "Dashboard",         userTypes: ["PROSUMER", "CONSUMER"] },
+    { name: "Monitoring",  component: MonitoringScreen,       title: "Live Monitoring",   userTypes: ["PROSUMER", "CONSUMER"] },
+    { name: "SolarDesign", component: SolarDesignScreen,      title: "Solar Design",      userTypes: ["PROSUMER"] },
+    { name: "Devices",     component: DeviceManagementScreen,  title: "Device Manager",    userTypes: ["PROSUMER"] },
+    { name: "AIForecast",  component: AIForecastingScreen,     title: "AI Forecasting",    userTypes: ["PROSUMER"] },
+    { name: "AIChat",      component: AIChatScreen,           title: "AI Assistant",      userTypes: ["PROSUMER", "CONSUMER"] },
+    { name: "Analytics",   component: AnalyticsScreen,        title: "Energy Analytics",  userTypes: ["PROSUMER", "CONSUMER"] },
+    { name: "Billing",     component: BillingScreen,          title: "Billing",           userTypes: ["PROSUMER", "CONSUMER"] },
+    { name: "Trading",     component: TradingScreen,          title: "P2P Energy Trading", userTypes: ["PROSUMER", "CONSUMER"] },
+    { name: "Fleet",       component: FleetScreen,            title: "Fleet Dashboard",   userTypes: ["PROSUMER"] },
+    { name: "Alarms",      component: AlarmScreen,            title: "Alarm Center",      userTypes: ["PROSUMER", "CONSUMER"] },
+    { name: "Maintenance", component: MaintenanceScreen,      title: "Maintenance",       userTypes: ["PROSUMER"] },
+    { name: "Settings",    component: SettingsScreen,         title: "Settings",          userTypes: ["PROSUMER", "CONSUMER"] },
+  ];
 
   return (
     <Drawer.Navigator
@@ -176,19 +192,9 @@ function DrawerNavigator() {
         headerStatusBarHeight: 0,
       }}
     >
-      <Drawer.Screen name="Overview"    component={OverviewScreen}          options={{ title: "Dashboard" }} />
-      <Drawer.Screen name="Monitoring"  component={MonitoringScreen}        options={{ title: "Live Monitoring" }} />
-      <Drawer.Screen name="SolarDesign" component={SolarDesignScreen}       options={{ title: "Solar Design Engine" }} />
-      <Drawer.Screen name="Devices"     component={DeviceManagementScreen}  options={{ title: "Device Manager" }} />
-      <Drawer.Screen name="AIForecast"  component={AIForecastingScreen}     options={{ title: "AI Forecasting" }} />
-      <Drawer.Screen name="AIChat"      component={AIChatScreen}            options={{ title: "AI Assistant" }} />
-      <Drawer.Screen name="Analytics"   component={AnalyticsScreen}         options={{ title: "Energy Analytics" }} />
-      <Drawer.Screen name="Billing"     component={BillingScreen}           options={{ title: "Billing" }} />
-      <Drawer.Screen name="Trading"     component={TradingScreen}           options={{ title: "P2P Energy Trading" }} />
-      <Drawer.Screen name="Fleet"       component={FleetScreen}             options={{ title: "Fleet Dashboard" }} />
-      <Drawer.Screen name="Alarms"      component={AlarmScreen}             options={{ title: "Alarm Center" }} />
-      <Drawer.Screen name="Maintenance" component={MaintenanceScreen}       options={{ title: "Maintenance" }} />
-      <Drawer.Screen name="Settings"    component={SettingsScreen}          options={{ title: "Settings" }} />
+      {screensConfig.filter(s => s.userTypes.includes(userType)).map((s) => (
+        <Drawer.Screen key={s.name} name={s.name} component={s.component} options={{ title: s.title }} />
+      ))}
     </Drawer.Navigator>
   );
 }

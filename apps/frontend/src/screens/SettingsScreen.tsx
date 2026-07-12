@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { useStore } from "../store/useStore";
 
 export default function SettingsScreen() {
-  const { user, userRole, theme, toggleTheme, logout } = useStore();
+  const { user, userRole, userType, setUserType, theme, toggleTheme, logout } = useStore();
   const isDark = theme === "dark";
   const bg = isDark ? "#050810" : "#F1F5F9";
   const card = isDark ? "rgba(17,24,39,0.95)" : "#FFFFFF";
@@ -53,6 +53,20 @@ export default function SettingsScreen() {
           </View>
           <TouchableOpacity onPress={toggleTheme} style={{ backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 }}>
             <Text style={{ color: text, fontWeight: "700", fontSize: 13 }}>{isDark ? "☀️ Light Mode" : "🌙 Dark Mode"}</Text>
+          </TouchableOpacity>
+        </View>
+        
+        <View style={{ height: 1, backgroundColor: border }} />
+
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <View>
+            <Text style={{ color: text, fontSize: 14, fontWeight: "800" }}>Platform Mode</Text>
+            <Text style={{ color: sub, fontSize: 12, marginTop: 2 }}>Select experience style (Prosumer vs Consumer)</Text>
+          </View>
+          <TouchableOpacity onPress={() => setUserType(userType === 'PROSUMER' ? 'CONSUMER' : 'PROSUMER')} style={{ backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 }}>
+            <Text style={{ color: text, fontWeight: "700", fontSize: 13 }}>
+              {userType === 'PROSUMER' ? "☀️ Prosumer (Solar)" : "🏠 Consumer (Buyer)"}
+            </Text>
           </TouchableOpacity>
         </View>
         

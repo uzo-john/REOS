@@ -1,5 +1,5 @@
 import React from "react";
-import { ScrollView, View, Text } from "react-native";
+import { ScrollView, View, Text, TextInput, TouchableOpacity } from "react-native";
 import { useStore } from "../store/useStore";
 import { WorkspaceCard } from "../components/WorkspaceCard";
 import { LoadAssessmentCard } from "../components/LoadAssessmentCard";
@@ -11,11 +11,29 @@ import { DownloadReportButton } from "../components/DownloadReportButton";
 import { AiAssistantPanel } from "../components/AiAssistantPanel";
 
 export default function SolarDesignScreen() {
-  const { results, theme } = useStore();
+  const { 
+    currentProjectId, 
+    projectsList, 
+    saveProject, 
+    loadProject, 
+    createNewProject,
+    results, 
+    theme 
+  } = useStore();
   const isDark = theme === "dark";
   const bg = isDark ? "#050810" : "#F1F5F9";
+  const card = isDark ? "rgba(17,24,39,0.95)" : "#FFFFFF";
+  const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
+  const text = isDark ? "#F1F5F9" : "#0F172A";
   const sub = isDark ? "#94A3B8" : "#64748B";
+  const accent = "#00D4FF";
+  const activeText = isDark ? "#00D4FF" : "#0284C7";
+
   const [expandedCard, setExpandedCard] = React.useState<string | null>("load");
+  const [projectNameInput, setProjectNameInput] = React.useState("");
+
+  const activeProject = projectsList.find(p => p.id === currentProjectId);
+  const activeProjectName = activeProject?.name || (currentProjectId?.startsWith('local-') ? 'Local Sizing' : 'Temporary Sizing');
 
   const getStatus = (result: any, check?: (r: any) => boolean) => {
     if (!result) return "PENDING";
@@ -30,6 +48,70 @@ export default function SolarDesignScreen() {
         <Text style={{ color: "#F59E0B", fontSize: 14, fontWeight: "700", letterSpacing: 0.5, marginBottom: 4 }}>☀️ SOLAR DESIGN ENGINE</Text>
         <Text style={{ color: isDark ? "#F1F5F9" : "#0F172A", fontSize: 20, fontWeight: "900", marginBottom: 6 }}>AI-Assisted System Sizing</Text>
         <Text style={{ color: sub, fontSize: 12, lineHeight: 18 }}>Complete your load profile → solar PV → battery → inverter → cable sizing workflow. Download a professional engineering report when done.</Text>
+      </View>
+
+      {/* Projects Manager Panel */}
+      <View style={{ backgroundColor: card, borderRadius: 20, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: border }}>
+        <Text style={{ color: text, fontSize: 15, fontWeight: "800", marginBottom: 12 }}>📁 Design Projects Manager</Text>
+        
+        {/* Active Project Info */}
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: border }}>
+          <View style={{ flex: 1, marginRight: 8 }}>
+            <Text style={{ color: sub, fontSize: 10, fontWeight: "700", letterSpacing: 0.5 }}>ACTIVE PROJECT</Text>
+            <Text style={{ color: text, fontSize: 15, fontWeight: "800", marginTop: 2 }}>{activeProjectName}</Text>
+          </View>
+          <TouchableOpacity onPress={() => { createNewProject(); setProjectNameInput(""); }} style={{ backgroundColor: isDark ? "rgba(0,212,255,0.12)" : "rgba(0,162,194,0.1)", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 }}>
+            <Text style={{ color: activeText, fontSize: 11, fontWeight: "800" }}>➕ New Design</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Save/Rename Input */}
+        <View style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
+          <TextInput
+            placeholder="Enter project name..."
+            placeholderTextColor={sub}
+            value={projectNameInput}
+            onChangeText={setProjectNameInput}
+            style={{ flex: 1, height: 40, borderRadius: 10, borderWidth: 1, borderColor: border, paddingHorizontal: 12, color: text, backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F8FAFC", fontSize: 13 }}
+          />
+          <TouchableOpacity 
+            onPress={async () => {
+              if (projectNameInput.trim()) {
+                await saveProject(projectNameInput.trim());
+              }
+            }} 
+            style={{ backgroundColor: accent, borderRadius: 10, paddingHorizontal: 16, justifyContent: "center", alignItems: "center" }}
+          >
+            <Text style={{ color: "#000", fontWeight: "900", fontSize: 12 }}>💾 Save</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Project Switcher Selector */}
+        {projectsList.length > 0 && (
+          <View>
+            <Text style={{ color: sub, fontSize: 9, fontWeight: "700", marginBottom: 8, letterSpacing: 0.5 }}>SWITCH PROJECT:</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 2 }}>
+              {projectsList.map((p) => {
+                const isCurrent = p.id === currentProjectId;
+                return (
+                  <TouchableOpacity
+                    key={p.id}
+                    onPress={() => loadProject(p.id)}
+                    style={{
+                      paddingHorizontal: 12, paddingVertical: 7, borderRadius: 8,
+                      backgroundColor: isCurrent ? (isDark ? "rgba(0,212,255,0.12)" : "rgba(0,162,194,0.08)") : "transparent",
+                      borderWidth: 1, borderColor: isCurrent ? accent : border,
+                    }}
+                  >
+                    <Text style={{ color: isCurrent ? activeText : text, fontSize: 11, fontWeight: isCurrent ? "800" : "500" }}>
+                      📁 {p.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
       </View>
 
       {/* AI Panel */}
