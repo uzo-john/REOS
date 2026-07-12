@@ -7,6 +7,18 @@ export interface ChatMessage {
   content: string;
 }
 
+const handleResponse = async (response: Response) => {
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData.message || 'Request failed');
+  }
+  const json = await response.json();
+  if (json && typeof json === 'object' && 'success' in json && 'data' in json) {
+    return json.data;
+  }
+  return json;
+};
+
 export const api = {
   async chatWithAi(messages: ChatMessage[], token?: string) {
     const headers: Record<string, string> = {
@@ -21,11 +33,7 @@ export const api = {
       body: JSON.stringify({ messages }),
     });
 
-    if (!response.ok) {
-      throw new Error(`AI Request failed with status ${response.status}`);
-    }
-
-    return response.json(); // returns { content: string, tokensUsed?: number }
+    return handleResponse(response);
   },
 
   // Auth endpoints
@@ -35,11 +43,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(credentials),
     });
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      throw new Error(errData.message || 'Login failed');
-    }
-    return response.json(); // returns { accessToken: string, user: any }
+    return handleResponse(response);
   },
 
   async register(data: any) {
@@ -48,11 +52,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}));
-      throw new Error(errData.message || 'Registration failed');
-    }
-    return response.json(); // returns { accessToken: string, user: any }
+    return handleResponse(response);
   },
 
   async fetchCurrentUser(token: string) {
@@ -62,10 +62,7 @@ export const api = {
         'Authorization': `Bearer ${token}`,
       },
     });
-    if (!response.ok) {
-      throw new Error('Failed to fetch current user');
-    }
-    return response.json();
+    return handleResponse(response);
   },
 
   // Sizing endpoints (if we want to delegate calculations to the backend)
@@ -75,7 +72,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    return response.json();
+    return handleResponse(response);
   },
 
   async runPvSizing(data: any) {
@@ -84,7 +81,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    return response.json();
+    return handleResponse(response);
   },
 
   async runBatterySizing(data: any) {
@@ -93,7 +90,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    return response.json();
+    return handleResponse(response);
   },
 
   async runInverterSizing(data: any) {
@@ -102,7 +99,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    return response.json();
+    return handleResponse(response);
   },
 
   async runCableSizing(data: any) {
@@ -111,149 +108,166 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    return response.json();
+    return handleResponse(response);
   },
 
   // IoT & Telemetry endpoints
   async fetchDevices(token?: string) {
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    return fetch(`${API_BASE_URL}/iot/devices`, { method: 'GET', headers }).then(res => res.json());
+    const response = await fetch(`${API_BASE_URL}/iot/devices`, { method: 'GET', headers });
+    return handleResponse(response);
   },
 
   async registerDevice(device: any, token?: string) {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    return fetch(`${API_BASE_URL}/iot/devices`, {
+    const response = await fetch(`${API_BASE_URL}/iot/devices`, {
       method: 'POST',
       headers,
       body: JSON.stringify(device),
-    }).then(res => res.json());
+    });
+    return handleResponse(response);
   },
 
   async removeDevice(id: string, token?: string) {
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    return fetch(`${API_BASE_URL}/iot/devices/${id}`, { method: 'DELETE', headers }).then(res => res.json());
+    const response = await fetch(`${API_BASE_URL}/iot/devices/${id}`, { method: 'DELETE', headers });
+    return handleResponse(response);
   },
 
   async fetchLiveTelemetry(token?: string) {
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    return fetch(`${API_BASE_URL}/iot/telemetry/live`, { method: 'GET', headers }).then(res => res.json());
+    const response = await fetch(`${API_BASE_URL}/iot/telemetry/live`, { method: 'GET', headers });
+    return handleResponse(response);
   },
 
   async setGridExport(enabled: boolean, token?: string) {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    return fetch(`${API_BASE_URL}/iot/grid-export`, {
+    const response = await fetch(`${API_BASE_URL}/iot/grid-export`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ enabled }),
-    }).then(res => res.json());
+    });
+    return handleResponse(response);
   },
 
   async setNeighbourTransfer(enabled: boolean, token?: string) {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    return fetch(`${API_BASE_URL}/iot/neighbour-transfer`, {
+    const response = await fetch(`${API_BASE_URL}/iot/neighbour-transfer`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ enabled }),
-    }).then(res => res.json());
+    });
+    return handleResponse(response);
   },
 
   async setEdgeGatewayBuffering(enabled: boolean, token?: string) {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    return fetch(`${API_BASE_URL}/iot/edge-gateway/buffering`, {
+    const response = await fetch(`${API_BASE_URL}/iot/edge-gateway/buffering`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ enabled }),
-    }).then(res => res.json());
+    });
+    return handleResponse(response);
   },
 
   async fetchAlerts(token?: string) {
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    return fetch(`${API_BASE_URL}/iot/alerts`, { method: 'GET', headers }).then(res => res.json());
+    const response = await fetch(`${API_BASE_URL}/iot/alerts`, { method: 'GET', headers });
+    return handleResponse(response);
   },
 
   async acknowledgeAlert(id: string, token?: string) {
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    return fetch(`${API_BASE_URL}/iot/alerts/${id}/acknowledge`, { method: 'POST', headers }).then(res => res.json());
+    const response = await fetch(`${API_BASE_URL}/iot/alerts/${id}/acknowledge`, { method: 'POST', headers });
+    return handleResponse(response);
   },
 
   // Consumer API Endpoints
   async createInvitation(tariffRate: number, billingCycle: string, email?: string, phoneNumber?: string, token?: string) {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    return fetch(`${API_BASE_URL}/consumer/invite`, {
+    const response = await fetch(`${API_BASE_URL}/consumer/invite`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ tariffRate, billingCycle, email, phoneNumber }),
-    }).then(res => res.json());
+    });
+    return handleResponse(response);
   },
 
   async getInvitation(code: string, token?: string) {
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    return fetch(`${API_BASE_URL}/consumer/invitation/${code}`, { method: 'GET', headers }).then(res => res.json());
+    const response = await fetch(`${API_BASE_URL}/consumer/invitation/${code}`, { method: 'GET', headers });
+    return handleResponse(response);
   },
 
   async acceptInvitation(invitationCode: string, token?: string) {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    return fetch(`${API_BASE_URL}/consumer/accept`, {
+    const response = await fetch(`${API_BASE_URL}/consumer/accept`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ invitationCode }),
-    }).then(res => res.json());
+    });
+    return handleResponse(response);
   },
 
   async fetchActiveContract(token?: string) {
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    return fetch(`${API_BASE_URL}/consumer/contract`, { method: 'GET', headers }).then(res => res.json());
+    const response = await fetch(`${API_BASE_URL}/consumer/contract`, { method: 'GET', headers });
+    return handleResponse(response);
   },
 
   async fetchBillingSummary(token?: string) {
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    return fetch(`${API_BASE_URL}/consumer/billing`, { method: 'GET', headers }).then(res => res.json());
+    const response = await fetch(`${API_BASE_URL}/consumer/billing`, { method: 'GET', headers });
+    return handleResponse(response);
   },
 
   async topUpWallet(amount: number, paymentGateway: string, token?: string) {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    return fetch(`${API_BASE_URL}/consumer/topup`, {
+    const response = await fetch(`${API_BASE_URL}/consumer/topup`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ amount, paymentGateway }),
-    }).then(res => res.json());
+    });
+    return handleResponse(response);
   },
 
   async payInvoice(invoiceId: string, paymentGateway: string, token?: string) {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    return fetch(`${API_BASE_URL}/consumer/pay-invoice/${invoiceId}`, {
+    const response = await fetch(`${API_BASE_URL}/consumer/pay-invoice/${invoiceId}`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ paymentGateway }),
-    }).then(res => res.json());
+    });
+    return handleResponse(response);
   },
 
   async fetchNotifications(token?: string) {
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    return fetch(`${API_BASE_URL}/consumer/notifications`, { method: 'GET', headers }).then(res => res.json());
+    const response = await fetch(`${API_BASE_URL}/consumer/notifications`, { method: 'GET', headers });
+    return handleResponse(response);
   },
 
   async readNotification(id: string, token?: string) {
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
-    return fetch(`${API_BASE_URL}/consumer/notifications/${id}/read`, { method: 'POST', headers }).then(res => res.json());
+    const response = await fetch(`${API_BASE_URL}/consumer/notifications/${id}/read`, { method: 'POST', headers });
+    return handleResponse(response);
   }
 };
-

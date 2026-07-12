@@ -828,9 +828,9 @@ export const useStore = create<REOSState>((set, get) => ({
     }
 
     try {
-      let savedProject;
+      let response;
       if (currentProjectId && !currentProjectId.startsWith('local-')) {
-        savedProject = await fetch(`${API_BASE_URL}/projects/${currentProjectId}`, {
+        response = await fetch(`${API_BASE_URL}/projects/${currentProjectId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -839,7 +839,7 @@ export const useStore = create<REOSState>((set, get) => ({
           body: JSON.stringify(projectPayload),
         }).then(res => res.json());
       } else {
-        savedProject = await fetch(`${API_BASE_URL}/projects`, {
+        response = await fetch(`${API_BASE_URL}/projects`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -848,6 +848,8 @@ export const useStore = create<REOSState>((set, get) => ({
           body: JSON.stringify(projectPayload),
         }).then(res => res.json());
       }
+
+      const savedProject = response && response.success ? response.data : response;
 
       set({
         currentProjectId: savedProject.id,
@@ -880,12 +882,14 @@ export const useStore = create<REOSState>((set, get) => ({
     }
 
     try {
-      const project = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
+      const response = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       }).then(res => res.json());
+
+      const project = response && response.success ? response.data : response;
 
       if (project && project.inputs) {
         set({
@@ -915,12 +919,14 @@ export const useStore = create<REOSState>((set, get) => ({
     }
 
     try {
-      const backendProjects = await fetch(`${API_BASE_URL}/projects`, {
+      const response = await fetch(`${API_BASE_URL}/projects`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       }).then(res => res.json());
+
+      const backendProjects = response && response.success ? response.data : response;
 
       // Merge backend and local projects
       const backendArray = Array.isArray(backendProjects) ? backendProjects : [];
@@ -955,7 +961,7 @@ export const useStore = create<REOSState>((set, get) => ({
     try {
       let savedProject;
       if (projectId && !projectId.startsWith('local-')) {
-        savedProject = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
+        const response = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -963,19 +969,21 @@ export const useStore = create<REOSState>((set, get) => ({
           },
           body: JSON.stringify(projectPayload),
         }).then(res => res.json());
+        savedProject = response && response.success ? response.data : response;
       } else {
         // If there's no project ID, check if they already have an existing project in the database.
         // If they do, update that one. Otherwise, create a new one.
-        const projects = await fetch(`${API_BASE_URL}/projects`, {
+        const response = await fetch(`${API_BASE_URL}/projects`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
           },
         }).then(res => res.json());
+        const projects = response && response.success ? response.data : response;
 
         if (Array.isArray(projects) && projects.length > 0) {
           projectId = projects[0].id;
-          savedProject = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
+          const patchResponse = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
             method: 'PATCH',
             headers: {
               'Content-Type': 'application/json',
@@ -983,8 +991,9 @@ export const useStore = create<REOSState>((set, get) => ({
             },
             body: JSON.stringify(projectPayload),
           }).then(res => res.json());
+          savedProject = patchResponse && patchResponse.success ? patchResponse.data : patchResponse;
         } else {
-          savedProject = await fetch(`${API_BASE_URL}/projects`, {
+          const postResponse = await fetch(`${API_BASE_URL}/projects`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -992,6 +1001,7 @@ export const useStore = create<REOSState>((set, get) => ({
             },
             body: JSON.stringify(projectPayload),
           }).then(res => res.json());
+          savedProject = postResponse && postResponse.success ? postResponse.data : postResponse;
         }
       }
 
