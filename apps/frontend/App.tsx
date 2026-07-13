@@ -243,7 +243,7 @@ function DrawerNavigator() {
         ),
       }}
     >
-      {screensConfig.filter(s => s.userTypes.includes(userType)).map((s) => (
+      {screensConfig.map((s) => (
         <Drawer.Screen key={s.name} name={s.name} component={s.component} options={{ title: s.title }} />
       ))}
     </Drawer.Navigator>
