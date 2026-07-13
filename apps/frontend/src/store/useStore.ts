@@ -1029,14 +1029,16 @@ export const useStore = create<REOSState>((set, get) => ({
           isDbOffline: false,
         });
       } else {
+        const emptyResults = { load: null, solar: null, battery: null, inverter: null, cable: null };
         try {
-          localStorage.removeItem('reos_current_inputs');
-          localStorage.removeItem('reos_current_results');
+          localStorage.setItem('reos_current_inputs', JSON.stringify(defaultInputs));
+          localStorage.setItem('reos_current_results', JSON.stringify(emptyResults));
         } catch (e) {}
         set({
           currentProjectId: project.id,
+          inputs: defaultInputs,
+          results: emptyResults,
         });
-        get().runAllCalculations();
       }
     } catch (error) {
       console.error('Failed to load project from backend:', error);
@@ -1079,11 +1081,27 @@ export const useStore = create<REOSState>((set, get) => ({
 
   autoSaveProject: async () => {
     const { token, inputs, results, currentProjectId, isAuthenticated, isSaving } = get();
-    if (!isAuthenticated || token === 'guest-token' || isSaving) return;
-
+    
     let projectId = currentProjectId;
     const activeProject = get().projectsList.find(p => p.id === currentProjectId);
     const projectName = activeProject?.name || 'New Design';
+
+    // If running in local fallback (guest, offline, etc.)
+    if (!isAuthenticated || get().isDbOffline || token === 'guest-token') {
+      const localProjects = getLocalProjects();
+      const updatedList = localProjects.map((p: any) => 
+        p.id === projectId || p.id === currentProjectId
+          ? { ...p, inputs, results, updatedAt: new Date().toISOString() }
+          : p
+      );
+      saveLocalProjects(updatedList);
+      set({
+        projectsList: updatedList,
+      });
+      return;
+    }
+
+    if (isSaving) return;
 
     const projectPayload = {
       name: projectName,
@@ -1135,7 +1153,18 @@ export const useStore = create<REOSState>((set, get) => ({
         }));
       }
     } catch (error) {
-      console.warn('Failed to auto-save project:', error);
+      console.warn('Failed to auto-save project online. Saving locally.', error);
+      const localProjects = getLocalProjects();
+      const updatedList = localProjects.map((p: any) => 
+        p.id === projectId || p.id === currentProjectId
+          ? { ...p, inputs, results, updatedAt: new Date().toISOString() }
+          : p
+      );
+      saveLocalProjects(updatedList);
+      set({
+        projectsList: updatedList,
+        isDbOffline: true
+      });
     }
   },
 

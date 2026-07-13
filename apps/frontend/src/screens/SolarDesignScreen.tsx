@@ -128,6 +128,31 @@ export default function SolarDesignScreen() {
           )}
         </View>
 
+        {/* Save Sizing Button */}
+        {currentProjectId && (
+          <TouchableOpacity 
+            onPress={async () => {
+              const name = projectNameInput.trim() || activeProjectName;
+              await saveProject(name);
+              if (Platform.OS === 'web') {
+                window.alert("Project Saved: Your solar profile and sizing details have been saved successfully!");
+              } else {
+                Alert.alert("Project Saved", "Your solar profile and sizing details have been saved successfully!");
+              }
+            }}
+            style={{ 
+              backgroundColor: "#10B981", 
+              borderRadius: 10, 
+              paddingVertical: 12, 
+              alignItems: "center", 
+              justifyContent: "center",
+              marginBottom: 14
+            }}
+          >
+            <Text style={{ color: "#FFF", fontWeight: "900", fontSize: 13 }}>💾 Save All Sizing & Profiles</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Project Switcher Selector */}
         {projectsList.length > 0 && (
           <View>
