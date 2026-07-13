@@ -1,5 +1,5 @@
 import React from "react";
-import { ScrollView, View, Text, TextInput, TouchableOpacity } from "react-native";
+import { ScrollView, View, Text, TextInput, TouchableOpacity, Platform, Alert } from "react-native";
 import { useStore } from "../store/useStore";
 import { WorkspaceCard } from "../components/WorkspaceCard";
 import { LoadAssessmentCard } from "../components/LoadAssessmentCard";
@@ -17,6 +17,7 @@ export default function SolarDesignScreen() {
     saveProject, 
     loadProject, 
     createNewProject,
+    deleteProject,
     results, 
     theme 
   } = useStore();
@@ -66,7 +67,7 @@ export default function SolarDesignScreen() {
         </View>
 
         {/* Save/Rename Input */}
-        <View style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
+        <View style={{ flexDirection: "row", gap: 8, marginBottom: 14 }}>
           <TextInput
             placeholder="Enter project name..."
             placeholderTextColor={sub}
@@ -84,6 +85,33 @@ export default function SolarDesignScreen() {
           >
             <Text style={{ color: "#000", fontWeight: "900", fontSize: 12 }}>💾 Save</Text>
           </TouchableOpacity>
+          {currentProjectId && (
+            <TouchableOpacity 
+              onPress={async () => {
+                const performDelete = async () => {
+                  await deleteProject(currentProjectId);
+                  setProjectNameInput("");
+                };
+                if (Platform.OS === 'web') {
+                  if (window.confirm("Are you sure you want to delete this project?")) {
+                    await performDelete();
+                  }
+                } else {
+                  Alert.alert(
+                    "Delete Project",
+                    "Are you sure you want to delete this project?",
+                    [
+                      { text: "Cancel", style: "cancel" },
+                      { text: "Delete", style: "destructive", onPress: performDelete }
+                    ]
+                  );
+                }
+              }} 
+              style={{ backgroundColor: "#EF4444", borderRadius: 10, paddingHorizontal: 12, justifyContent: "center", alignItems: "center" }}
+            >
+              <Text style={{ color: "#FFF", fontWeight: "900", fontSize: 12 }}>🗑️</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Project Switcher Selector */}
