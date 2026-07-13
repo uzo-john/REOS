@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { useStore } from "../store/useStore";
 
 export default function SettingsScreen() {
-  const { user, userRole, userType, setUserType, theme, toggleTheme, logout } = useStore();
+  const { user, userRole, userType, setUserType, theme, toggleTheme, logout, isDbOffline } = useStore();
   const isDark = theme === "dark";
   const bg = isDark ? "#050810" : "#F1F5F9";
   const card = isDark ? "rgba(17,24,39,0.95)" : "#FFFFFF";
@@ -97,8 +97,10 @@ export default function SettingsScreen() {
             <Text style={{ color: text, fontSize: 14, fontWeight: "800" }}>System Status</Text>
             <Text style={{ color: sub, fontSize: 12, marginTop: 2 }}>Connectivity and database status</Text>
           </View>
-          <View style={{ backgroundColor: "rgba(16,185,129,0.12)", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
-            <Text style={{ color: "#10B981", fontSize: 11, fontWeight: "700" }}>● Online</Text>
+          <View style={{ backgroundColor: isDbOffline ? "rgba(245,158,11,0.12)" : "rgba(16,185,129,0.12)", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
+            <Text style={{ color: isDbOffline ? "#F59E0B" : "#10B981", fontSize: 11, fontWeight: "700" }}>
+              {isDbOffline ? "● Local Backup" : "● Cloud Sync (Supabase)"}
+            </Text>
           </View>
         </View>
       </View>

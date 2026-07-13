@@ -908,7 +908,6 @@ export const useStore = create<REOSState>((set, get) => ({
   // Project Actions
   saveProject: async (name) => {
     const { token, inputs, results, currentProjectId, isAuthenticated } = get();
-    set({ isSaving: true });
     
     const projectPayload = {
       name,
@@ -920,8 +919,8 @@ export const useStore = create<REOSState>((set, get) => ({
       results,
     };
 
-    // If not authenticated or if the database is offline, save locally
-    if (!isAuthenticated || get().isDbOffline || token === 'guest-token') {
+    // If not authenticated or guest, save locally
+    if (!isAuthenticated || token === 'guest-token') {
       const localProjects = getLocalProjects();
       const newProject = {
         id: currentProjectId || `local-${Date.now()}`,
@@ -943,11 +942,11 @@ export const useStore = create<REOSState>((set, get) => ({
       set({
         currentProjectId: newProject.id,
         projectsList: updatedList,
-        isSaving: false,
-        isDbOffline: true, // Tag that we are running in local fallback
       });
       return;
     }
+
+    set({ isSaving: true });
 
     try {
       let response;
@@ -980,10 +979,32 @@ export const useStore = create<REOSState>((set, get) => ({
       });
       await get().fetchUserProjects();
     } catch (error) {
-      console.warn('Backend save failed. Falling back to local storage.', error);
-      // Fallback on error
-      set({ isDbOffline: true });
-      await get().saveProject(name);
+      console.warn('Backend save failed. Saving locally.', error);
+      // Fallback on error: save locally
+      const localProjects = getLocalProjects();
+      const newProject = {
+        id: currentProjectId || `local-${Date.now()}`,
+        name,
+        inputs,
+        results,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      let updatedList;
+      if (currentProjectId && localProjects.some((p: any) => p.id === currentProjectId)) {
+        updatedList = localProjects.map((p: any) => p.id === currentProjectId ? newProject : p);
+      } else {
+        updatedList = [newProject, ...localProjects];
+      }
+
+      saveLocalProjects(updatedList);
+      set({
+        currentProjectId: newProject.id,
+        projectsList: updatedList,
+        isSaving: false,
+        isDbOffline: true,
+      });
     }
   },
 
@@ -1049,7 +1070,7 @@ export const useStore = create<REOSState>((set, get) => ({
     const { token, isAuthenticated } = get();
     const localProjects = getLocalProjects();
 
-    if (!isAuthenticated || get().isDbOffline || token === 'guest-token') {
+    if (!isAuthenticated || token === 'guest-token') {
       set({ projectsList: localProjects });
       return;
     }
