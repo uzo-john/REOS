@@ -33,8 +33,21 @@ export default function SolarDesignScreen() {
   const [expandedCard, setExpandedCard] = React.useState<string | null>("load");
   const [projectNameInput, setProjectNameInput] = React.useState("");
 
+  const [showCreateModal, setShowCreateModal] = React.useState(false);
+  const [newProjName, setNewProjName] = React.useState("");
+  const [newProjLocation, setNewProjLocation] = React.useState("Lagos, Nigeria");
+  const [newProjDesc, setNewProjDesc] = React.useState("");
+
   const activeProject = projectsList.find(p => p.id === currentProjectId);
   const activeProjectName = activeProject?.name || (currentProjectId?.startsWith('local-') ? 'Local Sizing' : 'Temporary Sizing');
+
+  React.useEffect(() => {
+    if (activeProject) {
+      setProjectNameInput(activeProject.name);
+    } else {
+      setProjectNameInput("");
+    }
+  }, [currentProjectId, activeProject?.name]);
 
   const getStatus = (result: any, check?: (r: any) => boolean) => {
     if (!result) return "PENDING";
@@ -43,7 +56,8 @@ export default function SolarDesignScreen() {
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: bg }} contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+    <>
+      <ScrollView style={{ flex: 1, backgroundColor: bg }} contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={{ backgroundColor: isDark ? "rgba(245,158,11,0.08)" : "rgba(245,158,11,0.06)", borderRadius: 20, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: "rgba(245,158,11,0.2)" }}>
         <Text style={{ color: "#F59E0B", fontSize: 14, fontWeight: "700", letterSpacing: 0.5, marginBottom: 4 }}>☀️ SOLAR DESIGN ENGINE</Text>
@@ -61,7 +75,7 @@ export default function SolarDesignScreen() {
             <Text style={{ color: sub, fontSize: 10, fontWeight: "700", letterSpacing: 0.5 }}>ACTIVE PROJECT</Text>
             <Text style={{ color: text, fontSize: 15, fontWeight: "800", marginTop: 2 }}>{activeProjectName}</Text>
           </View>
-          <TouchableOpacity onPress={() => { createNewProject(); setProjectNameInput(""); }} style={{ backgroundColor: isDark ? "rgba(0,212,255,0.12)" : "rgba(0,162,194,0.1)", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 }}>
+          <TouchableOpacity onPress={() => setShowCreateModal(true)} style={{ backgroundColor: isDark ? "rgba(0,212,255,0.12)" : "rgba(0,162,194,0.1)", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 }}>
             <Text style={{ color: activeText, fontSize: 11, fontWeight: "800" }}>➕ New Design</Text>
           </TouchableOpacity>
         </View>
@@ -204,5 +218,113 @@ export default function SolarDesignScreen() {
       )}
       <View style={{ height: 32 }} />
     </ScrollView>
+
+    {showCreateModal && (
+      <View style={{
+        position: "absolute",
+        top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: "rgba(0,0,0,0.65)",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 9999,
+        padding: 16
+      }}>
+        <View style={{
+          backgroundColor: card,
+          borderRadius: 24,
+          width: "100%",
+          maxWidth: 400,
+          padding: 24,
+          borderWidth: 1,
+          borderColor: border,
+          shadowColor: "#000",
+          shadowOpacity: 0.35,
+          shadowRadius: 20,
+          elevation: 10
+        }}>
+          <Text style={{ color: text, fontSize: 18, fontWeight: "900", marginBottom: 6 }}>➕ Create New Project</Text>
+          <Text style={{ color: sub, fontSize: 12, marginBottom: 20 }}>Specify your energy system design parameters to initialize the project.</Text>
+          
+          {/* Project Name */}
+          <Text style={{ color: text, fontSize: 12, fontWeight: "700", marginBottom: 6 }}>PROJECT NAME</Text>
+          <TextInput
+            placeholder="e.g., Home Solar Sizing, Office Backup"
+            placeholderTextColor={sub}
+            value={newProjName}
+            onChangeText={setNewProjName}
+            style={{
+              height: 44, borderRadius: 12, borderWidth: 1, borderColor: border,
+              paddingHorizontal: 12, color: text, backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F8FAFC",
+              fontSize: 13, marginBottom: 16
+            }}
+          />
+
+          {/* Location */}
+          <Text style={{ color: text, fontSize: 12, fontWeight: "700", marginBottom: 6 }}>LOCATION</Text>
+          <TextInput
+            placeholder="e.g., Lagos, Nigeria"
+            placeholderTextColor={sub}
+            value={newProjLocation}
+            onChangeText={setNewProjLocation}
+            style={{
+              height: 44, borderRadius: 12, borderWidth: 1, borderColor: border,
+              paddingHorizontal: 12, color: text, backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F8FAFC",
+              fontSize: 13, marginBottom: 16
+            }}
+          />
+
+          {/* Description */}
+          <Text style={{ color: text, fontSize: 12, fontWeight: "700", marginBottom: 6 }}>DESCRIPTION (OPTIONAL)</Text>
+          <TextInput
+            placeholder="e.g., 5kW Hybrid Inverter Sizing for home appliances"
+            placeholderTextColor={sub}
+            value={newProjDesc}
+            onChangeText={setNewProjDesc}
+            multiline
+            numberOfLines={2}
+            style={{
+              height: 60, borderRadius: 12, borderWidth: 1, borderColor: border,
+              paddingHorizontal: 12, paddingTop: 10, color: text, backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F8FAFC",
+              fontSize: 13, marginBottom: 24, textAlignVertical: "top"
+            }}
+          />
+
+          {/* Actions */}
+          <View style={{ flexDirection: "row", gap: 10, justifyContent: "flex-end" }}>
+            <TouchableOpacity
+              onPress={() => {
+                setShowCreateModal(false);
+                setNewProjName("");
+                setNewProjDesc("");
+              }}
+              style={{
+                paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10,
+                backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)"
+              }}
+            >
+              <Text style={{ color: text, fontWeight: "700", fontSize: 12 }}>Cancel</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              onPress={async () => {
+                if (newProjName.trim()) {
+                  await createNewProject(newProjName.trim(), newProjLocation.trim(), newProjDesc.trim());
+                  setShowCreateModal(false);
+                  setNewProjName("");
+                  setNewProjDesc("");
+                }
+              }}
+              style={{
+                paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10,
+                backgroundColor: accent, justifyContent: "center", alignItems: "center"
+              }}
+            >
+              <Text style={{ color: "#000", fontWeight: "900", fontSize: 12 }}>Create Project</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    )}
+  </>
   );
 }

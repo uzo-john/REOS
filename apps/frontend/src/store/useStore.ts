@@ -110,7 +110,7 @@ interface REOSState {
   toggleTheme: () => void;
   updateInputs: (updates: Partial<ProjectInputs>) => void;
   runAllCalculations: () => void;
-  createNewProject: () => Promise<void>;
+  createNewProject: (name?: string, location?: string, description?: string) => Promise<void>;
 
   // Auth Actions
   login: (credentials: any) => Promise<void>;
@@ -443,7 +443,7 @@ export const useStore = create<REOSState>((set, get) => ({
     get().autoSaveProject();
   },
 
-  createNewProject: async () => {
+  createNewProject: async (name = 'New Design', location = 'Lagos, Nigeria', description = 'Solar PV Design Sizing Profile') => {
     const { token, isAuthenticated } = get();
     const emptyResults = {
       load: null,
@@ -461,9 +461,9 @@ export const useStore = create<REOSState>((set, get) => ({
     if (isAuthenticated && token && token !== 'guest-token' && !get().isDbOffline) {
       set({ isSaving: true });
       const projectPayload = {
-        name: 'New Design',
-        description: 'Solar PV Design Sizing Profile',
-        location: 'Lagos, Nigeria',
+        name,
+        description,
+        location,
         latitude: 6.5244,
         longitude: 3.3792,
         inputs: defaultInputs,
@@ -499,7 +499,7 @@ export const useStore = create<REOSState>((set, get) => ({
     const localProjects = getLocalProjects();
     const newProject = {
       id: `local-${Date.now()}`,
-      name: 'New Design',
+      name,
       inputs: defaultInputs,
       results: emptyResults,
       createdAt: new Date().toISOString(),
