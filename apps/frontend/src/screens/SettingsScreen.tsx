@@ -47,7 +47,7 @@ export default function SettingsScreen() {
       
       <View style={{ backgroundColor: card, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: border, marginBottom: 20, gap: 16 }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          <View>
+          <View style={{ flex: 1, paddingRight: 8 }}>
             <Text style={{ color: text, fontSize: 14, fontWeight: "800" }}>Color Mode</Text>
             <Text style={{ color: sub, fontSize: 12, marginTop: 2 }}>Toggle between light and dark theme</Text>
           </View>
@@ -59,13 +59,13 @@ export default function SettingsScreen() {
         <View style={{ height: 1, backgroundColor: border }} />
 
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          <View>
+          <View style={{ flex: 1, paddingRight: 8 }}>
             <Text style={{ color: text, fontSize: 14, fontWeight: "800" }}>Platform Mode</Text>
             <Text style={{ color: sub, fontSize: 12, marginTop: 2 }}>Select experience style (Prosumer vs Consumer)</Text>
           </View>
           <TouchableOpacity onPress={() => setUserType(userType === 'PROSUMER' ? 'CONSUMER' : 'PROSUMER')} style={{ backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.05)", borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 }}>
             <Text style={{ color: text, fontWeight: "700", fontSize: 13 }}>
-              {userType === 'PROSUMER' ? "☀️ Prosumer (Solar)" : "🏠 Consumer (Buyer)"}
+              {userType === 'PROSUMER' ? "☀️ Prosumer" : "🏠 Consumer"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -73,7 +73,7 @@ export default function SettingsScreen() {
         <View style={{ height: 1, backgroundColor: border }} />
 
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          <View>
+          <View style={{ flex: 1, paddingRight: 8 }}>
             <Text style={{ color: text, fontSize: 14, fontWeight: "800" }}>Startup Experience Selector</Text>
             <Text style={{ color: sub, fontSize: 12, marginTop: 2 }}>Force choose screen to pop up on startup</Text>
           </View>
@@ -93,7 +93,7 @@ export default function SettingsScreen() {
         <View style={{ height: 1, backgroundColor: border }} />
         
         <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-          <View>
+          <View style={{ flex: 1, paddingRight: 8 }}>
             <Text style={{ color: text, fontSize: 14, fontWeight: "800" }}>System Status</Text>
             <Text style={{ color: sub, fontSize: 12, marginTop: 2 }}>Connectivity and database status</Text>
           </View>
