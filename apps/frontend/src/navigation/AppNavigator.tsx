@@ -20,25 +20,27 @@ import AnalyticsScreen from "../screens/AnalyticsScreen";
 import AIChatScreen from "../screens/AIChatScreen";
 import SettingsScreen from "../screens/SettingsScreen";
 import LoginScreen from "../screens/LoginScreen";
+import AdminScreen from "../screens/AdminScreen";
 
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
 
 // ── Nav Items config ──────────────────────────────────────────────────────
 const NAV_ITEMS = [
-  { name: "Overview",    label: "Dashboard",         icon: "⚡", userTypes: ["PROSUMER", "CONSUMER"] },
-  { name: "Monitoring",  label: "Live Monitoring",   icon: "📡", userTypes: ["PROSUMER", "CONSUMER"] },
+  { name: "Overview",    label: "Dashboard",         icon: "⚡", userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
+  { name: "Monitoring",  label: "Live Monitoring",   icon: "📡", userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
   { name: "SolarDesign", label: "Solar Design",      icon: "☀️", userTypes: ["PROSUMER"] },
-  { name: "Devices",     label: "Device Manager",    icon: "🔌", userTypes: ["PROSUMER"] },
+  { name: "Devices",     label: "Device Manager",    icon: "🔌", userTypes: ["PROSUMER", "ADMIN"] },
   { name: "AIForecast",  label: "AI Forecasting",    icon: "🤖", userTypes: ["PROSUMER"] },
-  { name: "AIChat",      label: "AI Assistant",      icon: "💬", userTypes: ["PROSUMER", "CONSUMER"] },
-  { name: "Analytics",   label: "Energy Analytics",  icon: "📊", userTypes: ["PROSUMER", "CONSUMER"] },
-  { name: "Billing",     label: "Billing",           icon: "💰", userTypes: ["PROSUMER", "CONSUMER"] },
-  { name: "Trading",     label: "P2P Trading",       icon: "🔄", userTypes: ["PROSUMER", "CONSUMER"] },
+  { name: "AIChat",      label: "AI Assistant",      icon: "💬", userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
+  { name: "Analytics",   label: "Energy Analytics",  icon: "📊", userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
+  { name: "Billing",     label: "Billing",           icon: "💰", userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
+  { name: "Trading",     label: "P2P Trading",       icon: "🔄", userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
+  { name: "Admin",       label: "Admin Finance",     icon: "🏛️", userTypes: ["ADMIN"] },
   { name: "Fleet",       label: "Fleet Dashboard",   icon: "🏭", userTypes: ["PROSUMER"] },
-  { name: "Alarms",      label: "Alarm Center",      icon: "🚨", userTypes: ["PROSUMER", "CONSUMER"] },
-  { name: "Maintenance", label: "Maintenance",       icon: "🔧", userTypes: ["PROSUMER"] },
-  { name: "Settings",    label: "Settings",          icon: "⚙️", userTypes: ["PROSUMER", "CONSUMER"] },
+  { name: "Alarms",      label: "Alarm Center",      icon: "🚨", userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
+  { name: "Maintenance", label: "Maintenance",       icon: "🔧", userTypes: ["PROSUMER", "ADMIN"] },
+  { name: "Settings",    label: "Settings",          icon: "⚙️", userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
 ];
 
 function CustomDrawerContent(props: any) {
@@ -165,19 +167,20 @@ function DrawerNavigator() {
   const isDark = theme === "dark";
 
   const screensConfig = [
-    { name: "Overview",    component: OverviewScreen,         title: "Dashboard",         userTypes: ["PROSUMER", "CONSUMER"] },
-    { name: "Monitoring",  component: MonitoringScreen,       title: "Live Monitoring",   userTypes: ["PROSUMER", "CONSUMER"] },
+    { name: "Overview",    component: OverviewScreen,         title: "Dashboard",         userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
+    { name: "Monitoring",  component: MonitoringScreen,       title: "Live Monitoring",   userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
     { name: "SolarDesign", component: SolarDesignScreen,      title: "Solar Design",      userTypes: ["PROSUMER"] },
-    { name: "Devices",     component: DeviceManagementScreen,  title: "Device Manager",    userTypes: ["PROSUMER"] },
+    { name: "Devices",     component: DeviceManagementScreen,  title: "Device Manager",    userTypes: ["PROSUMER", "ADMIN"] },
     { name: "AIForecast",  component: AIForecastingScreen,     title: "AI Forecasting",    userTypes: ["PROSUMER"] },
-    { name: "AIChat",      component: AIChatScreen,           title: "AI Assistant",      userTypes: ["PROSUMER", "CONSUMER"] },
-    { name: "Analytics",   component: AnalyticsScreen,        title: "Energy Analytics",  userTypes: ["PROSUMER", "CONSUMER"] },
-    { name: "Billing",     component: BillingScreen,          title: "Billing",           userTypes: ["PROSUMER", "CONSUMER"] },
-    { name: "Trading",     component: TradingScreen,          title: "P2P Energy Trading", userTypes: ["PROSUMER", "CONSUMER"] },
+    { name: "AIChat",      component: AIChatScreen,           title: "AI Assistant",      userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
+    { name: "Analytics",   component: AnalyticsScreen,        title: "Energy Analytics",  userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
+    { name: "Billing",     component: BillingScreen,          title: "Billing",           userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
+    { name: "Trading",     component: TradingScreen,          title: "P2P Energy Trading", userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
+    { name: "Admin",       component: AdminScreen,            title: "Admin Finance Centre", userTypes: ["ADMIN"] },
     { name: "Fleet",       component: FleetScreen,            title: "Fleet Dashboard",   userTypes: ["PROSUMER"] },
-    { name: "Alarms",      component: AlarmScreen,            title: "Alarm Center",      userTypes: ["PROSUMER", "CONSUMER"] },
-    { name: "Maintenance", component: MaintenanceScreen,      title: "Maintenance",       userTypes: ["PROSUMER"] },
-    { name: "Settings",    component: SettingsScreen,         title: "Settings",          userTypes: ["PROSUMER", "CONSUMER"] },
+    { name: "Alarms",      component: AlarmScreen,            title: "Alarm Center",      userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
+    { name: "Maintenance", component: MaintenanceScreen,      title: "Maintenance",       userTypes: ["PROSUMER", "ADMIN"] },
+    { name: "Settings",    component: SettingsScreen,         title: "Settings",          userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
   ];
 
   return (
