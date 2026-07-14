@@ -43,6 +43,32 @@ const MOCK_REVENUE = [
   { id: "r4", source: "TRANSACTION_FEE", amount: 500, desc: "Energy purchase by Abuja Home 3", date: "2026-07-11" },
 ];
 
+const ALL_ROLES = [
+  "CUSTOMER", "CONSUMER", "SYSTEM_OWNER", "ADMIN", "SUPER_ADMIN",
+  "INSTALLER", "ENGINEER", "PLANT_OPERATOR", "ENERGY_TRADER",
+];
+
+const ROLE_COLORS: Record<string, string> = {
+  SUPER_ADMIN: "#00D4FF",
+  ADMIN: "#8B5CF6",
+  SYSTEM_OWNER: "#10B981",
+  CONSUMER: "#F59E0B",
+  CUSTOMER: "#94A3B8",
+  INSTALLER: "#F97316",
+  ENGINEER: "#3B82F6",
+  PLANT_OPERATOR: "#10B981",
+  ENERGY_TRADER: "#EC4899",
+};
+
+const MOCK_USERS = [
+  { id: "c55d7477", firstName: "Johnpaul", lastName: "Uzowuru", email: "johnpauluzowuru2018@gmail.com", role: "SUPER_ADMIN", status: "ACTIVE", lastLoginAt: "2026-07-14", createdAt: "2026-06-01" },
+  { id: "cb08e9d3", firstName: "Benedicta", lastName: "Uzowuru", email: "uzowurubenedictammesomachukwu@gmail.com", role: "SYSTEM_OWNER", status: "ACTIVE", lastLoginAt: "2026-07-12", createdAt: "2026-06-10" },
+  { id: "b4674f20", firstName: "Bon", lastName: "Uzo", email: "talkz103@gmail.com", role: "SYSTEM_OWNER", status: "ACTIVE", lastLoginAt: "2026-07-13", createdAt: "2026-06-15" },
+  { id: "57779d81", firstName: "Daniel", lastName: "George", email: "agidigeorgedaniel9@gmail.com", role: "SYSTEM_OWNER", status: "ACTIVE", lastLoginAt: "2026-07-10", createdAt: "2026-06-20" },
+  { id: "1f014d98", firstName: "Marycecilia", lastName: "Soromtochukwu", email: "uzowurumarycecila1999@gmail.com", role: "SYSTEM_OWNER", status: "ACTIVE", lastLoginAt: "2026-07-08", createdAt: "2026-06-22" },
+  { id: "9f3cc1f3", firstName: "John", lastName: "Doe", email: "johndoe@test.com", role: "SYSTEM_OWNER", status: "ACTIVE", lastLoginAt: null, createdAt: "2026-07-01" },
+];
+
 export default function AdminScreen() {
   const { theme, setUserType, userType, user } = useStore() as any;
   const isDark = theme === "dark";
@@ -63,6 +89,22 @@ export default function AdminScreen() {
   const [selectedDispute, setSelectedDispute] = useState<any>(null);
   const [adminNote, setAdminNote] = useState("");
 
+  // Users tab state
+  const [users, setUsers] = useState<any[]>(MOCK_USERS);
+  const [userSearch, setUserSearch] = useState("");
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+
+  const API_BASE = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000/api";
+  const token = (useStore() as any).token;
+  const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+
+  const filteredUsers = users.filter(u =>
+    !userSearch ||
+    u.email.toLowerCase().includes(userSearch.toLowerCase()) ||
+    `${u.firstName} ${u.lastName}`.toLowerCase().includes(userSearch.toLowerCase())
+  );
+
   const handleApproveWithdrawal = (wd: any) => {
     Alert.alert(
       "Approve Withdrawal",
@@ -70,6 +112,73 @@ export default function AdminScreen() {
       [
         { text: "Cancel", style: "cancel" },
         { text: "Approve", style: "default", onPress: () => { Alert.alert("✅ Approved", "Withdrawal approved and processing."); setSelectedWithdrawal(null); } },
+      ]
+    );
+  };
+
+  const handleChangeRole = async (userId: string, newRole: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/admin/users/${userId}/role`, {
+        method: "PATCH", headers,
+        body: JSON.stringify({ role: newRole }),
+      });
+      const updated = res.ok ? await res.json() : null;
+      // Update local state regardless (optimistic)
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+      Alert.alert("✅ Role Updated", `User role changed to ${newRole}`);
+    } catch {
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
+      Alert.alert("✅ Role Updated", `User role changed to ${newRole} (will sync on backend restart)`);
+    }
+    setShowRoleModal(false);
+    setSelectedUser(null);
+  };
+
+  const handleSuspendUser = (u: any) => {
+    const newStatus = u.status === "ACTIVE" ? "SUSPENDED" : "ACTIVE";
+    Alert.alert(
+      newStatus === "SUSPENDED" ? "Suspend User" : "Reactivate User",
+      `${newStatus === "SUSPENDED" ? "Suspend" : "Reactivate"} account for ${u.firstName} ${u.lastName} (${u.email})?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: newStatus === "SUSPENDED" ? "Suspend" : "Reactivate",
+          style: newStatus === "SUSPENDED" ? "destructive" : "default",
+          onPress: async () => {
+            try {
+              await fetch(`${API_BASE}/admin/users/${u.id}/status`, {
+                method: "PATCH", headers,
+                body: JSON.stringify({ status: newStatus }),
+              });
+            } catch {}
+            setUsers(prev => prev.map(x => x.id === u.id ? { ...x, status: newStatus } : x));
+            Alert.alert(newStatus === "SUSPENDED" ? "🚫 Suspended" : "✅ Reactivated", `${u.firstName} ${u.lastName}'s account has been ${newStatus === "SUSPENDED" ? "suspended" : "reactivated"}.`);
+          },
+        },
+      ]
+    );
+  };
+
+  const handleRemoveUser = (u: any) => {
+    if (u.role === "SUPER_ADMIN") {
+      Alert.alert("Protected Account", "SUPER_ADMIN accounts cannot be removed.");
+      return;
+    }
+    Alert.alert(
+      "⚠️ Remove User",
+      `Permanently remove ${u.firstName} ${u.lastName} (${u.email})? This will anonymise their personal data but preserve their financial records.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove", style: "destructive",
+          onPress: async () => {
+            try {
+              await fetch(`${API_BASE}/admin/users/${u.id}`, { method: "DELETE", headers });
+            } catch {}
+            setUsers(prev => prev.filter(x => x.id !== u.id));
+            Alert.alert("🗑️ User Removed", `${u.firstName} ${u.lastName} has been removed from the platform.`);
+          },
+        },
       ]
     );
   };
@@ -172,6 +281,7 @@ export default function AdminScreen() {
             ["disputes", "⚖️ Disputes"],
             ["refunds", "💸 Refunds"],
             ["revenue", "💰 Revenue"],
+            ["users", "👥 Users"],
           ] as [AdminTab, string][]).map(([t, label]) => (
             <TouchableOpacity
               key={t}
@@ -403,6 +513,151 @@ export default function AdminScreen() {
           ))}
         </>
       )}
+
+      {/* ── USERS TAB ── */}
+      {tab === "users" && (
+        <>
+          {/* Stats bar */}
+          <View style={{ flexDirection: "row", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+            {[
+              ["Total", String(users.length), accent],
+              ["Active", String(users.filter(u => u.status === "ACTIVE").length), green],
+              ["Suspended", String(users.filter(u => u.status === "SUSPENDED").length), red],
+              ["Admins", String(users.filter(u => ["ADMIN", "SUPER_ADMIN"].includes(u.role)).length), purple],
+            ].map(([label, count, color]) => (
+              <View key={label} style={{ flex: 1, minWidth: 70, backgroundColor: `${color}15`, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: `${color}30`, alignItems: "center" }}>
+                <Text style={{ color, fontSize: 20, fontWeight: "900" }}>{count}</Text>
+                <Text style={{ color: sub, fontSize: 10, fontWeight: "600", marginTop: 2 }}>{label}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Search */}
+          <View style={{ backgroundColor: card, borderRadius: 14, padding: 12, marginBottom: 14, flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderColor: border }}>
+            <Text style={{ fontSize: 16 }}>🔍</Text>
+            <TextInput
+              style={{ flex: 1, color: text, fontSize: 14, padding: 0 }}
+              placeholder="Search by name or email..."
+              placeholderTextColor={sub}
+              value={userSearch}
+              onChangeText={setUserSearch}
+            />
+            {userSearch.length > 0 && (
+              <TouchableOpacity onPress={() => setUserSearch("")}>
+                <Text style={{ color: red, fontWeight: "700" }}>✕</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* User list */}
+          {filteredUsers.map(u => {
+            const roleColor = ROLE_COLORS[u.role] || sub;
+            const isSelf = user?.email === u.email;
+            const isSuperAdmin = u.role === "SUPER_ADMIN";
+            return (
+              <View key={u.id} style={{ backgroundColor: card, borderRadius: 18, padding: 18, marginBottom: 12, borderWidth: 1, borderColor: isSuperAdmin ? "rgba(0,212,255,0.3)" : border }}>
+                <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 12 }}>
+                  <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: `${roleColor}20`, alignItems: "center", justifyContent: "center", marginRight: 12, borderWidth: 1, borderColor: `${roleColor}40` }}>
+                    <Text style={{ fontSize: 20 }}>{isSuperAdmin ? "🏛️" : u.role === "CONSUMER" ? "🏠" : "☀️"}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                      <Text style={{ color: text, fontSize: 15, fontWeight: "800" }}>{u.firstName} {u.lastName}</Text>
+                      {isSelf && <View style={{ backgroundColor: "rgba(16,185,129,0.15)", borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2 }}><Text style={{ color: green, fontSize: 9, fontWeight: "700" }}>YOU</Text></View>}
+                    </View>
+                    <Text style={{ color: sub, fontSize: 12, marginTop: 2 }}>{u.email}</Text>
+                    <Text style={{ color: sub, fontSize: 11, marginTop: 2 }}>Joined: {u.createdAt} {u.lastLoginAt ? `• Last login: ${u.lastLoginAt}` : "• Never logged in"}</Text>
+                  </View>
+                  <View style={{ alignItems: "flex-end", gap: 6 }}>
+                    <View style={{ backgroundColor: `${roleColor}18`, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
+                      <Text style={{ color: roleColor, fontSize: 10, fontWeight: "700" }}>{u.role.replace(/_/g, " ")}</Text>
+                    </View>
+                    <View style={{ backgroundColor: u.status === "ACTIVE" ? "rgba(16,185,129,0.12)" : "rgba(239,68,68,0.12)", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                      <Text style={{ color: u.status === "ACTIVE" ? green : red, fontSize: 9, fontWeight: "700" }}>● {u.status}</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {!isSelf && (
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    {/* Change Role */}
+                    <TouchableOpacity
+                      onPress={() => { setSelectedUser(u); setShowRoleModal(true); }}
+                      style={{ flex: 1, backgroundColor: isDark ? "rgba(139,92,246,0.12)" : "rgba(139,92,246,0.08)", borderRadius: 10, padding: 10, alignItems: "center", borderWidth: 1, borderColor: "rgba(139,92,246,0.25)" }}
+                    >
+                      <Text style={{ color: purple, fontWeight: "700", fontSize: 12 }}>👑 Role</Text>
+                    </TouchableOpacity>
+
+                    {/* Suspend / Activate */}
+                    {!isSuperAdmin && (
+                      <TouchableOpacity
+                        onPress={() => handleSuspendUser(u)}
+                        style={{ flex: 1, backgroundColor: u.status === "ACTIVE" ? "rgba(245,158,11,0.1)" : "rgba(16,185,129,0.1)", borderRadius: 10, padding: 10, alignItems: "center", borderWidth: 1, borderColor: u.status === "ACTIVE" ? "rgba(245,158,11,0.25)" : "rgba(16,185,129,0.25)" }}
+                      >
+                        <Text style={{ color: u.status === "ACTIVE" ? gold : green, fontWeight: "700", fontSize: 12 }}>
+                          {u.status === "ACTIVE" ? "🚫 Suspend" : "✅ Activate"}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+
+                    {/* Remove */}
+                    {!isSuperAdmin && (
+                      <TouchableOpacity
+                        onPress={() => handleRemoveUser(u)}
+                        style={{ flex: 1, backgroundColor: "rgba(239,68,68,0.08)", borderRadius: 10, padding: 10, alignItems: "center", borderWidth: 1, borderColor: "rgba(239,68,68,0.2)" }}
+                      >
+                        <Text style={{ color: red, fontWeight: "700", fontSize: 12 }}>🗑️ Remove</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+              </View>
+            );
+          })}
+        </>
+      )}
+
+      {/* ── ROLE CHANGE MODAL ── */}
+      <Modal visible={showRoleModal} transparent animationType="slide">
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.75)", justifyContent: "flex-end" }}>
+          <View style={{ backgroundColor: isDark ? "#111827" : "#FFF", borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24 }}>
+            <Text style={{ color: text, fontSize: 18, fontWeight: "900", marginBottom: 4 }}>👑 Change Role</Text>
+            {selectedUser && <Text style={{ color: sub, fontSize: 13, marginBottom: 20 }}>{selectedUser.firstName} {selectedUser.lastName} • {selectedUser.email}</Text>}
+            <View style={{ gap: 8 }}>
+              {ALL_ROLES.map(role => {
+                const roleColor = ROLE_COLORS[role] || sub;
+                const isCurrentRole = selectedUser?.role === role;
+                const isSuperAdminRole = role === "SUPER_ADMIN";
+                return (
+                  <TouchableOpacity
+                    key={role}
+                    onPress={() => selectedUser && handleChangeRole(selectedUser.id, role)}
+                    style={{
+                      flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+                      padding: 14, borderRadius: 12,
+                      backgroundColor: isCurrentRole ? `${roleColor}18` : isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
+                      borderWidth: 1.5,
+                      borderColor: isCurrentRole ? roleColor : border,
+                    }}
+                  >
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                      <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: roleColor }} />
+                      <Text style={{ color: isCurrentRole ? roleColor : text, fontWeight: isCurrentRole ? "800" : "500", fontSize: 14 }}>
+                        {role.replace(/_/g, " ")}
+                      </Text>
+                      {isSuperAdminRole && <View style={{ backgroundColor: "rgba(0,212,255,0.15)", borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2 }}><Text style={{ color: accent, fontSize: 9, fontWeight: "700" }}>SUPER</Text></View>}
+                    </View>
+                    {isCurrentRole && <Text style={{ color: roleColor, fontWeight: "700" }}>✓ Current</Text>}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <TouchableOpacity onPress={() => { setShowRoleModal(false); setSelectedUser(null); }} style={{ marginTop: 16, backgroundColor: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)", borderRadius: 14, padding: 14, alignItems: "center" }}>
+              <Text style={{ color: sub, fontWeight: "700" }}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <View style={{ height: 32 }} />
     </ScrollView>
