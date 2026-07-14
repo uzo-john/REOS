@@ -285,11 +285,24 @@ const saveLocalProjects = (projects: any[]) => {
   }
 };
 
+// Detect admin role immediately from stored user (so refresh works without re-login)
+const ADMIN_ROLES_LIST = ['SUPER_ADMIN', 'ADMIN', 'PLATFORM_ADMIN'];
+const storedUserRole = savedUser?.role || '';
+const initialUserType: 'PROSUMER' | 'CONSUMER' | 'ADMIN' =
+  ADMIN_ROLES_LIST.includes(storedUserRole)
+    ? 'ADMIN'
+    : (savedUserType as any) || 'PROSUMER';
+
+// Persist the detected type back to localStorage if it changed
+if (initialUserType === 'ADMIN' && savedUserType !== 'ADMIN') {
+  try { localStorage.setItem('reos_user_type', 'ADMIN'); } catch (e) {}
+}
+
 export const useStore = create<REOSState>((set, get) => ({
   userRole: savedUser ? (savedUser.role as UserRole) : 'CUSTOMER',
   userMode: 'SIMPLE',
-  userType: savedUserType || 'PROSUMER',
-  hasSelectedMode: !!savedUserType,
+  userType: initialUserType,
+  hasSelectedMode: !!savedUserType || ADMIN_ROLES_LIST.includes(storedUserRole),
   theme: 'dark',
   inputs: savedInputs || defaultInputs,
   results: savedResults || {
@@ -820,11 +833,14 @@ export const useStore = create<REOSState>((set, get) => ({
       }
       const role = data?.user?.role || 'CUSTOMER';
       const isAdminRole = ['SUPER_ADMIN', 'ADMIN', 'PLATFORM_ADMIN'].includes(role);
+      const newUserType = isAdminRole ? 'ADMIN' : (savedUserType || 'PROSUMER');
+      // Persist so refresh keeps the correct view
+      try { localStorage.setItem('reos_user_type', newUserType); } catch (e) {}
       set({
         token: data?.accessToken || null,
         user: data?.user || null,
         userRole: role as UserRole,
-        userType: isAdminRole ? 'ADMIN' : (savedUserType || 'PROSUMER') as any,
+        userType: newUserType as any,
         hasSelectedMode: true,
         isAuthenticated: !!data?.accessToken,
       });
@@ -854,11 +870,13 @@ export const useStore = create<REOSState>((set, get) => ({
       }
       const regRole = data?.user?.role || 'CUSTOMER';
       const isAdminRegRole = ['SUPER_ADMIN', 'ADMIN', 'PLATFORM_ADMIN'].includes(regRole);
+      const newRegUserType = isAdminRegRole ? 'ADMIN' : (savedUserType || 'PROSUMER');
+      try { localStorage.setItem('reos_user_type', newRegUserType); } catch (e) {}
       set({
         token: data?.accessToken || null,
         user: data?.user || null,
         userRole: regRole as UserRole,
-        userType: isAdminRegRole ? 'ADMIN' : (savedUserType || 'PROSUMER') as any,
+        userType: newRegUserType as any,
         hasSelectedMode: true,
         isAuthenticated: !!data?.accessToken,
       });
