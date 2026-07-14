@@ -44,7 +44,7 @@ const MOCK_REVENUE = [
 ];
 
 export default function AdminScreen() {
-  const { theme } = useStore() as any;
+  const { theme, setUserType, userType, user } = useStore() as any;
   const isDark = theme === "dark";
   const bg = isDark ? "#030509" : "#F1F5F9";
   const card = isDark ? "rgba(17,24,39,0.98)" : "#FFFFFF";
@@ -116,12 +116,50 @@ export default function AdminScreen() {
           <View style={{ backgroundColor: "rgba(0,212,255,0.15)", borderRadius: 12, padding: 10 }}>
             <Text style={{ fontSize: 24 }}>🏛️</Text>
           </View>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={{ color: accent, fontSize: 13, fontWeight: "700", letterSpacing: 0.5 }}>ADMIN FINANCE CENTRE</Text>
             <Text style={{ color: text, fontSize: 20, fontWeight: "900" }}>Platform Dashboard</Text>
           </View>
         </View>
-        <Text style={{ color: sub, fontSize: 12, lineHeight: 18 }}>Monitor escrow balances, approve withdrawals, resolve disputes, and track platform revenue in real time.</Text>
+        <Text style={{ color: sub, fontSize: 12, lineHeight: 18, marginBottom: 14 }}>Monitor escrow balances, approve withdrawals, resolve disputes, and track platform revenue in real time.</Text>
+
+        {/* View As Switcher */}
+        <View style={{ borderTopWidth: 1, borderTopColor: "rgba(0,212,255,0.15)", paddingTop: 14 }}>
+          <Text style={{ color: sub, fontSize: 10, fontWeight: "700", letterSpacing: 1.5, marginBottom: 10 }}>PREVIEW APP AS</Text>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            {(["ADMIN", "PROSUMER", "CONSUMER"] as const).map(role => {
+              const icons: Record<string, string> = { ADMIN: "🏛️", PROSUMER: "☀️", CONSUMER: "🏠" };
+              const colors: Record<string, string> = { ADMIN: accent, PROSUMER: green, CONSUMER: gold };
+              const isActive = userType === role;
+              return (
+                <TouchableOpacity
+                  key={role}
+                  onPress={() => { setUserType(role); }}
+                  style={{
+                    flex: 1,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 6,
+                    paddingVertical: 10,
+                    borderRadius: 12,
+                    borderWidth: 2,
+                    borderColor: isActive ? colors[role] : border,
+                    backgroundColor: isActive ? `${colors[role]}20` : isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
+                  }}
+                >
+                  <Text style={{ fontSize: 14 }}>{icons[role]}</Text>
+                  <Text style={{ color: isActive ? colors[role] : sub, fontSize: 12, fontWeight: "700" }}>{role}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          {userType !== 'ADMIN' && (
+            <Text style={{ color: gold, fontSize: 11, marginTop: 10, textAlign: "center" }}>
+              ⚠️ You are previewing as {userType} — navigate to see that experience
+            </Text>
+          )}
+        </View>
       </View>
 
       {/* Tab Bar */}
