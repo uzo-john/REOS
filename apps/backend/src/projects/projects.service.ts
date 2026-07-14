@@ -94,6 +94,38 @@ export class ProjectsService {
     });
   }
 
+  /**
+   * Syncs load calculation results into the SimulationResult relational table.
+   */
+  private async syncSimulation(projectId: string, results: any) {
+    if (!results?.load) return;
+
+    const load = results.load;
+
+    // Build 24-hour arrays (use flat values if no hour-by-hour breakdown available)
+    const hourlyLoad = Array(24).fill(load.dailyEnergyKwh / 24);
+    const hourlySolar = Array(24).fill((results.solar?.expectedAnnualGenKwh ?? 0) / 8760);
+    const hourlyBattery = Array(24).fill(50); // default SoC percentage placeholder
+
+    // Delete old simulation rows for this project
+    await this.prisma.simulationResult.deleteMany({ where: { projectId } });
+
+    await this.prisma.simulationResult.create({
+      data: {
+        projectId,
+        hourlySolarGen: hourlySolar,
+        hourlyLoadDemand: hourlyLoad,
+        hourlyBatterySoC: hourlyBattery,
+        totalCost: results.battery?.estimatedCostNaira ?? 0,
+        paybackPeriodYrs: results.solar?.paybackYears ?? 0,
+        roiPercentage: results.solar?.roiPercent ?? 0,
+        exportedGridKwh: 0,
+        gridRevenueEarned: 0,
+      },
+    });
+  }
+
+
   async create(userId: string, dto: CreateProjectDto) {
     if (!this.prisma.isConnected) {
       const mockProject = {
@@ -126,6 +158,7 @@ export class ProjectsService {
     // Sync relational tables
     await this.syncAppliances(project.id, dto.inputs);
     await this.syncDesign(project.id, dto.results);
+    await this.syncSimulation(project.id, dto.results);
 
     await this.auditLog.log('PROJECT_CREATE', { projectId: project.id, name: project.name }, userId);
     return project;
@@ -211,6 +244,7 @@ export class ProjectsService {
     // Sync relational tables
     await this.syncAppliances(project.id, dto.inputs);
     await this.syncDesign(project.id, dto.results);
+    await this.syncSimulation(project.id, dto.results);
 
     await this.auditLog.log('PROJECT_UPDATE', { projectId: project.id, updates: dto }, userId);
     return project;
