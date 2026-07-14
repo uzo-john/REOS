@@ -70,7 +70,7 @@ interface REOSState {
   // UI & Global Preferences
   userRole: UserRole;
   userMode: UserMode;
-  userType: 'PROSUMER' | 'CONSUMER';
+  userType: 'PROSUMER' | 'CONSUMER' | 'ADMIN';
   hasSelectedMode: boolean;
   theme: 'light' | 'dark';
   
@@ -106,7 +106,7 @@ interface REOSState {
   // Actions
   setRole: (role: UserRole) => void;
   setMode: (mode: UserMode) => void;
-  setUserType: (type: 'PROSUMER' | 'CONSUMER') => void;
+  setUserType: (type: 'PROSUMER' | 'CONSUMER' | 'ADMIN') => void;
   toggleTheme: () => void;
   updateInputs: (updates: Partial<ProjectInputs>) => void;
   runAllCalculations: () => void;
@@ -818,10 +818,14 @@ export const useStore = create<REOSState>((set, get) => ({
       } catch (e) {
         console.warn('Failed to save auth to localStorage', e);
       }
+      const role = data?.user?.role || 'CUSTOMER';
+      const isAdminRole = ['SUPER_ADMIN', 'ADMIN', 'PLATFORM_ADMIN'].includes(role);
       set({
         token: data?.accessToken || null,
         user: data?.user || null,
-        userRole: (data?.user?.role || 'CUSTOMER') as UserRole,
+        userRole: role as UserRole,
+        userType: isAdminRole ? 'ADMIN' : (savedUserType || 'PROSUMER') as any,
+        hasSelectedMode: true,
         isAuthenticated: !!data?.accessToken,
       });
       await get().fetchUserProjects();
@@ -848,10 +852,14 @@ export const useStore = create<REOSState>((set, get) => ({
       } catch (e) {
         console.warn('Failed to save auth to localStorage', e);
       }
+      const regRole = data?.user?.role || 'CUSTOMER';
+      const isAdminRegRole = ['SUPER_ADMIN', 'ADMIN', 'PLATFORM_ADMIN'].includes(regRole);
       set({
         token: data?.accessToken || null,
         user: data?.user || null,
-        userRole: (data?.user?.role || 'CUSTOMER') as UserRole,
+        userRole: regRole as UserRole,
+        userType: isAdminRegRole ? 'ADMIN' : (savedUserType || 'PROSUMER') as any,
+        hasSelectedMode: true,
         isAuthenticated: !!data?.accessToken,
       });
       await get().fetchUserProjects();
