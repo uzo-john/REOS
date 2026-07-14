@@ -8,7 +8,7 @@ import { createDrawerNavigator } from "@react-navigation/drawer";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useStore } from "./src/store/useStore";
 
-// Screens
+// ── Screens ────────────────────────────────────────────────────────────────
 import LoginScreen from "./src/screens/LoginScreen";
 import OverviewScreen from "./src/screens/OverviewScreen";
 import MonitoringScreen from "./src/screens/MonitoringScreen";
@@ -23,30 +23,51 @@ import AlarmScreen from "./src/screens/AlarmScreen";
 import MaintenanceScreen from "./src/screens/MaintenanceScreen";
 import AnalyticsScreen from "./src/screens/AnalyticsScreen";
 import SettingsScreen from "./src/screens/SettingsScreen";
+import AdminScreen from "./src/screens/AdminScreen";
 
-// Drawer Content
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import { DrawerContentScrollView } from "@react-navigation/drawer";
 
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
 
+// ── Nav Items — all roles defined here ────────────────────────────────────
 const NAV_ITEMS = [
-  { name: "Overview",    label: "Dashboard",         icon: "⚡", userTypes: ["PROSUMER", "CONSUMER"] },
-  { name: "Monitoring",  label: "Live Monitoring",   icon: "📡", userTypes: ["PROSUMER", "CONSUMER"] },
+  { name: "Overview",    label: "Dashboard",         icon: "⚡", userTypes: ["PROSUMER", "CONSUMER", "ADMIN", "GUEST"] },
+  { name: "Monitoring",  label: "Live Monitoring",   icon: "📡", userTypes: ["PROSUMER", "CONSUMER", "ADMIN", "GUEST"] },
   { name: "SolarDesign", label: "Solar Design",      icon: "☀️", userTypes: ["PROSUMER"] },
-  { name: "Devices",     label: "Device Manager",    icon: "🔌", userTypes: ["PROSUMER"] },
+  { name: "Devices",     label: "Device Manager",    icon: "🔌", userTypes: ["PROSUMER", "ADMIN"] },
   { name: "AIForecast",  label: "AI Forecasting",    icon: "🤖", userTypes: ["PROSUMER"] },
-  { name: "AIChat",      label: "AI Assistant",      icon: "💬", userTypes: ["PROSUMER", "CONSUMER"] },
-  { name: "Analytics",   label: "Energy Analytics",  icon: "📊", userTypes: ["PROSUMER", "CONSUMER"] },
-  { name: "Billing",     label: "Billing",           icon: "💰", userTypes: ["PROSUMER", "CONSUMER"] },
-  { name: "Trading",     label: "P2P Trading",       icon: "🔄", userTypes: ["PROSUMER", "CONSUMER"] },
+  { name: "AIChat",      label: "AI Assistant",      icon: "💬", userTypes: ["PROSUMER", "CONSUMER", "ADMIN", "GUEST"] },
+  { name: "Analytics",   label: "Energy Analytics",  icon: "📊", userTypes: ["PROSUMER", "CONSUMER", "ADMIN", "GUEST"] },
+  { name: "Billing",     label: "Billing",           icon: "💰", userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
+  { name: "Trading",     label: "P2P Trading",       icon: "🔄", userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
+  { name: "Admin",       label: "Admin Finance",     icon: "🏛️", userTypes: ["ADMIN"] },
   { name: "Fleet",       label: "Fleet Dashboard",   icon: "🏭", userTypes: ["PROSUMER"] },
-  { name: "Alarms",      label: "Alarm Center",      icon: "🚨", userTypes: ["PROSUMER", "CONSUMER"] },
-  { name: "Maintenance", label: "Maintenance",       icon: "🔧", userTypes: ["PROSUMER"] },
-  { name: "Settings",    label: "Settings",          icon: "⚙️", userTypes: ["PROSUMER", "CONSUMER"] },
+  { name: "Alarms",      label: "Alarm Center",      icon: "🚨", userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
+  { name: "Maintenance", label: "Maintenance",       icon: "🔧", userTypes: ["PROSUMER", "ADMIN"] },
+  { name: "Settings",    label: "Settings",          icon: "⚙️", userTypes: ["PROSUMER", "CONSUMER", "ADMIN", "GUEST"] },
 ];
 
+// All screens registered in the drawer (superset — sidebar filters what's shown)
+const ALL_SCREENS = [
+  { name: "Overview",    component: OverviewScreen },
+  { name: "Monitoring",  component: MonitoringScreen },
+  { name: "SolarDesign", component: SolarDesignScreen,       title: "Solar Design" },
+  { name: "Devices",     component: DeviceManagementScreen,  title: "Device Manager" },
+  { name: "AIForecast",  component: AIForecastingScreen,     title: "AI Forecasting" },
+  { name: "AIChat",      component: AIChatScreen,            title: "AI Assistant" },
+  { name: "Analytics",   component: AnalyticsScreen,        title: "Energy Analytics" },
+  { name: "Billing",     component: BillingScreen },
+  { name: "Trading",     component: TradingScreen,           title: "P2P Energy Trading" },
+  { name: "Admin",       component: AdminScreen,             title: "Admin Finance Centre" },
+  { name: "Fleet",       component: FleetScreen,             title: "Fleet Dashboard" },
+  { name: "Alarms",      component: AlarmScreen,            title: "Alarm Center" },
+  { name: "Maintenance", component: MaintenanceScreen },
+  { name: "Settings",    component: SettingsScreen },
+];
+
+// ── Mode Selector (shown once if no mode stored and not ADMIN) ─────────────
 function ModeSelectorScreen({ onSelect, isDark }: { onSelect: (mode: 'PROSUMER' | 'CONSUMER') => void; isDark: boolean }) {
   const bg = isDark ? "#050810" : "#F1F5F9";
   const cardBg = isDark ? "#111827" : "#FFFFFF";
@@ -70,11 +91,7 @@ function ModeSelectorScreen({ onSelect, isDark }: { onSelect: (mode: 'PROSUMER' 
       <View style={{ gap: 16 }}>
         <TouchableOpacity
           onPress={() => onSelect('PROSUMER')}
-          style={{
-            backgroundColor: cardBg, borderRadius: 24, padding: 24,
-            borderWidth: 1.5, borderColor: isDark ? "rgba(245,158,11,0.2)" : "rgba(245,158,11,0.15)",
-            shadowColor: "#F59E0B", shadowOpacity: isDark ? 0.1 : 0.05, shadowRadius: 16,
-          }}
+          style={{ backgroundColor: cardBg, borderRadius: 24, padding: 24, borderWidth: 1.5, borderColor: isDark ? "rgba(245,158,11,0.2)" : "rgba(245,158,11,0.15)" }}
         >
           <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
             <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: "rgba(245,158,11,0.12)", alignItems: "center", justifyContent: "center", marginRight: 12 }}>
@@ -86,17 +103,13 @@ function ModeSelectorScreen({ onSelect, isDark }: { onSelect: (mode: 'PROSUMER' 
             </View>
           </View>
           <Text style={{ color: textSecondary, fontSize: 12, lineHeight: 18 }}>
-            For users who own or manage solar power plants. Design energy assets, size batteries, coordinate safety breakers, monitor inverter production, and control power exports.
+            For users who own or manage solar power plants. Design energy assets, size batteries, monitor inverter production, and control power exports.
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => onSelect('CONSUMER')}
-          style={{
-            backgroundColor: cardBg, borderRadius: 24, padding: 24,
-            borderWidth: 1.5, borderColor: isDark ? "rgba(0,212,255,0.2)" : "rgba(0,212,255,0.15)",
-            shadowColor: accent, shadowOpacity: isDark ? 0.1 : 0.05, shadowRadius: 16,
-          }}
+          style={{ backgroundColor: cardBg, borderRadius: 24, padding: 24, borderWidth: 1.5, borderColor: isDark ? "rgba(0,212,255,0.2)" : "rgba(0,212,255,0.15)" }}
         >
           <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
             <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: "rgba(0,212,255,0.12)", alignItems: "center", justifyContent: "center", marginRight: 12 }}>
@@ -108,20 +121,21 @@ function ModeSelectorScreen({ onSelect, isDark }: { onSelect: (mode: 'PROSUMER' 
             </View>
           </View>
           <Text style={{ color: textSecondary, fontSize: 12, lineHeight: 18 }}>
-            For microgrid customers. View live power consumption, track daily/monthly grid usage, monitor balances, purchase prepaid tokens, view billing invoices, and link with local suppliers.
+            For microgrid customers. View live power consumption, track billing, purchase prepaid tokens, and link with local suppliers.
           </Text>
         </TouchableOpacity>
       </View>
 
       <Text style={{ color: textSecondary, fontSize: 11, textAlign: "center", marginTop: 32, letterSpacing: 0.5 }}>
-        You can always switch your mode anytime inside the Profile Settings.
+        You can always switch your mode anytime inside Settings.
       </Text>
     </View>
   );
 }
 
+// ── Custom Drawer Sidebar ──────────────────────────────────────────────────
 function CustomDrawerContent(props: any) {
-  const { userRole, userType, user, theme, logout, alerts } = useStore();
+  const { userRole, userType, user, theme, logout, alerts } = useStore() as any;
   const isDark = theme === "dark";
   const bg = isDark ? "#0A0E1A" : "#F8FAFC";
   const cardBg = isDark ? "#111827" : "#FFFFFF";
@@ -134,8 +148,17 @@ function CustomDrawerContent(props: any) {
 
   const currentRoute = props.state?.routeNames?.[props.state?.index] ?? "";
 
+  // Role badge colours
+  const roleColors: Record<string, string> = {
+    ADMIN: "#00D4FF", PROSUMER: "#F59E0B", CONSUMER: "#10B981", GUEST: "#94A3B8",
+  };
+  const roleIcons: Record<string, string> = {
+    ADMIN: "🏛️", PROSUMER: "☀️", CONSUMER: "🏠", GUEST: "👤",
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: bg }}>
+      {/* Header */}
       <View style={{ padding: 20, paddingTop: 56, borderBottomWidth: 1, borderBottomColor: border }}>
         <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
           <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: isDark ? "rgba(0,212,255,0.15)" : "rgba(0,162,194,0.1)", alignItems: "center", justifyContent: "center", marginRight: 12, borderWidth: 1, borderColor: isDark ? "rgba(0,212,255,0.3)" : "rgba(0,162,194,0.3)" }}>
@@ -146,34 +169,60 @@ function CustomDrawerContent(props: any) {
             <Text style={{ color: textSecondary, fontSize: 10, fontWeight: "600", letterSpacing: 1.5 }}>AI ENERGY OS</Text>
           </View>
         </View>
+
         {user ? (
           <View style={{ backgroundColor: cardBg, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: border }}>
-            <Text style={{ color: textPrimary, fontWeight: "700", fontSize: 14 }}>{user.firstName} {user.lastName}</Text>
-            <Text style={{ color: textSecondary, fontSize: 11, marginTop: 2 }}>{user.email}</Text>
-            <View style={{ flexDirection: "row", gap: 6, marginTop: 8 }}>
-              <View style={{ paddingHorizontal: 8, paddingVertical: 3, backgroundColor: isDark ? "rgba(0,212,255,0.12)" : "rgba(0,162,194,0.1)", borderRadius: 6 }}>
-                <Text style={{ color: activeText, fontSize: 10, fontWeight: "700", letterSpacing: 0.5 }}>{(userRole ?? "GUEST").replace(/_/g, " ")}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: `${roleColors[userType] || "#94A3B8"}20`, alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ fontSize: 18 }}>{roleIcons[userType] || "👤"}</Text>
               </View>
-              <View style={{ paddingHorizontal: 8, paddingVertical: 3, backgroundColor: isDark ? "rgba(245,158,11,0.12)" : "rgba(245,158,11,0.1)", borderRadius: 6 }}>
-                <Text style={{ color: "#F59E0B", fontSize: 10, fontWeight: "700", letterSpacing: 0.5 }}>{userType}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: textPrimary, fontWeight: "700", fontSize: 13 }}>{user.firstName} {user.lastName}</Text>
+                <Text style={{ color: textSecondary, fontSize: 10, marginTop: 1 }}>{user.email}</Text>
+              </View>
+            </View>
+            <View style={{ flexDirection: "row", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+              <View style={{ paddingHorizontal: 8, paddingVertical: 3, backgroundColor: isDark ? "rgba(0,212,255,0.12)" : "rgba(0,162,194,0.1)", borderRadius: 6 }}>
+                <Text style={{ color: activeText, fontSize: 9, fontWeight: "700", letterSpacing: 0.5 }}>{(userRole ?? "GUEST").replace(/_/g, " ")}</Text>
+              </View>
+              <View style={{ paddingHorizontal: 8, paddingVertical: 3, backgroundColor: `${roleColors[userType] || "#94A3B8"}18`, borderRadius: 6 }}>
+                <Text style={{ color: roleColors[userType] || "#94A3B8", fontSize: 9, fontWeight: "700" }}>
+                  {roleIcons[userType]} {userType}
+                </Text>
               </View>
             </View>
           </View>
         ) : (
-          <TouchableOpacity onPress={() => logout()} style={{ backgroundColor: cardBg, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: border, alignItems: "center" }}>
+          <TouchableOpacity
+            onPress={() => props.navigation.navigate("Login")}
+            style={{ backgroundColor: cardBg, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: border, alignItems: "center" }}
+          >
             <Text style={{ color: activeText, fontWeight: "700", fontSize: 14 }}>🔑 Sign In to REOS</Text>
           </TouchableOpacity>
         )}
       </View>
 
+      {/* Nav Items filtered by current userType */}
       <DrawerContentScrollView {...props} contentContainerStyle={{ paddingVertical: 12 }}>
-        {NAV_ITEMS.filter(item => item.userTypes.includes(userType)).map((item) => {
+        {NAV_ITEMS.filter(item => item.userTypes.includes(userType || "GUEST")).map((item) => {
           const isActive = currentRoute === item.name;
           return (
-            <TouchableOpacity key={item.name} onPress={() => props.navigation.navigate(item.name)}
-              style={{ flexDirection: "row", alignItems: "center", marginHorizontal: 12, marginVertical: 2, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12, backgroundColor: isActive ? activeBg : "transparent", borderWidth: isActive ? 1 : 0, borderColor: isActive ? (isDark ? "rgba(0,212,255,0.2)" : "rgba(0,162,194,0.2)") : "transparent" }}>
+            <TouchableOpacity
+              key={item.name}
+              onPress={() => props.navigation.navigate(item.name)}
+              style={{
+                flexDirection: "row", alignItems: "center",
+                marginHorizontal: 12, marginVertical: 2,
+                paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12,
+                backgroundColor: isActive ? activeBg : "transparent",
+                borderWidth: isActive ? 1 : 0,
+                borderColor: isActive ? (isDark ? "rgba(0,212,255,0.2)" : "rgba(0,162,194,0.2)") : "transparent",
+              }}
+            >
               <Text style={{ fontSize: 18, marginRight: 12 }}>{item.icon}</Text>
-              <Text style={{ flex: 1, fontSize: 14, fontWeight: isActive ? "700" : "500", color: isActive ? activeText : textSecondary }}>{item.label}</Text>
+              <Text style={{ flex: 1, fontSize: 14, fontWeight: isActive ? "700" : "500", color: isActive ? activeText : textSecondary }}>
+                {item.label}
+              </Text>
               {item.name === "Alarms" && activeAlarms > 0 && (
                 <View style={{ backgroundColor: "#EF4444", borderRadius: 10, minWidth: 20, paddingHorizontal: 5, paddingVertical: 2, alignItems: "center" }}>
                   <Text style={{ color: "#fff", fontSize: 10, fontWeight: "800" }}>{activeAlarms}</Text>
@@ -184,9 +233,13 @@ function CustomDrawerContent(props: any) {
         })}
       </DrawerContentScrollView>
 
+      {/* Footer */}
       <View style={{ padding: 16, borderTopWidth: 1, borderTopColor: border }}>
         {user ? (
-          <TouchableOpacity onPress={logout} style={{ flexDirection: "row", alignItems: "center", padding: 12, borderRadius: 12, backgroundColor: "rgba(239,68,68,0.1)" }}>
+          <TouchableOpacity
+            onPress={() => logout()}
+            style={{ flexDirection: "row", alignItems: "center", padding: 12, borderRadius: 12, backgroundColor: "rgba(239,68,68,0.1)" }}
+          >
             <Text style={{ fontSize: 18, marginRight: 12 }}>🚪</Text>
             <Text style={{ color: "#EF4444", fontWeight: "700", fontSize: 14 }}>Sign Out</Text>
           </TouchableOpacity>
@@ -197,26 +250,11 @@ function CustomDrawerContent(props: any) {
   );
 }
 
+// ── Drawer Navigator ───────────────────────────────────────────────────────
 function DrawerNavigator() {
-  const { theme, alerts, toggleTheme, userType } = useStore();
+  const { theme, alerts, toggleTheme } = useStore() as any;
   const isDark = theme === "dark";
   const activeAlarms = alerts?.filter((a: any) => !a.acknowledged)?.length || 0;
-
-  const screensConfig = [
-    { name: "Overview",    component: OverviewScreen,         title: "Dashboard",         userTypes: ["PROSUMER", "CONSUMER"] },
-    { name: "Monitoring",  component: MonitoringScreen,       title: "Live Monitoring",   userTypes: ["PROSUMER", "CONSUMER"] },
-    { name: "SolarDesign", component: SolarDesignScreen,      title: "Solar Design",      userTypes: ["PROSUMER"] },
-    { name: "Devices",     component: DeviceManagementScreen,  title: "Device Manager",    userTypes: ["PROSUMER"] },
-    { name: "AIForecast",  component: AIForecastingScreen,     title: "AI Forecasting",    userTypes: ["PROSUMER"] },
-    { name: "AIChat",      component: AIChatScreen,           title: "AI Assistant",      userTypes: ["PROSUMER", "CONSUMER"] },
-    { name: "Analytics",   component: AnalyticsScreen,        title: "Energy Analytics",  userTypes: ["PROSUMER", "CONSUMER"] },
-    { name: "Billing",     component: BillingScreen,          title: "Billing",           userTypes: ["PROSUMER", "CONSUMER"] },
-    { name: "Trading",     component: TradingScreen,          title: "P2P Energy Trading", userTypes: ["PROSUMER", "CONSUMER"] },
-    { name: "Fleet",       component: FleetScreen,            title: "Fleet Dashboard",   userTypes: ["PROSUMER"] },
-    { name: "Alarms",      component: AlarmScreen,            title: "Alarm Center",      userTypes: ["PROSUMER", "CONSUMER"] },
-    { name: "Maintenance", component: MaintenanceScreen,      title: "Maintenance",       userTypes: ["PROSUMER"] },
-    { name: "Settings",    component: SettingsScreen,         title: "Settings",          userTypes: ["PROSUMER", "CONSUMER"] },
-  ];
 
   return (
     <Drawer.Navigator
@@ -241,17 +279,25 @@ function DrawerNavigator() {
             </TouchableOpacity>
           </View>
         ),
+        headerStatusBarHeight: 0,
       }}
     >
-      {screensConfig.map((s) => (
-        <Drawer.Screen key={s.name} name={s.name} component={s.component} options={{ title: s.title }} />
+      {/* ALL screens mounted — sidebar filters what's shown in the menu */}
+      {ALL_SCREENS.map((s) => (
+        <Drawer.Screen
+          key={s.name}
+          name={s.name}
+          component={s.component}
+          options={{ title: s.title || s.name }}
+        />
       ))}
     </Drawer.Navigator>
   );
 }
 
+// ── Root App ───────────────────────────────────────────────────────────────
 export default function App() {
-  const { fetchIotData, fetchUserProjects, fetchProfile, user, token, theme, isAuthenticated, hasSelectedMode, setUserType } = useStore();
+  const { fetchIotData, fetchUserProjects, fetchProfile, user, token, theme, isAuthenticated, hasSelectedMode, setUserType, userType } = useStore() as any;
   const isDark = theme === "dark";
 
   useEffect(() => {
@@ -262,7 +308,7 @@ export default function App() {
           await fetchProfile();
         }
         await fetchUserProjects();
-        const state = useStore.getState();
+        const state = useStore.getState() as any;
         if (!state.currentProjectId) {
           const onlineProjects = state.projectsList.filter((p: any) => p.id && !p.id.startsWith('local-'));
           if (onlineProjects.length > 0) {
@@ -279,7 +325,8 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor={isDark ? "#0A0E1A" : "#FFFFFF"} />
-      {!hasSelectedMode ? (
+      {/* Show mode selector only for non-admin users who haven't chosen yet */}
+      {!hasSelectedMode && userType !== 'ADMIN' ? (
         <ModeSelectorScreen onSelect={(mode) => setUserType(mode)} isDark={isDark} />
       ) : (
         <NavigationContainer>
