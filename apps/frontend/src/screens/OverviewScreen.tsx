@@ -358,15 +358,15 @@ export default function OverviewScreen({ navigation }: any) {
   const border = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)";
   const accent = "#00D4FF";
 
-  if (userType === 'CONSUMER') {
-    return <OverviewScreenConsumer navigation={navigation} />;
-  }
-
   useEffect(() => {
     fetchIotData();
     const interval = setInterval(() => fetchIotData(), 3000);
     return () => clearInterval(interval);
   }, []);
+
+  if (userType === 'CONSUMER') {
+    return <OverviewScreenConsumer navigation={navigation} />;
+  }
 
   const solarKw = telemetry?.inverter?.powerKw ?? 0.0;
   const battSoc = telemetry?.battery?.socPercent ?? 0;
