@@ -4,6 +4,12 @@ import { useStore } from "../store/useStore";
 
 const GATEWAYS = ["Paystack", "Flutterwave", "Interswitch", "Bank Transfer"];
 
+const formatMoney = (value: any) => {
+  const num = typeof value === 'number' ? value : parseFloat(value);
+  if (isNaN(num)) return '0.00';
+  return num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+};
+
 export default function BillingScreen() {
   const { theme, billingSummary, fetchConsumerBilling, rechargeWallet, payOutstandingInvoice } = useStore();
   const isDark = theme === "dark";
@@ -50,11 +56,11 @@ export default function BillingScreen() {
       {/* Wallet Card */}
       <View style={{ backgroundColor: isDark ? "rgba(17,24,39,0.95)" : "rgba(0,212,255,0.06)", borderRadius: 24, padding: 24, marginBottom: 16, borderWidth: 1, borderColor: "rgba(0,212,255,0.2)", shadowColor: "#00D4FF", shadowOpacity: 0.1, shadowRadius: 20, shadowOffset: { width: 0, height: 4 }, elevation: 4 }}>
         <Text style={{ color: sub, fontSize: 12, fontWeight: "600", letterSpacing: 0.5, marginBottom: 8 }}>⚡ ENERGY WALLET • {cycle}</Text>
-        <Text style={{ color: balance > 500 ? accent : "#EF4444", fontSize: 36, fontWeight: "900", letterSpacing: -1 }}>₦{balance.toLocaleString("en-NG", { minimumFractionDigits: 2 })}</Text>
-        <Text style={{ color: sub, fontSize: 12, marginTop: 4, marginBottom: 20 }}>Available balance • Last topped up: ₦{lastPayment.toLocaleString()}</Text>
+        <Text style={{ color: balance > 500 ? accent : "#EF4444", fontSize: 36, fontWeight: "900", letterSpacing: -1 }}>₦{formatMoney(balance)}</Text>
+        <Text style={{ color: sub, fontSize: 12, marginTop: 4, marginBottom: 20 }}>Available balance • Last topped up: ₦{formatMoney(lastPayment)}</Text>
         {outstanding > 0 && (
           <View style={{ backgroundColor: "rgba(239,68,68,0.12)", borderRadius: 12, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: "rgba(239,68,68,0.25)" }}>
-            <Text style={{ color: "#EF4444", fontSize: 13, fontWeight: "700" }}>⚠️ Outstanding: ₦{outstanding.toLocaleString()} due</Text>
+            <Text style={{ color: "#EF4444", fontSize: 13, fontWeight: "700" }}>⚠️ Outstanding: ₦{formatMoney(outstanding)} due</Text>
           </View>
         )}
         <View style={{ flexDirection: "row", gap: 12 }}>
@@ -92,7 +98,7 @@ export default function BillingScreen() {
             <Text style={{ fontSize: 22 }}>🧾</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: text, fontSize: 14, fontWeight: "700" }}>₦{inv.amount.toLocaleString()}</Text>
+            <Text style={{ color: text, fontSize: 14, fontWeight: "700" }}>₦{formatMoney(inv.amount)}</Text>
             <Text style={{ color: sub, fontSize: 11, marginTop: 2 }}>{inv.energyReceivedKwh} kWh • {new Date(inv.billingPeriodStart).toLocaleDateString("en-NG", { month: "short" })} cycle</Text>
             <Text style={{ color: sub, fontSize: 10, marginTop: 2 }}>Due: {new Date(inv.dueDate).toLocaleDateString()}</Text>
           </View>
@@ -109,10 +115,10 @@ export default function BillingScreen() {
           <Text style={{ fontSize: 22, marginRight: 12 }}>{txnIcon[tx.type] ?? "💳"}</Text>
           <View style={{ flex: 1 }}>
             <Text style={{ color: text, fontSize: 13, fontWeight: "700" }}>{tx.type.replace(/_/g, " ")}</Text>
-            <Text style={{ color: sub, fontSize: 11, marginTop: 2 }}>{tx.paymentGateway} • {new Date(tx.createdAt).toLocaleString()}</Text>
+            <Text style={{ color: sub, fontSize: 11, marginTop: 2 }}>{tx.paymentGateway} • {new Date(tx.createdAt).toLocaleDateString()}</Text>
           </View>
           <View>
-            <Text style={{ color: "#10B981", fontSize: 15, fontWeight: "900", textAlign: "right" }}>₦{tx.amount.toLocaleString()}</Text>
+            <Text style={{ color: "#10B981", fontSize: 15, fontWeight: "900", textAlign: "right" }}>₦{formatMoney(tx.amount)}</Text>
             <Text style={{ color: "#10B981", fontSize: 10, textAlign: "right", marginTop: 2 }}>{tx.status}</Text>
           </View>
         </View>
@@ -129,7 +135,7 @@ export default function BillingScreen() {
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
               {["1000","2500","5000","10000"].map(a => (
                 <TouchableOpacity key={a} onPress={() => setAmount(a)} style={{ backgroundColor: amount === a ? accent : (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)"), borderRadius: 10, paddingHorizontal: 16, paddingVertical: 10 }}>
-                  <Text style={{ color: amount === a ? "#000" : sub, fontWeight: "700" }}>₦{parseInt(a).toLocaleString()}</Text>
+                  <Text style={{ color: amount === a ? "#000" : sub, fontWeight: "700" }}>₦{formatMoney(parseInt(a))}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -147,7 +153,7 @@ export default function BillingScreen() {
               </TouchableOpacity>
               <TouchableOpacity onPress={handleRecharge} disabled={loading} style={{ flex: 2, backgroundColor: accent, borderRadius: 14, padding: 16, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}>
                 {loading && <ActivityIndicator size="small" color="#000" />}
-                <Text style={{ color: "#000", fontWeight: "800", fontSize: 15 }}>Pay ₦{parseInt(amount || "0").toLocaleString()}</Text>
+                <Text style={{ color: "#000", fontWeight: "800", fontSize: 15 }}>Pay ₦{formatMoney(parseFloat(amount || "0"))}</Text>
               </TouchableOpacity>
             </View>
           </View>

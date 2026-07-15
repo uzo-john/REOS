@@ -1,28 +1,36 @@
--- Supabase Setup Script: Enable Row Level Security (RLS) on the Project table
+-- Supabase Setup Script: Enable Row Level Security (RLS) on all tables
 
--- 1. Enable RLS on the Project table
-ALTER TABLE "Project" ENABLE ROW LEVEL SECURITY;
+-- 1. Enable RLS on all tables in the public schema programmatically
+DO $$ 
+DECLARE 
+    r RECORD;
+BEGIN
+    FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = 'public') LOOP
+        EXECUTE 'ALTER TABLE "' || r.tablename || '" ENABLE ROW LEVEL SECURITY;';
+    END LOOP;
+END $$;
 
--- 2. Create Policy for SELECT: Users can only view their own projects
+-- 2. Create specific security policies for the Project table (users can only see their own projects)
+DROP POLICY IF EXISTS "Users can view their own projects" ON "Project";
 CREATE POLICY "Users can view their own projects" ON "Project"
     FOR SELECT
     TO authenticated
     USING (auth.uid()::text = "userId");
 
--- 3. Create Policy for INSERT: Users can only create projects linked to their user ID
+DROP POLICY IF EXISTS "Users can create their own projects" ON "Project";
 CREATE POLICY "Users can create their own projects" ON "Project"
     FOR INSERT
     TO authenticated
     WITH CHECK (auth.uid()::text = "userId");
 
--- 4. Create Policy for UPDATE: Users can only update their own projects
+DROP POLICY IF EXISTS "Users can update their own projects" ON "Project";
 CREATE POLICY "Users can update their own projects" ON "Project"
     FOR UPDATE
     TO authenticated
     USING (auth.uid()::text = "userId")
     WITH CHECK (auth.uid()::text = "userId");
 
--- 5. Create Policy for DELETE: Users can only delete their own projects
+DROP POLICY IF EXISTS "Users can delete their own projects" ON "Project";
 CREATE POLICY "Users can delete their own projects" ON "Project"
     FOR DELETE
     TO authenticated

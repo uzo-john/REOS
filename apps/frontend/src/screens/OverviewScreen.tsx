@@ -1,15 +1,26 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Animated, Dimensions, TextInput, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Animated, Dimensions, TextInput, ActivityIndicator, Platform } from "react-native";
 import { useStore } from "../store/useStore";
 
 const { width } = Dimensions.get("window");
+
+// Custom currency formatter that is platform independent
+const formatMoney = (value: any) => {
+  const num = typeof value === 'number' ? value : parseFloat(value);
+  if (isNaN(num)) return '0.00';
+  return num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+};
 
 function KPICard({ label, value, unit, icon, color, trend }: any) {
   const { theme } = useStore();
   const isDark = theme === "dark";
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    Animated.spring(anim, { toValue: 1, useNativeDriver: true, delay: 100 }).start();
+    Animated.spring(anim, { 
+      toValue: 1, 
+      useNativeDriver: Platform.OS !== 'web', 
+      delay: 100 
+    }).start();
   }, []);
   return (
     <Animated.View style={{ opacity: anim, transform: [{ scale: anim }], flex: 1, minWidth: (width - 48) / 2 - 6 }}>
@@ -45,9 +56,9 @@ function KPICard({ label, value, unit, icon, color, trend }: any) {
 function EnergyFlowDiagram() {
   const { telemetry, theme } = useStore();
   const isDark = theme === "dark";
-  const solarKw = telemetry?.inverter?.powerKw?.toFixed(1) ?? "0.0";
-  const battSoc = telemetry?.battery?.socPercent?.toFixed(0) ?? "0";
-  const gridKw = telemetry?.smartMeter?.activePowerKw?.toFixed(1) ?? "0.0";
+  const solarKw = (telemetry?.inverter?.powerKw || 0).toFixed(1);
+  const battSoc = (telemetry?.battery?.socPercent || 0).toFixed(0);
+  const gridKw = (telemetry?.smartMeter?.activePowerKw || 0).toFixed(1);
   const chargingState = telemetry?.battery?.chargingState ?? "STANDBY";
   const isExporting = parseFloat(gridKw) > 0;
   const loadKw = telemetry ? Math.max(0, (telemetry.inverter?.powerKw || 0) - (telemetry.smartMeter?.activePowerKw || 0)).toFixed(1) : "0.0";
@@ -167,13 +178,13 @@ function OverviewScreenConsumer({ navigation }: any) {
     }
   };
 
-  const walletBalance = billingSummary?.balance ?? 5000;
-  const tariffRate = activeContract?.tariffRate ?? 180;
-  const billingCycle = activeContract?.billingCycle ?? "PREPAID";
+  const walletBalance = billingSummary?.balance || 5000;
+  const tariffRate = activeContract?.tariffRate || 180;
+  const billingCycle = activeContract?.billingCycle || "PREPAID";
   const supplierName = activeContract?.supplier ? `${activeContract.supplier.firstName} ${activeContract.supplier.lastName}` : "Sunshine Microgrid Supplier";
   
   // Power metrics
-  const activePowerKw = telemetry?.smartMeter?.activePowerKw ?? 1.25;
+  const activePowerKw = telemetry?.smartMeter?.activePowerKw || 1.25;
   const dailyEnergyKwh = 8.4;
   const microgridEnergyKwh = 6.2;
   const gridEnergyKwh = 2.2;
@@ -197,7 +208,7 @@ function OverviewScreenConsumer({ navigation }: any) {
       {/* Wallet Card */}
       <View style={{ backgroundColor: isDark ? "rgba(17,24,39,0.95)" : "rgba(0,212,255,0.06)", borderRadius: 24, padding: 24, marginBottom: 16, borderWidth: 1, borderColor: "rgba(0,212,255,0.2)" }}>
         <Text style={{ color: sub, fontSize: 11, fontWeight: "700", letterSpacing: 0.5, marginBottom: 8 }}>⚡ PREPAID UTILITY WALLET</Text>
-        <Text style={{ color: accent, fontSize: 32, fontWeight: "900", letterSpacing: -1 }}>₦{walletBalance.toLocaleString("en-NG", { minimumFractionDigits: 2 })}</Text>
+        <Text style={{ color: accent, fontSize: 32, fontWeight: "900", letterSpacing: -1 }}>₦{formatMoney(walletBalance)}</Text>
         <Text style={{ color: sub, fontSize: 11, marginTop: 4, marginBottom: 16 }}>Billing Cycle: {billingCycle}</Text>
         <TouchableOpacity onPress={() => navigation.navigate("Billing")} style={{ backgroundColor: accent, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}>
           <Text style={{ color: "#000", fontSize: 13, fontWeight: "900" }}>💳 Top Up Wallet</Text>
