@@ -235,9 +235,9 @@ const getStoredUser = () => {
   }
 };
 
-const getStoredUserType = (): 'PROSUMER' | 'CONSUMER' | null => {
+const getStoredUserType = (): 'PROSUMER' | 'CONSUMER' | 'ADMIN' | null => {
   try {
-    return (localStorage.getItem('reos_user_type') as 'PROSUMER' | 'CONSUMER') || null;
+    return (localStorage.getItem('reos_user_type') as 'PROSUMER' | 'CONSUMER' | 'ADMIN') || null;
   } catch {
     return null;
   }
