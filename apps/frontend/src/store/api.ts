@@ -269,5 +269,206 @@ export const api = {
     if (token) headers['Authorization'] = `Bearer ${token}`;
     const response = await fetch(`${API_BASE_URL}/consumer/notifications/${id}/read`, { method: 'POST', headers });
     return handleResponse(response);
+  },
+
+  // Producer API Endpoints
+  async fetchProducerPlants(token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/producer/plants`, { method: 'GET', headers });
+    return handleResponse(response);
+  },
+
+  async registerProducerPlant(dto: any, token?: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/producer/plants`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(dto),
+    });
+    return handleResponse(response);
+  },
+
+  async updateProducerPlant(id: string, dto: any, token?: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/producer/plants/${id}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(dto),
+    });
+    return handleResponse(response);
+  },
+
+  async fetchProducerPlantDetails(id: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/producer/plants/${id}`, { method: 'GET', headers });
+    return handleResponse(response);
+  },
+
+  async createFeeder(dto: any, token?: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/producer/feeders`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(dto),
+    });
+    return handleResponse(response);
+  },
+
+  async fetchFeeders(plantId: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/producer/plants/${plantId}/feeders`, { method: 'GET', headers });
+    return handleResponse(response);
+  },
+
+  async createDistributionZone(dto: any, token?: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/producer/zones`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(dto),
+    });
+    return handleResponse(response);
+  },
+
+  async fetchDistributionZones(plantId: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/producer/plants/${plantId}/zones`, { method: 'GET', headers });
+    return handleResponse(response);
+  },
+
+  async connectConsumerToFeeder(dto: any, token?: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/producer/connections`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(dto),
+    });
+    return handleResponse(response);
+  },
+
+  async fetchConnections(plantId: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/producer/plants/${plantId}/connections`, { method: 'GET', headers });
+    return handleResponse(response);
+  },
+
+  async disconnectConsumer(connectionId: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/producer/connections/${connectionId}/disconnect`, { method: 'POST', headers });
+    return handleResponse(response);
+  },
+
+  async reconnectConsumer(connectionId: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/producer/connections/${connectionId}/reconnect`, { method: 'POST', headers });
+    return handleResponse(response);
+  },
+
+  async allocateEnergy(dto: any, token?: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/producer/allocations`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(dto),
+    });
+    return handleResponse(response);
+  },
+
+  async fetchAllocations(plantId: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/producer/plants/${plantId}/allocations`, { method: 'GET', headers });
+    return handleResponse(response);
+  },
+
+  async dispatchEnergy(dto: any, token?: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/producer/dispatch`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(dto),
+    });
+    return handleResponse(response);
+  },
+
+  async fetchDispatches(plantId: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/producer/plants/${plantId}/dispatch`, { method: 'GET', headers });
+    return handleResponse(response);
+  },
+
+  async pauseDispatch(id: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/producer/dispatch/${id}/pause`, { method: 'POST', headers });
+    return handleResponse(response);
+  },
+
+  async resumeDispatch(id: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/producer/dispatch/${id}/resume`, { method: 'POST', headers });
+    return handleResponse(response);
+  },
+
+  async fetchDispatchLogs(plantId: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/producer/plants/${plantId}/dispatch-logs`, { method: 'GET', headers });
+    return handleResponse(response);
+  },
+
+  async logGridExport(dto: any, token?: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/producer/grid-export`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(dto),
+    });
+    return handleResponse(response);
+  },
+
+  async fetchGridExports(plantId: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/producer/plants/${plantId}/grid-export`, { method: 'GET', headers });
+    return handleResponse(response);
+  },
+
+  async fetchProducerAnalytics(plantId: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/producer/plants/${plantId}/analytics`, { method: 'GET', headers });
+    return handleResponse(response);
+  },
+
+  async fetchProducerAiForecast(plantId: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/producer/plants/${plantId}/ai-forecast`, { method: 'GET', headers });
+    return handleResponse(response);
+  },
+
+  async fetchProducerBillingSettlements(plantId: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/producer/plants/${plantId}/billing-settlements`, { method: 'GET', headers });
+    return handleResponse(response);
   }
 };

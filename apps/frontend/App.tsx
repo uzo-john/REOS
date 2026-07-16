@@ -24,6 +24,12 @@ import MaintenanceScreen from "./src/screens/MaintenanceScreen";
 import AnalyticsScreen from "./src/screens/AnalyticsScreen";
 import SettingsScreen from "./src/screens/SettingsScreen";
 import AdminScreen from "./src/screens/AdminScreen";
+import ProducerPlantsScreen from "./src/screens/ProducerPlantsScreen";
+import ProducerConsumersScreen from "./src/screens/ProducerConsumersScreen";
+import ProducerDispatchScreen from "./src/screens/ProducerDispatchScreen";
+import ProducerMicrogridScreen from "./src/screens/ProducerMicrogridScreen";
+import ProducerAIScreen from "./src/screens/ProducerAIScreen";
+import ProducerBillingScreen from "./src/screens/ProducerBillingScreen";
 
 import { View, Text, TouchableOpacity } from "react-native";
 import { DrawerContentScrollView } from "@react-navigation/drawer";
@@ -33,20 +39,26 @@ const Stack = createNativeStackNavigator();
 
 // ── Nav Items — all roles defined here ────────────────────────────────────
 const NAV_ITEMS = [
-  { name: "Overview",    label: "Dashboard",         icon: "⚡", userTypes: ["PROSUMER", "CONSUMER", "ADMIN", "GUEST"] },
+  { name: "Overview",    label: "Dashboard",         icon: "⚡", userTypes: ["PROSUMER", "CONSUMER", "ADMIN", "GUEST", "PRODUCER"] },
   { name: "Monitoring",  label: "Live Monitoring",   icon: "📡", userTypes: ["PROSUMER", "CONSUMER", "ADMIN", "GUEST"] },
   { name: "SolarDesign", label: "Solar Design",      icon: "☀️", userTypes: ["PROSUMER"] },
   { name: "Devices",     label: "Device Manager",    icon: "🔌", userTypes: ["PROSUMER", "ADMIN"] },
   { name: "AIForecast",  label: "AI Forecasting",    icon: "🤖", userTypes: ["PROSUMER"] },
-  { name: "AIChat",      label: "AI Assistant",      icon: "💬", userTypes: ["PROSUMER", "CONSUMER", "ADMIN", "GUEST"] },
+  { name: "AIChat",      label: "AI Assistant",      icon: "💬", userTypes: ["PROSUMER", "CONSUMER", "ADMIN", "GUEST", "PRODUCER"] },
   { name: "Analytics",   label: "Energy Analytics",  icon: "📊", userTypes: ["PROSUMER", "CONSUMER", "ADMIN", "GUEST"] },
   { name: "Billing",     label: "Billing",           icon: "💰", userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
   { name: "Trading",     label: "P2P Trading",       icon: "🔄", userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
   { name: "Admin",       label: "Admin Finance",     icon: "🏛️", userTypes: ["ADMIN"] },
   { name: "Fleet",       label: "Fleet Dashboard",   icon: "🏭", userTypes: ["PROSUMER"] },
-  { name: "Alarms",      label: "Alarm Center",      icon: "🚨", userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
+  { name: "Alarms",      label: "Alarm Center",      icon: "🚨", userTypes: ["PROSUMER", "CONSUMER", "ADMIN", "PRODUCER"] },
   { name: "Maintenance", label: "Maintenance",       icon: "🔧", userTypes: ["PROSUMER", "ADMIN"] },
-  { name: "Settings",    label: "Settings",          icon: "⚙️", userTypes: ["PROSUMER", "CONSUMER", "ADMIN", "GUEST"] },
+  { name: "Settings",    label: "Settings",          icon: "⚙️", userTypes: ["PROSUMER", "CONSUMER", "ADMIN", "GUEST", "PRODUCER"] },
+  { name: "ProducerPlants",    label: "Plant Registry",    icon: "🏭", userTypes: ["PRODUCER"] },
+  { name: "ProducerConsumers", label: "Consumers & Feeders",icon: "👥", userTypes: ["PRODUCER"] },
+  { name: "ProducerDispatch",  label: "Energy Dispatch",   icon: "⚡", userTypes: ["PRODUCER"] },
+  { name: "ProducerMicrogrid", label: "Microgrid Monitor", icon: "🕸️", userTypes: ["PRODUCER"] },
+  { name: "ProducerAI",        label: "AI Optimizations",  icon: "🤖", userTypes: ["PRODUCER"] },
+  { name: "ProducerBilling",   label: "Producer Billing",  icon: "💰", userTypes: ["PRODUCER"] },
 ];
 
 // All screens registered in the drawer (superset — sidebar filters what's shown)
@@ -65,10 +77,16 @@ const ALL_SCREENS = [
   { name: "Alarms",      component: AlarmScreen,            title: "Alarm Center" },
   { name: "Maintenance", component: MaintenanceScreen },
   { name: "Settings",    component: SettingsScreen },
+  { name: "ProducerPlants",    component: ProducerPlantsScreen,    title: "Plant Registry" },
+  { name: "ProducerConsumers", component: ProducerConsumersScreen, title: "Consumers & Feeders" },
+  { name: "ProducerDispatch",  component: ProducerDispatchScreen,  title: "Energy Dispatch" },
+  { name: "ProducerMicrogrid", component: ProducerMicrogridScreen, title: "Microgrid Monitor" },
+  { name: "ProducerAI",        component: ProducerAIScreen,        title: "AI Optimizations" },
+  { name: "ProducerBilling",   component: ProducerBillingScreen,   title: "Producer Billing" },
 ];
 
 // ── Mode Selector (shown once if no mode stored and not ADMIN) ─────────────
-function ModeSelectorScreen({ onSelect, isDark }: { onSelect: (mode: 'PROSUMER' | 'CONSUMER') => void; isDark: boolean }) {
+function ModeSelectorScreen({ onSelect, isDark }: { onSelect: (mode: 'PROSUMER' | 'CONSUMER' | 'PRODUCER') => void; isDark: boolean }) {
   const bg = isDark ? "#050810" : "#F1F5F9";
   const cardBg = isDark ? "#111827" : "#FFFFFF";
   const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)";
@@ -89,6 +107,24 @@ function ModeSelectorScreen({ onSelect, isDark }: { onSelect: (mode: 'PROSUMER' 
       </View>
 
       <View style={{ gap: 16 }}>
+        <TouchableOpacity
+          onPress={() => onSelect('PRODUCER')}
+          style={{ backgroundColor: cardBg, borderRadius: 24, padding: 24, borderWidth: 1.5, borderColor: isDark ? "rgba(139,92,246,0.2)" : "rgba(139,92,246,0.15)" }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+            <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: "rgba(139,92,246,0.12)", alignItems: "center", justifyContent: "center", marginRight: 12 }}>
+              <Text style={{ fontSize: 22 }}>🏭</Text>
+            </View>
+            <View>
+              <Text style={{ color: textPrimary, fontSize: 16, fontWeight: "800" }}>Commercial Energy Producer</Text>
+              <Text style={{ color: "#8B5CF6", fontSize: 11, fontWeight: "700", marginTop: 2 }}>PRODUCER MODE</Text>
+            </View>
+          </View>
+          <Text style={{ color: textSecondary, fontSize: 12, lineHeight: 18 }}>
+            For commercial power plants, industrial mini-grid operators and independent producers. Set capacity, configure feeders/zones, manage multi-consumer accounts, AI dispatches, billing and grid exports.
+          </Text>
+        </TouchableOpacity>
+
         <TouchableOpacity
           onPress={() => onSelect('PROSUMER')}
           style={{ backgroundColor: cardBg, borderRadius: 24, padding: 24, borderWidth: 1.5, borderColor: isDark ? "rgba(245,158,11,0.2)" : "rgba(245,158,11,0.15)" }}
@@ -150,10 +186,10 @@ function CustomDrawerContent(props: any) {
 
   // Role badge colours
   const roleColors: Record<string, string> = {
-    ADMIN: "#00D4FF", PROSUMER: "#F59E0B", CONSUMER: "#10B981", GUEST: "#94A3B8",
+    ADMIN: "#00D4FF", PROSUMER: "#F59E0B", CONSUMER: "#10B981", PRODUCER: "#8B5CF6", GUEST: "#94A3B8",
   };
   const roleIcons: Record<string, string> = {
-    ADMIN: "🏛️", PROSUMER: "☀️", CONSUMER: "🏠", GUEST: "👤",
+    ADMIN: "🏛️", PROSUMER: "☀️", CONSUMER: "🏠", PRODUCER: "🏭", GUEST: "👤",
   };
 
   return (

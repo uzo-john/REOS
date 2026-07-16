@@ -1,4 +1,4 @@
-// === REOS ASEMP — Complete Platform Types ===
+// === REOS ASEMP ï¿½ Complete Platform Types ===
 
 // User Roles
 export type UserRole =
@@ -16,7 +16,8 @@ export type UserRole =
   | 'RESIDENTIAL_CUSTOMER'
   | 'ENERGY_TRADER'
   | 'MAINTENANCE_ENGINEER'
-  | 'AUDITOR';
+  | 'AUDITOR'
+  | 'COMMERCIAL_ENERGY_PRODUCER';
 
 export type DeviceType =
   | 'INVERTER' | 'SMART_METER' | 'BMS' | 'IOT_GATEWAY' | 'EDGE_GATEWAY'

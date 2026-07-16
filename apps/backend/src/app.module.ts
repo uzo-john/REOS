@@ -32,6 +32,7 @@ import { ReportsModule } from './reports/reports.module';
 import { AdminModule } from './admin/admin.module';
 import { ApiKeysModule } from './api-keys/api-keys.module';
 import { MqttModule } from './mqtt/mqtt.module';
+import { ProducerModule } from './producer/producer.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -78,6 +79,7 @@ import { AppService } from './app.service';
     AdminModule,
     ApiKeysModule,
     MqttModule,
+    ProducerModule,
   ],
   controllers: [AppController],
   providers: [AppService],

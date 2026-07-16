@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Animated, Dimensions, TextInput, ActivityIndicator, Platform } from "react-native";
 import { useStore } from "../store/useStore";
 
+import ProducerDashboardScreen from "./ProducerDashboardScreen";
+
 const { width } = Dimensions.get("window");
 
 // Custom currency formatter that is platform independent
@@ -366,6 +368,10 @@ export default function OverviewScreen({ navigation }: any) {
 
   if (userType === 'CONSUMER') {
     return <OverviewScreenConsumer navigation={navigation} />;
+  }
+
+  if (userType === 'PRODUCER') {
+    return <ProducerDashboardScreen navigation={navigation} />;
   }
 
   const solarKw = telemetry?.inverter?.powerKw ?? 0.0;

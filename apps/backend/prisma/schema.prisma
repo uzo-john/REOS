@@ -25,6 +25,7 @@ enum UserRole {
   UTILITY_PROVIDER
   MAINTENANCE_ENGINEER
   SUPER_ADMIN
+  COMMERCIAL_ENERGY_PRODUCER
 }
 
 enum OrgType {
@@ -53,6 +54,8 @@ enum PlantType {
   HYDRO
   DIESEL_BACKUP
   VIRTUAL_POWER_PLANT
+  GAS
+  BATTERY_STORAGE
 }
 
 enum DeviceType {
@@ -271,6 +274,8 @@ model User {
   escrowAsBuyer           EscrowTransaction[]  @relation("EscrowBuyer")
   escrowAsSeller          EscrowTransaction[]  @relation("EscrowSeller")
   withdrawalRequests      WithdrawalRequest[]
+  consumerConnections     ConsumerConnection[]
+  dispatchLogs            DispatchLog[]
 
   @@index([email])
   @@index([role, status])
@@ -345,8 +350,23 @@ model Plant {
   createdAt            DateTime     @default(now())
   updatedAt            DateTime     @updatedAt
 
+  availableCapacityKw  Float?       @default(0)
+  gridConnectionStatus String?      @default("DISCONNECTED")
+  utilityDetails       String?
+  operatingStatus      String?      @default("OPERATIONAL")
+  ownerInfo            String?
+
   sites                Site[]
   plantDevices         PlantDevice[]
+  feeders              Feeder[]
+  distributionZones    DistributionZone[]
+  consumerConnections  ConsumerConnection[]
+  energyAllocations    EnergyAllocation[]
+  energyDispatches     EnergyDispatch[]
+  gridExportRecords    GridExportRecord[]
+  dispatchLogs         DispatchLog[]
+  distributionAnalytics DistributionAnalytics[]
+  plantPerformances    PlantPerformance[]
 
   @@index([organizationId, status])
 }
@@ -468,6 +488,7 @@ model SmartMeter {
   phaseType        String   @default("THREE_PHASE")
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+  consumerConnections ConsumerConnection[]
 }
 
 model IoTGateway {
@@ -1394,4 +1415,141 @@ model PlatformRevenueRecord {
 
   @@index([source, createdAt])
   @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────
+// COMMERCIAL GENERATING PLANT MODULE MODELS
+// ─────────────────────────────────────────────
+
+model Feeder {
+  id                   String               @id @default(uuid())
+  name                 String
+  plantId              String
+  plant                Plant                @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  capacityKw           Float
+  status               String               @default("ACTIVE")
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  allocations          EnergyAllocation[]
+  dispatches           EnergyDispatch[]
+  connections          ConsumerConnection[]
+}
+
+model DistributionZone {
+  id                   String               @id @default(uuid())
+  name                 String
+  plantId              String
+  plant                Plant                @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  status               String               @default("ACTIVE")
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  allocations          EnergyAllocation[]
+  connections          ConsumerConnection[]
+}
+
+model ConsumerConnection {
+  id                   String               @id @default(uuid())
+  consumerId           String
+  consumer             User                 @relation(fields: [consumerId], references: [id], onDelete: Cascade)
+  plantId              String
+  plant                Plant                @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  feederId             String?
+  feeder               Feeder?              @relation(fields: [feederId], references: [id], onDelete: SetNull)
+  zoneId               String?
+  zone                 DistributionZone?    @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+  smartMeterId         String?
+  smartMeter           SmartMeter?          @relation(fields: [smartMeterId], references: [id], onDelete: SetNull)
+  allocatedPowerKw     Float                @default(0.0)
+  actualPowerKw        Float                @default(0.0)
+  remainingAllocationKwh Float              @default(0.0)
+  connectionStatus     String               @default("CONNECTED") // CONNECTED, DISCONNECTED, SUSPENDED
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  allocations          EnergyAllocation[]
+}
+
+model EnergyAllocation {
+  id                   String               @id @default(uuid())
+  plantId              String
+  plant                Plant                @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  targetType           String               // CONSUMER, GROUP, COMMUNITY, FEEDER, ZONE, GRID
+  targetId             String
+  allocatedKw          Float
+  priority             Int                  @default(1)
+  allocationType       String               @default("MANUAL") // MANUAL, AUTO, PRIORITY, DEMAND, TIME
+  scheduledStart       DateTime?
+  scheduledEnd         DateTime?
+  isActive             Boolean              @default(true)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  feederId             String?
+  feeder               Feeder?              @relation(fields: [feederId], references: [id], onDelete: SetNull)
+  zoneId               String?
+  zone                 DistributionZone?    @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+  connectionId         String?
+  connection           ConsumerConnection?  @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+}
+
+model EnergyDispatch {
+  id                   String               @id @default(uuid())
+  plantId              String
+  plant                Plant                @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  feederId             String?
+  feeder               Feeder?              @relation(fields: [feederId], references: [id], onDelete: SetNull)
+  targetType           String               // CONSUMER, FEEDER, COMMUNITY
+  targetId             String
+  allocatedKw          Float
+  dispatchedKw         Float                @default(0.0)
+  status               String               @default("ACTIVE") // ACTIVE, PAUSED, COMPLETED
+  scheduledTime        DateTime?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+}
+
+model GridExportRecord {
+  id                   String               @id @default(uuid())
+  plantId              String
+  plant                Plant                @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  exportedEnergyKwh    Float
+  importedEnergyKwh    Float                @default(0.0)
+  revenue              Float                @default(0.0)
+  feedInTariff         Float
+  netMeteringCredit    Float                @default(0.0)
+  settlementStatus     String               @default("PENDING")
+  timestamp            DateTime             @default(now())
+}
+
+model DispatchLog {
+  id                   String               @id @default(uuid())
+  plantId              String
+  plant                Plant                @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  operatorId           String
+  operator             User                 @relation(fields: [operatorId], references: [id], onDelete: Cascade)
+  action               String
+  targetType           String
+  targetId             String
+  details              String?
+  timestamp            DateTime             @default(now())
+}
+
+model DistributionAnalytics {
+  id                   String               @id @default(uuid())
+  plantId              String
+  plant                Plant                @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  totalAllocatedKw     Float
+  totalConsumedKw      Float
+  lossesKw             Float
+  efficiencyPct        Float
+  timestamp            DateTime             @default(now())
+}
+
+model PlantPerformance {
+  id                   String               @id @default(uuid())
+  plantId              String
+  plant                Plant                @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  capacityFactor       Float
+  availabilityFactor   Float
+  generationKwh        Float
+  revenueGenerated     Float
+  timestamp            DateTime             @default(now())
 }

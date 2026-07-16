@@ -70,7 +70,7 @@ interface REOSState {
   // UI & Global Preferences
   userRole: UserRole;
   userMode: UserMode;
-  userType: 'PROSUMER' | 'CONSUMER' | 'ADMIN';
+  userType: 'PROSUMER' | 'CONSUMER' | 'ADMIN' | 'PRODUCER';
   hasSelectedMode: boolean;
   theme: 'light' | 'dark';
   
@@ -106,7 +106,7 @@ interface REOSState {
   // Actions
   setRole: (role: UserRole) => void;
   setMode: (mode: UserMode) => void;
-  setUserType: (type: 'PROSUMER' | 'CONSUMER' | 'ADMIN') => void;
+  setUserType: (type: 'PROSUMER' | 'CONSUMER' | 'ADMIN' | 'PRODUCER') => void;
   toggleTheme: () => void;
   updateInputs: (updates: Partial<ProjectInputs>) => void;
   runAllCalculations: () => void;
@@ -235,9 +235,9 @@ const getStoredUser = () => {
   }
 };
 
-const getStoredUserType = (): 'PROSUMER' | 'CONSUMER' | 'ADMIN' | null => {
+const getStoredUserType = (): 'PROSUMER' | 'CONSUMER' | 'ADMIN' | 'PRODUCER' | null => {
   try {
-    return (localStorage.getItem('reos_user_type') as 'PROSUMER' | 'CONSUMER' | 'ADMIN') || null;
+    return (localStorage.getItem('reos_user_type') as 'PROSUMER' | 'CONSUMER' | 'ADMIN' | 'PRODUCER') || null;
   } catch {
     return null;
   }
@@ -288,7 +288,7 @@ const saveLocalProjects = (projects: any[]) => {
 // Detect admin role immediately from stored user (so refresh works without re-login)
 const ADMIN_ROLES_LIST = ['SUPER_ADMIN', 'ADMIN', 'PLATFORM_ADMIN'];
 const storedUserRole = savedUser?.role || '';
-const initialUserType: 'PROSUMER' | 'CONSUMER' | 'ADMIN' =
+const initialUserType: 'PROSUMER' | 'CONSUMER' | 'ADMIN' | 'PRODUCER' =
   ADMIN_ROLES_LIST.includes(storedUserRole)
     ? 'ADMIN'
     : (savedUserType as any) || 'PROSUMER';
@@ -833,7 +833,7 @@ export const useStore = create<REOSState>((set, get) => ({
       }
       const role = data?.user?.role || 'CUSTOMER';
       const isAdminRole = ['SUPER_ADMIN', 'ADMIN', 'PLATFORM_ADMIN'].includes(role);
-      const newUserType = isAdminRole ? 'ADMIN' : (savedUserType || 'PROSUMER');
+      const newUserType = isAdminRole ? 'ADMIN' : (role === 'COMMERCIAL_ENERGY_PRODUCER' ? 'PRODUCER' : (savedUserType || 'PROSUMER'));
       // Persist so refresh keeps the correct view
       try { localStorage.setItem('reos_user_type', newUserType); } catch (e) {}
       set({
@@ -870,7 +870,7 @@ export const useStore = create<REOSState>((set, get) => ({
       }
       const regRole = data?.user?.role || 'CUSTOMER';
       const isAdminRegRole = ['SUPER_ADMIN', 'ADMIN', 'PLATFORM_ADMIN'].includes(regRole);
-      const newRegUserType = isAdminRegRole ? 'ADMIN' : (savedUserType || 'PROSUMER');
+      const newRegUserType = isAdminRegRole ? 'ADMIN' : (regRole === 'COMMERCIAL_ENERGY_PRODUCER' ? 'PRODUCER' : (savedUserType || 'PROSUMER'));
       try { localStorage.setItem('reos_user_type', newRegUserType); } catch (e) {}
       set({
         token: data?.accessToken || null,
