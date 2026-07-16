@@ -1,8 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateMaintenanceDto, UpdateMaintenanceDto, ResolveFaultDto } from './dto/maintenance.dto';
+import {
+  CreateMaintenanceDto,
+  UpdateMaintenanceDto,
+  ResolveFaultDto,
+} from './dto/maintenance.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
-import { paginate, buildPaginationQuery, buildSearchFilter } from '../common/utils/pagination.util';
+import {
+  paginate,
+  buildPaginationQuery,
+  buildSearchFilter,
+} from '../common/utils/pagination.util';
 
 @Injectable()
 export class MaintenanceService {
@@ -32,7 +40,10 @@ export class MaintenanceService {
     assignedTo?: string,
   ) {
     const query = buildPaginationQuery(pagination);
-    const searchFilter = buildSearchFilter(['title', 'description', 'notes'], pagination.search);
+    const searchFilter = buildSearchFilter(
+      ['title', 'description', 'notes'],
+      pagination.search,
+    );
     const where: any = {
       deletedAt: null,
       ...(status && { status: status as any }),
@@ -47,7 +58,9 @@ export class MaintenanceService {
         ...query,
         include: {
           device: { select: { id: true, name: true, type: true } },
-          assignedUser: { select: { id: true, firstName: true, lastName: true } },
+          assignedUser: {
+            select: { id: true, firstName: true, lastName: true },
+          },
           reporter: { select: { id: true, firstName: true, lastName: true } },
         },
       }),
@@ -62,8 +75,12 @@ export class MaintenanceService {
       where: { id, deletedAt: null },
       include: {
         device: true,
-        assignedUser: { select: { id: true, firstName: true, lastName: true, email: true } },
-        reporter: { select: { id: true, firstName: true, lastName: true, email: true } },
+        assignedUser: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
+        reporter: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
         faultLogs: true,
       },
     });
@@ -107,7 +124,9 @@ export class MaintenanceService {
         where,
         ...query,
         include: {
-          device: { select: { id: true, name: true, serialNumber: true, status: true } },
+          device: {
+            select: { id: true, name: true, serialNumber: true, status: true },
+          },
         },
       }),
       this.prisma.faultLog.count({ where }),

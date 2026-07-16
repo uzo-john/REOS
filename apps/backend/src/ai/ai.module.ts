@@ -9,12 +9,7 @@ import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [ConfigModule, AuthModule],
-  providers: [
-    AiService,
-    OpenAiProvider,
-    GeminiProvider,
-    AnthropicProvider,
-  ],
+  providers: [AiService, OpenAiProvider, GeminiProvider, AnthropicProvider],
   controllers: [AiController],
   exports: [AiService],
 })

@@ -30,6 +30,7 @@ import ProducerDispatchScreen from "./src/screens/ProducerDispatchScreen";
 import ProducerMicrogridScreen from "./src/screens/ProducerMicrogridScreen";
 import ProducerAIScreen from "./src/screens/ProducerAIScreen";
 import ProducerBillingScreen from "./src/screens/ProducerBillingScreen";
+import DispatchEngineScreen from "./src/screens/DispatchEngineScreen";
 
 import { View, Text, TouchableOpacity } from "react-native";
 import { DrawerContentScrollView } from "@react-navigation/drawer";
@@ -59,6 +60,7 @@ const NAV_ITEMS = [
   { name: "ProducerMicrogrid", label: "Microgrid Monitor", icon: "🕸️", userTypes: ["PRODUCER"] },
   { name: "ProducerAI",        label: "AI Optimizations",  icon: "🤖", userTypes: ["PRODUCER"] },
   { name: "ProducerBilling",   label: "Producer Billing",  icon: "💰", userTypes: ["PRODUCER"] },
+  { name: "DispatchEngine",    label: "DERMS Control Center", icon: "🕸️", userTypes: ["PRODUCER", "PROSUMER", "ADMIN"] },
 ];
 
 // All screens registered in the drawer (superset — sidebar filters what's shown)
@@ -83,6 +85,7 @@ const ALL_SCREENS = [
   { name: "ProducerMicrogrid", component: ProducerMicrogridScreen, title: "Microgrid Monitor" },
   { name: "ProducerAI",        component: ProducerAIScreen,        title: "AI Optimizations" },
   { name: "ProducerBilling",   component: ProducerBillingScreen,   title: "Producer Billing" },
+  { name: "DispatchEngine",    component: DispatchEngineScreen,    title: "DERMS Control Center" },
 ];
 
 // ── Mode Selector (shown once if no mode stored and not ADMIN) ─────────────

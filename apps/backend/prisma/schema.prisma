@@ -276,6 +276,8 @@ model User {
   withdrawalRequests      WithdrawalRequest[]
   consumerConnections     ConsumerConnection[]
   dispatchLogs            DispatchLog[]
+  controlCommands         ControlCommand[]
+  operatorActions         OperatorAction[]
 
   @@index([email])
   @@index([role, status])
@@ -359,6 +361,14 @@ model Plant {
   sites                Site[]
   plantDevices         PlantDevice[]
   feeders              Feeder[]
+  dispatchPlans        DispatchPlan[]
+  dispatchHistories    DispatchHistory[]
+  exportLimits         ExportLimit[]
+  curtailmentEvents    CurtailmentEvent[]
+  controlCommands      ControlCommand[]
+  plantRule            PlantRule?
+  gridConstraints      GridConstraint[]
+  systemEvents         SystemEvent[]
   distributionZones    DistributionZone[]
   consumerConnections  ConsumerConnection[]
   energyAllocations    EnergyAllocation[]
@@ -1552,4 +1562,123 @@ model PlantPerformance {
   generationKwh        Float
   revenueGenerated     Float
   timestamp            DateTime             @default(now())
+}
+
+// ─────────────────────────────────────────────
+// DERMS ENERGY DISPATCH ENGINE MODELS
+// ─────────────────────────────────────────────
+
+model DispatchPlan {
+  id          String   @id @default(uuid())
+  plantId     String
+  plant       Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  scheduledAt DateTime
+  targetKw    Float
+  priorityOrder Json?
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model DispatchHistory {
+  id          String   @id @default(uuid())
+  plantId     String
+  plant       Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  dispatchedAt DateTime @default(now())
+  generationKw Float
+  demandKw    Float
+  batterySoc  Float
+  exportKw    Float
+  curtailedKw Float
+}
+
+model ExportLimit {
+  id          String   @id @default(uuid())
+  plantId     String
+  plant       Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  maxExportKw Float
+  maxDailyKwh Float?
+  windowStart String?
+  windowEnd   String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model CurtailmentEvent {
+  id             String   @id @default(uuid())
+  plantId        String
+  plant          Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  triggeredAt    DateTime @default(now())
+  resolvedAt     DateTime?
+  curtailedKw    Float
+  originalCapacityKw Float
+  reason         String
+  status         String   @default("ACTIVE")
+}
+
+model ControlCommand {
+  id           String   @id @default(uuid())
+  plantId      String
+  plant        Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  operatorId   String?
+  operator     User?    @relation(fields: [operatorId], references: [id], onDelete: SetNull)
+  commandType  String
+  targetDevice String
+  parameters   Json
+  status       String   @default("PENDING")
+  failureReason String?
+  timestamp    DateTime @default(now())
+}
+
+model ControlResponse {
+  id           String   @id @default(uuid())
+  commandId    String   @unique
+  status       String
+  payload      Json?
+  timestamp    DateTime @default(now())
+}
+
+model PlantRule {
+  id               String   @id @default(uuid())
+  plantId          String   @unique
+  plant            Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  maxExportPowerKw Float    @default(500)
+  maxDailyExportKwh Float   @default(5000)
+  batteryMinSoc    Float    @default(20)
+  batteryReserveSoc Float   @default(50)
+  gridExportAllowed Boolean @default(true)
+  gridImportAllowed Boolean @default(true)
+  priorityOrder    Json
+  updatedAt        DateTime @updatedAt
+}
+
+model GridConstraint {
+  id             String   @id @default(uuid())
+  plantId        String
+  plant          Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  constraintType String
+  limitValue     Float
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model OperatorAction {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  details   String?
+  timestamp DateTime @default(now())
+}
+
+model SystemEvent {
+  id        String   @id @default(uuid())
+  plantId   String
+  plant     Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  severity  String
+  message   String
+  category  String
+  timestamp DateTime @default(now())
 }

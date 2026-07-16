@@ -20,8 +20,13 @@ export class GridService {
 
     await this.auditLog.log(
       'GRID_CONFIGURE',
-      { projectId: dto.projectId, country: dto.country, provider: dto.utilityProvider, rates: { import: dto.importTariffRate, export: dto.exportTariffRate } },
-      userId
+      {
+        projectId: dto.projectId,
+        country: dto.country,
+        provider: dto.utilityProvider,
+        rates: { import: dto.importTariffRate, export: dto.exportTariffRate },
+      },
+      userId,
     );
 
     return {

@@ -470,5 +470,70 @@ export const api = {
     if (token) headers['Authorization'] = `Bearer ${token}`;
     const response = await fetch(`${API_BASE_URL}/producer/plants/${plantId}/billing-settlements`, { method: 'GET', headers });
     return handleResponse(response);
+  },
+
+  // DERMS Dispatch API Endpoints
+  async fetchLiveDispatchOverview(plantId: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/dispatch/${plantId}/overview`, { method: 'GET', headers });
+    return handleResponse(response);
+  },
+
+  async fetchDispatchRules(plantId: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/dispatch/${plantId}/rules`, { method: 'GET', headers });
+    return handleResponse(response);
+  },
+
+  async setDispatchRules(dto: any, token?: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/dispatch/rules`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(dto),
+    });
+    return handleResponse(response);
+  },
+
+  async triggerOverride(dto: any, token?: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/dispatch/override`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(dto),
+    });
+    return handleResponse(response);
+  },
+
+  async fetchCurtailments(plantId: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/dispatch/${plantId}/curtailments`, { method: 'GET', headers });
+    return handleResponse(response);
+  },
+
+  async fetchGridConstraints(plantId: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/dispatch/${plantId}/constraints`, { method: 'GET', headers });
+    return handleResponse(response);
+  },
+
+  async fetchSafetyInterlockLogs(plantId: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/dispatch/${plantId}/safety-logs`, { method: 'GET', headers });
+    return handleResponse(response);
+  },
+
+  async fetchControlLogs(plantId: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/dispatch/${plantId}/control-logs`, { method: 'GET', headers });
+    return handleResponse(response);
   }
 };

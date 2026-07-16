@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../users/users.service';
@@ -17,7 +21,11 @@ export class AuthService {
     private auditLogService: AuditLogService,
   ) {}
 
-  async register(dto: RegisterDto): Promise<{ accessToken: string; refreshToken: string; user: Omit<User, 'passwordHash' | 'refreshToken'> }> {
+  async register(dto: RegisterDto): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    user: Omit<User, 'passwordHash' | 'refreshToken'>;
+  }> {
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const user = await this.usersService.create({
       email: dto.email,
@@ -30,13 +38,21 @@ export class AuthService {
     const tokens = await this.generateTokens(user.id, user.email);
     await this.usersService.updateRefreshToken(user.id, tokens.refreshToken);
 
-    await this.auditLogService.log('USER_REGISTER', { email: user.email }, user.id);
+    await this.auditLogService.log(
+      'USER_REGISTER',
+      { email: user.email },
+      user.id,
+    );
 
     const { passwordHash: _, refreshToken: __, ...userResponse } = user;
     return { ...tokens, user: userResponse };
   }
 
-  async login(dto: LoginDto): Promise<{ accessToken: string; refreshToken: string; user: Omit<User, 'passwordHash' | 'refreshToken'> }> {
+  async login(dto: LoginDto): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    user: Omit<User, 'passwordHash' | 'refreshToken'>;
+  }> {
     const user = await this.usersService.findByEmail(dto.email);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
@@ -50,7 +66,11 @@ export class AuthService {
     const tokens = await this.generateTokens(user.id, user.email);
     await this.usersService.updateRefreshToken(user.id, tokens.refreshToken);
 
-    await this.auditLogService.log('USER_LOGIN', { email: user.email }, user.id);
+    await this.auditLogService.log(
+      'USER_LOGIN',
+      { email: user.email },
+      user.id,
+    );
 
     const { passwordHash: _, refreshToken: __, ...userResponse } = user;
     return { ...tokens, user: userResponse };
@@ -61,7 +81,10 @@ export class AuthService {
     await this.auditLogService.log('USER_LOGOUT', {}, userId);
   }
 
-  async refresh(userId: string, refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
+  async refresh(
+    userId: string,
+    refreshToken: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     const user = await this.usersService.findById(userId);
     if (!user || !user.refreshToken) {
       throw new UnauthorizedException('Invalid session');
@@ -78,17 +101,26 @@ export class AuthService {
     return tokens;
   }
 
-  private async generateTokens(userId: string, email: string): Promise<{ accessToken: string; refreshToken: string }> {
+  private async generateTokens(
+    userId: string,
+    email: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     const payload = { sub: userId, email };
-    
+
     const accessToken = await this.jwtService.signAsync(payload, {
-      secret: this.configService.get<string>('JWT_SECRET') || 'reos_super_secret_jwt_key_change_me_in_production',
-      expiresIn: (this.configService.get<string>('JWT_EXPIRATION') || '3600s') as any,
+      secret:
+        this.configService.get<string>('JWT_SECRET') ||
+        'reos_super_secret_jwt_key_change_me_in_production',
+      expiresIn: (this.configService.get<string>('JWT_EXPIRATION') ||
+        '3600s') as any,
     });
 
     const refreshToken = await this.jwtService.signAsync(payload, {
-      secret: this.configService.get<string>('JWT_REFRESH_SECRET') || 'reos_super_secret_jwt_refresh_key_change_me_in_production',
-      expiresIn: (this.configService.get<string>('JWT_REFRESH_EXPIRATION') || '7d') as any,
+      secret:
+        this.configService.get<string>('JWT_REFRESH_SECRET') ||
+        'reos_super_secret_jwt_refresh_key_change_me_in_production',
+      expiresIn: (this.configService.get<string>('JWT_REFRESH_EXPIRATION') ||
+        '7d') as any,
     });
 
     return { accessToken, refreshToken };

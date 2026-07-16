@@ -15,7 +15,12 @@ export function paginate<T>(
   total: number,
   dto: PaginationDto,
 ): PaginatedResponseDto<T> {
-  return new PaginatedResponseDto<T>(data, total, dto.page ?? 1, dto.limit ?? 20);
+  return new PaginatedResponseDto<T>(
+    data,
+    total,
+    dto.page ?? 1,
+    dto.limit ?? 20,
+  );
 }
 
 export function buildSearchFilter(

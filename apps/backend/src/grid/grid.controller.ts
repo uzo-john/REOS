@@ -1,4 +1,11 @@
-import { Controller, Post, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { GridService } from './grid.service';
 import { ConfigureGridDto } from './dto/configure-grid.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -19,13 +26,14 @@ export class GridController {
   @HttpCode(HttpStatus.OK)
   calculateBilling(
     @GetUser('id') userId: string,
-    @Body() body: {
+    @Body()
+    body: {
       projectId: string;
       importedKwh: number;
       exportedKwh: number;
       importRate: number;
       exportRate: number;
-    }
+    },
   ) {
     return this.gridService.calculateBilling(
       userId,
@@ -33,7 +41,7 @@ export class GridController {
       body.importedKwh,
       body.exportedKwh,
       body.importRate,
-      body.exportRate
+      body.exportRate,
     );
   }
 }

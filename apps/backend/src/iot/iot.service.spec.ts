@@ -19,8 +19,8 @@ describe('IotService', () => {
   it('should start with default devices registered', () => {
     const devices = service.getDevices();
     expect(devices.length).toBe(6);
-    expect(devices.find(d => d.type === 'INVERTER')).toBeDefined();
-    expect(devices.find(d => d.type === 'SMART_METER')).toBeDefined();
+    expect(devices.find((d) => d.type === 'INVERTER')).toBeDefined();
+    expect(devices.find((d) => d.type === 'SMART_METER')).toBeDefined();
   });
 
   it('should register a new device successfully', () => {
@@ -55,14 +55,16 @@ describe('IotService', () => {
   it('should generate undervoltage alarm if grid voltage is below 230V', () => {
     // Mock Math.random to return 0, guaranteeing gridVolt is 225V (< 230V)
     const spy = jest.spyOn(Math, 'random').mockReturnValue(0);
-    
+
     // Generate telemetry, which runs evaluateAlerts() internally
     service.getLiveTelemetry();
-    
+
     // We expect alerts to contain the undervoltage warning if voltage < 230V
     const alerts = service.getAlerts();
-    const undervoltageAlert = alerts.find(a => a.code === 'GRID_UNDERVOLTAGE');
-    
+    const undervoltageAlert = alerts.find(
+      (a) => a.code === 'GRID_UNDERVOLTAGE',
+    );
+
     expect(undervoltageAlert).toBeDefined();
     expect(undervoltageAlert?.severity).toBe('WARNING');
     expect(undervoltageAlert?.acknowledged).toBe(false);
@@ -72,10 +74,10 @@ describe('IotService', () => {
   it('should generate sync failure if voltage is out of synchronized limits', () => {
     // Mock Math.random to return 0, guaranteeing gridVolt is 225V (not synced)
     const spy = jest.spyOn(Math, 'random').mockReturnValue(0);
-    
+
     service.getLiveTelemetry();
     const alerts = service.getAlerts();
-    const syncAlert = alerts.find(a => a.code === 'GRID_SYNC_FAILURE');
+    const syncAlert = alerts.find((a) => a.code === 'GRID_SYNC_FAILURE');
     expect(syncAlert).toBeDefined();
     spy.mockRestore();
   });

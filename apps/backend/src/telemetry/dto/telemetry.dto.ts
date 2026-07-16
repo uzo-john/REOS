@@ -1,4 +1,12 @@
-import { IsString, IsNumber, IsOptional, IsDateString, IsArray, IsObject, ValidateNested } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsDateString,
+  IsArray,
+  IsObject,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 

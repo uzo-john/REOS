@@ -1,7 +1,19 @@
 import {
-  Controller, Get, Patch, Delete, Param, Body, Query, UseGuards,
+  Controller,
+  Get,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -10,8 +22,34 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { UserRole } from '@prisma/client';
 
 class ChangeRoleDto {
-  @ApiProperty({ enum: ['CUSTOMER','CONSUMER','SYSTEM_OWNER','ADMIN','SUPER_ADMIN','INSTALLER','ENGINEER','PLANT_OPERATOR','ENERGY_TRADER','UTILITY_PROVIDER','MAINTENANCE_ENGINEER'] })
-  @IsEnum(['CUSTOMER','CONSUMER','SYSTEM_OWNER','ADMIN','SUPER_ADMIN','INSTALLER','ENGINEER','PLANT_OPERATOR','ENERGY_TRADER','UTILITY_PROVIDER','MAINTENANCE_ENGINEER'])
+  @ApiProperty({
+    enum: [
+      'CUSTOMER',
+      'CONSUMER',
+      'SYSTEM_OWNER',
+      'ADMIN',
+      'SUPER_ADMIN',
+      'INSTALLER',
+      'ENGINEER',
+      'PLANT_OPERATOR',
+      'ENERGY_TRADER',
+      'UTILITY_PROVIDER',
+      'MAINTENANCE_ENGINEER',
+    ],
+  })
+  @IsEnum([
+    'CUSTOMER',
+    'CONSUMER',
+    'SYSTEM_OWNER',
+    'ADMIN',
+    'SUPER_ADMIN',
+    'INSTALLER',
+    'ENGINEER',
+    'PLANT_OPERATOR',
+    'ENERGY_TRADER',
+    'UTILITY_PROVIDER',
+    'MAINTENANCE_ENGINEER',
+  ])
   role: UserRole;
 }
 
@@ -58,7 +96,9 @@ export class UsersController {
   }
 
   @Patch(':id/role')
-  @ApiOperation({ summary: 'Change a user\'s role (promote to admin, demote, etc.)' })
+  @ApiOperation({
+    summary: "Change a user's role (promote to admin, demote, etc.)",
+  })
   changeRole(
     @Param('id') id: string,
     @Body() dto: ChangeRoleDto,
@@ -78,7 +118,10 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: 'Soft-delete (remove) a user account — anonymises PII, preserves audit trail' })
+  @ApiOperation({
+    summary:
+      'Soft-delete (remove) a user account — anonymises PII, preserves audit trail',
+  })
   removeUser(
     @Param('id') id: string,
     @CurrentUser('id') requestingUserId: string,

@@ -1,5 +1,9 @@
 import {
-  Injectable, ConflictException, NotFoundException, BadRequestException, ForbiddenException,
+  Injectable,
+  ConflictException,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { User, UserRole } from '@prisma/client';
@@ -28,8 +32,11 @@ export class UsersService {
     const lowercaseEmail = data.email.toLowerCase();
 
     if (!this.prisma.isConnected) {
-      const existing = UsersService.mockUsers.find(u => u.email === lowercaseEmail);
-      if (existing) throw new ConflictException('User with this email already exists');
+      const existing = UsersService.mockUsers.find(
+        (u) => u.email === lowercaseEmail,
+      );
+      if (existing)
+        throw new ConflictException('User with this email already exists');
       const newUser: User = {
         id: `mock-user-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         email: lowercaseEmail,
@@ -55,23 +62,30 @@ export class UsersService {
       return newUser;
     }
 
-    const existing = await this.prisma.user.findUnique({ where: { email: lowercaseEmail } });
-    if (existing) throw new ConflictException('User with this email already exists');
+    const existing = await this.prisma.user.findUnique({
+      where: { email: lowercaseEmail },
+    });
+    if (existing)
+      throw new ConflictException('User with this email already exists');
 
-    return this.prisma.user.create({ data: { ...data, email: lowercaseEmail } });
+    return this.prisma.user.create({
+      data: { ...data, email: lowercaseEmail },
+    });
   }
 
   async findByEmail(email: string): Promise<User | null> {
     const lowercaseEmail = email.toLowerCase();
     if (!this.prisma.isConnected) {
-      return UsersService.mockUsers.find(u => u.email === lowercaseEmail) || null;
+      return (
+        UsersService.mockUsers.find((u) => u.email === lowercaseEmail) || null
+      );
     }
     return this.prisma.user.findUnique({ where: { email: lowercaseEmail } });
   }
 
   async findById(id: string): Promise<User> {
     if (!this.prisma.isConnected) {
-      const user = UsersService.mockUsers.find(u => u.id === id);
+      const user = UsersService.mockUsers.find((u) => u.id === id);
       if (!user) throw new NotFoundException('User not found');
       return user;
     }
@@ -80,18 +94,28 @@ export class UsersService {
     return user;
   }
 
-  async updateRefreshToken(userId: string, token: string | null): Promise<void> {
+  async updateRefreshToken(
+    userId: string,
+    token: string | null,
+  ): Promise<void> {
     let hashedToken: string | null = null;
     if (token) hashedToken = await bcrypt.hash(token, 10);
 
     if (!this.prisma.isConnected) {
-      const idx = UsersService.mockUsers.findIndex(u => u.id === userId);
+      const idx = UsersService.mockUsers.findIndex((u) => u.id === userId);
       if (idx !== -1) {
-        UsersService.mockUsers[idx] = { ...UsersService.mockUsers[idx], refreshToken: hashedToken, updatedAt: new Date() };
+        UsersService.mockUsers[idx] = {
+          ...UsersService.mockUsers[idx],
+          refreshToken: hashedToken,
+          updatedAt: new Date(),
+        };
       }
       return;
     }
-    await this.prisma.user.update({ where: { id: userId }, data: { refreshToken: hashedToken } });
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { refreshToken: hashedToken },
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -153,7 +177,11 @@ export class UsersService {
   }
 
   /** Promote or change a user's role */
-  async changeUserRole(targetUserId: string, newRole: UserRole, requestingUserId: string) {
+  async changeUserRole(
+    targetUserId: string,
+    newRole: UserRole,
+    requestingUserId: string,
+  ) {
     const [requestor, target] = await Promise.all([
       this.findById(requestingUserId),
       this.findById(targetUserId),
@@ -172,14 +200,24 @@ export class UsersService {
     const updated = await this.prisma.user.update({
       where: { id: targetUserId },
       data: { role: newRole },
-      select: { id: true, email: true, firstName: true, lastName: true, role: true },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+      },
     });
 
     return updated;
   }
 
   /** Suspend or activate a user account */
-  async setUserStatus(targetUserId: string, status: 'ACTIVE' | 'SUSPENDED', requestingUserId: string) {
+  async setUserStatus(
+    targetUserId: string,
+    status: 'ACTIVE' | 'SUSPENDED',
+    requestingUserId: string,
+  ) {
     const [requestor, target] = await Promise.all([
       this.findById(requestingUserId),
       this.findById(targetUserId),
@@ -195,7 +233,14 @@ export class UsersService {
     return this.prisma.user.update({
       where: { id: targetUserId },
       data: { status },
-      select: { id: true, email: true, firstName: true, lastName: true, role: true, status: true },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        status: true,
+      },
     });
   }
 
@@ -214,7 +259,9 @@ export class UsersService {
     }
     // Only SUPER_ADMIN can delete ADMIN accounts
     if (ADMIN_ROLES.includes(target.role) && requestor.role !== 'SUPER_ADMIN') {
-      throw new ForbiddenException('Only SUPER_ADMIN can delete admin accounts');
+      throw new ForbiddenException(
+        'Only SUPER_ADMIN can delete admin accounts',
+      );
     }
 
     // Soft delete — anonymise PII, keep financial audit trail
@@ -237,14 +284,25 @@ export class UsersService {
 
   /** Get summary counts for admin dashboard */
   async adminUserStats() {
-    const [total, active, suspended, admins, prosumers, consumers] = await Promise.all([
-      this.prisma.user.count({ where: { deletedAt: null } }),
-      this.prisma.user.count({ where: { deletedAt: null, status: 'ACTIVE' } }),
-      this.prisma.user.count({ where: { deletedAt: null, status: 'SUSPENDED' } }),
-      this.prisma.user.count({ where: { deletedAt: null, role: { in: ['ADMIN', 'SUPER_ADMIN'] } } }),
-      this.prisma.user.count({ where: { deletedAt: null, role: 'SYSTEM_OWNER' } }),
-      this.prisma.user.count({ where: { deletedAt: null, role: 'CONSUMER' } }),
-    ]);
+    const [total, active, suspended, admins, prosumers, consumers] =
+      await Promise.all([
+        this.prisma.user.count({ where: { deletedAt: null } }),
+        this.prisma.user.count({
+          where: { deletedAt: null, status: 'ACTIVE' },
+        }),
+        this.prisma.user.count({
+          where: { deletedAt: null, status: 'SUSPENDED' },
+        }),
+        this.prisma.user.count({
+          where: { deletedAt: null, role: { in: ['ADMIN', 'SUPER_ADMIN'] } },
+        }),
+        this.prisma.user.count({
+          where: { deletedAt: null, role: 'SYSTEM_OWNER' },
+        }),
+        this.prisma.user.count({
+          where: { deletedAt: null, role: 'CONSUMER' },
+        }),
+      ]);
 
     return { total, active, suspended, admins, prosumers, consumers };
   }

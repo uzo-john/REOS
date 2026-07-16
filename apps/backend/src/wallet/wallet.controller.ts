@@ -1,13 +1,33 @@
 import {
-  Controller, Get, Post, Body, Param, Query, UseGuards, Patch, Delete,
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Patch,
+  Delete,
 } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { WalletService } from './wallet.service';
 import {
-  CreateWalletDto, TopUpWalletDto, TransferFundsDto,
-  BuyEnergyDto, VerifyEscrowDto,
-  RequestWithdrawalDto, ProcessWithdrawalDto,
-  RequestRefundDto, OpenDisputeDto, ResolveDisputeDto, DisputeMessageDto,
+  CreateWalletDto,
+  TopUpWalletDto,
+  TransferFundsDto,
+  BuyEnergyDto,
+  VerifyEscrowDto,
+  RequestWithdrawalDto,
+  ProcessWithdrawalDto,
+  RequestRefundDto,
+  OpenDisputeDto,
+  ResolveDisputeDto,
+  DisputeMessageDto,
 } from './dto/wallet.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -36,13 +56,18 @@ export class WalletController {
   }
 
   @Get('dashboard/consumer')
-  @ApiOperation({ summary: 'Consumer wallet dashboard (balance, escrow, history)' })
+  @ApiOperation({
+    summary: 'Consumer wallet dashboard (balance, escrow, history)',
+  })
   consumerDashboard(@CurrentUser('id') userId: string) {
     return this.service.getConsumerDashboard(userId);
   }
 
   @Get('dashboard/plant-owner')
-  @ApiOperation({ summary: 'Plant owner wallet dashboard (earnings, settlements, withdrawals)' })
+  @ApiOperation({
+    summary:
+      'Plant owner wallet dashboard (earnings, settlements, withdrawals)',
+  })
   plantOwnerDashboard(@CurrentUser('id') userId: string) {
     return this.service.getPlantOwnerDashboard(userId);
   }
@@ -82,21 +107,32 @@ export class WalletController {
   // ── Energy Purchase (Escrow) ─────────────────────────────────────────────
 
   @Post('buy-energy')
-  @ApiOperation({ summary: 'Buy energy from P2P marketplace — funds go to escrow (includes ₦500 platform fee)' })
+  @ApiOperation({
+    summary:
+      'Buy energy from P2P marketplace — funds go to escrow (includes ₦500 platform fee)',
+  })
   buyEnergy(@CurrentUser('id') buyerId: string, @Body() dto: BuyEnergyDto) {
     return this.service.buyEnergy(buyerId, dto);
   }
 
   @Post('escrow/:escrowId/verify')
-  @ApiOperation({ summary: 'Verify energy delivery and release escrow to seller' })
-  verifyEscrow(@Param('escrowId') escrowId: string, @Body() dto: VerifyEscrowDto) {
+  @ApiOperation({
+    summary: 'Verify energy delivery and release escrow to seller',
+  })
+  verifyEscrow(
+    @Param('escrowId') escrowId: string,
+    @Body() dto: VerifyEscrowDto,
+  ) {
     return this.service.verifyAndRelease(escrowId, dto);
   }
 
   @Get('escrow/all')
   @ApiOperation({ summary: 'Admin: list all escrow transactions' })
   @ApiQuery({ name: 'status', required: false })
-  getAllEscrow(@Query() pagination: PaginationDto, @Query('status') status?: string) {
+  getAllEscrow(
+    @Query() pagination: PaginationDto,
+    @Query('status') status?: string,
+  ) {
     return this.service.getAllEscrow(pagination, status);
   }
 
@@ -126,7 +162,10 @@ export class WalletController {
 
   @Post('withdraw')
   @ApiOperation({ summary: 'Request a withdrawal (plant owners)' })
-  requestWithdrawal(@CurrentUser('id') userId: string, @Body() dto: RequestWithdrawalDto) {
+  requestWithdrawal(
+    @CurrentUser('id') userId: string,
+    @Body() dto: RequestWithdrawalDto,
+  ) {
     return this.service.requestWithdrawal(userId, dto);
   }
 
@@ -143,7 +182,10 @@ export class WalletController {
   @Get('withdrawals/all')
   @ApiOperation({ summary: 'Admin: list all withdrawals' })
   @ApiQuery({ name: 'status', required: false })
-  getAllWithdrawals(@Query() pagination: PaginationDto, @Query('status') status?: string) {
+  getAllWithdrawals(
+    @Query() pagination: PaginationDto,
+    @Query('status') status?: string,
+  ) {
     return this.service.getAllWithdrawals(pagination, status);
   }
 
@@ -182,7 +224,10 @@ export class WalletController {
   @Get('disputes/all')
   @ApiOperation({ summary: 'Admin: list all disputes' })
   @ApiQuery({ name: 'status', required: false })
-  getAllDisputes(@Query() pagination: PaginationDto, @Query('status') status?: string) {
+  getAllDisputes(
+    @Query() pagination: PaginationDto,
+    @Query('status') status?: string,
+  ) {
     return this.service.getAllDisputes(pagination, status);
   }
 

@@ -1,4 +1,12 @@
-import { IsString, IsNumber, IsOptional, IsEnum, IsBoolean, IsArray, Min } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsEnum,
+  IsBoolean,
+  IsArray,
+  Min,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateWalletDto {
@@ -181,7 +189,9 @@ export class OpenDisputeDto {
 }
 
 export class ResolveDisputeDto {
-  @ApiProperty({ enum: ['RESOLVED_FOR_BUYER', 'RESOLVED_FOR_SELLER', 'CLOSED'] })
+  @ApiProperty({
+    enum: ['RESOLVED_FOR_BUYER', 'RESOLVED_FOR_SELLER', 'CLOSED'],
+  })
   @IsEnum(['RESOLVED_FOR_BUYER', 'RESOLVED_FOR_SELLER', 'CLOSED'])
   resolution: 'RESOLVED_FOR_BUYER' | 'RESOLVED_FOR_SELLER' | 'CLOSED';
 

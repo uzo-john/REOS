@@ -1,5 +1,12 @@
 import {
-  Controller, Get, Post, Body, Param, Query, UseGuards, Patch,
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Patch,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { NotificationsService } from './notifications.service';
@@ -18,14 +25,18 @@ export class NotificationsController {
   constructor(private readonly service: NotificationsService) {}
 
   @Post('send')
-  @ApiOperation({ summary: 'Send alert/notification to a user manually (Admin only)' })
+  @ApiOperation({
+    summary: 'Send alert/notification to a user manually (Admin only)',
+  })
   @Roles('ADMIN', 'SUPER_ADMIN')
   send(@Body() dto: SendNotificationDto) {
     return this.service.create(dto);
   }
 
   @Get('my')
-  @ApiOperation({ summary: 'Get list of notifications for currently logged in user' })
+  @ApiOperation({
+    summary: 'Get list of notifications for currently logged in user',
+  })
   getMyNotifications(
     @Query() pagination: PaginationDto,
     @Query('unreadOnly') unreadOnly?: string,

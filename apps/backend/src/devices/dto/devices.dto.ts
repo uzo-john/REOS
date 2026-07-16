@@ -1,6 +1,10 @@
 import { IsString, IsEnum, IsOptional, IsInt, IsObject } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { DeviceType, DeviceStatus, CommunicationProtocol } from '@prisma/client';
+import {
+  DeviceType,
+  DeviceStatus,
+  CommunicationProtocol,
+} from '@prisma/client';
 
 export class RegisterDeviceDto {
   @ApiProperty()
@@ -41,7 +45,10 @@ export class RegisterDeviceDto {
   @IsString()
   hardwareVersion?: string;
 
-  @ApiPropertyOptional({ enum: CommunicationProtocol, default: CommunicationProtocol.MQTT })
+  @ApiPropertyOptional({
+    enum: CommunicationProtocol,
+    default: CommunicationProtocol.MQTT,
+  })
   @IsOptional()
   @IsEnum(CommunicationProtocol)
   protocol?: CommunicationProtocol;

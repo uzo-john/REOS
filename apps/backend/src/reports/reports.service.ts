@@ -2,7 +2,10 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { RequestReportDto } from './dto/reports.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
-import { paginate, buildPaginationQuery } from '../common/utils/pagination.util';
+import {
+  paginate,
+  buildPaginationQuery,
+} from '../common/utils/pagination.util';
 
 @Injectable()
 export class ReportsService {
@@ -23,7 +26,9 @@ export class ReportsService {
 
     // Run report simulation generation async
     this.generateReportFile(report.id).catch((err) =>
-      console.error(`Report generation failed for ${report.id}: ${err.message}`),
+      console.error(
+        `Report generation failed for ${report.id}: ${err.message}`,
+      ),
     );
 
     return report;

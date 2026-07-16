@@ -11,7 +11,11 @@ import {
   AddMemberDto,
 } from './dto/organization.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
-import { paginate, buildPaginationQuery, buildSearchFilter } from '../common/utils/pagination.util';
+import {
+  paginate,
+  buildPaginationQuery,
+  buildSearchFilter,
+} from '../common/utils/pagination.util';
 
 @Injectable()
 export class OrganizationsService {
@@ -26,7 +30,10 @@ export class OrganizationsService {
 
   async findAll(pagination: PaginationDto, type?: string) {
     const query = buildPaginationQuery(pagination);
-    const searchFilter = buildSearchFilter(['name', 'email', 'code'], pagination.search);
+    const searchFilter = buildSearchFilter(
+      ['name', 'email', 'code'],
+      pagination.search,
+    );
 
     const where: any = {
       deletedAt: null,
@@ -51,7 +58,17 @@ export class OrganizationsService {
       where: { id, deletedAt: null },
       include: {
         members: {
-          include: { user: { select: { id: true, firstName: true, lastName: true, email: true, role: true } } },
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                role: true,
+              },
+            },
+          },
         },
         plants: { where: { deletedAt: null } },
         _count: { select: { members: true, plants: true, apiKeys: true } },
@@ -77,11 +94,20 @@ export class OrganizationsService {
   async addMember(orgId: string, dto: AddMemberDto) {
     const org = await this.findOne(orgId);
     const existing = await this.prisma.organizationMember.findUnique({
-      where: { organizationId_userId: { organizationId: orgId, userId: dto.userId } },
+      where: {
+        organizationId_userId: { organizationId: orgId, userId: dto.userId },
+      },
     });
-    if (existing) throw new ConflictException('User is already a member of this organization');
+    if (existing)
+      throw new ConflictException(
+        'User is already a member of this organization',
+      );
     return this.prisma.organizationMember.create({
-      data: { organizationId: orgId, userId: dto.userId, role: dto.role ?? 'MEMBER' },
+      data: {
+        organizationId: orgId,
+        userId: dto.userId,
+        role: dto.role ?? 'MEMBER',
+      },
     });
   }
 
@@ -90,7 +116,8 @@ export class OrganizationsService {
       where: { organizationId_userId: { organizationId: orgId, userId } },
     });
     if (!member) throw new NotFoundException('Member not found');
-    if (member.userId === requesterId) throw new ForbiddenException('Cannot remove yourself');
+    if (member.userId === requesterId)
+      throw new ForbiddenException('Cannot remove yourself');
     return this.prisma.organizationMember.delete({
       where: { organizationId_userId: { organizationId: orgId, userId } },
     });
@@ -101,7 +128,14 @@ export class OrganizationsService {
       where: { userId },
       include: {
         organization: {
-          select: { id: true, name: true, type: true, status: true, code: true, logoUrl: true },
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            status: true,
+            code: true,
+            logoUrl: true,
+          },
         },
       },
     });

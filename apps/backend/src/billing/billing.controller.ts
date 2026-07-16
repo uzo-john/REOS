@@ -1,5 +1,12 @@
 import {
-  Controller, Get, Post, Body, Param, Query, UseGuards, Patch,
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Patch,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { BillingService } from './billing.service';
@@ -18,9 +25,14 @@ export class BillingController {
   constructor(private readonly service: BillingService) {}
 
   @Post('invoice')
-  @ApiOperation({ summary: 'Generate a new utility/microgrid bill for a user (Admin/Utility)' })
+  @ApiOperation({
+    summary: 'Generate a new utility/microgrid bill for a user (Admin/Utility)',
+  })
   @Roles('ADMIN', 'SUPER_ADMIN', 'UTILITY_PROVIDER')
-  generateInvoice(@Body() dto: GenerateBillDto, @CurrentUser('id') userId: string) {
+  generateInvoice(
+    @Body() dto: GenerateBillDto,
+    @CurrentUser('id') userId: string,
+  ) {
     return this.service.generateBill(dto, userId);
   }
 
@@ -36,7 +48,10 @@ export class BillingController {
 
   @Get('invoices/my')
   @ApiOperation({ summary: 'Get current user bills' })
-  getMyInvoices(@Query() pagination: PaginationDto, @CurrentUser('id') userId: string) {
+  getMyInvoices(
+    @Query() pagination: PaginationDto,
+    @CurrentUser('id') userId: string,
+  ) {
     return this.service.getBills(pagination, userId);
   }
 
@@ -47,13 +62,17 @@ export class BillingController {
   }
 
   @Post('invoice/:id/pay/wallet')
-  @ApiOperation({ summary: 'Pay utility invoice instantly using energy wallet balance' })
+  @ApiOperation({
+    summary: 'Pay utility invoice instantly using energy wallet balance',
+  })
   payWithWallet(@Param('id') id: string, @CurrentUser('id') userId: string) {
     return this.service.payBillWithWallet(id, userId);
   }
 
   @Post('invoice/:id/pay/gateway')
-  @ApiOperation({ summary: 'Log external gateway payment confirmation (Paystack/Flutterwave)' })
+  @ApiOperation({
+    summary: 'Log external gateway payment confirmation (Paystack/Flutterwave)',
+  })
   payWithGateway(
     @Param('id') id: string,
     @Body() dto: PayBillDto,

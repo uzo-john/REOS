@@ -15,7 +15,8 @@ async function bootstrap() {
   // Security headers using Helmet
   app.use(
     helmet({
-      contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+      contentSecurityPolicy:
+        process.env.NODE_ENV === 'production' ? undefined : false,
     }),
   );
 
@@ -26,10 +27,7 @@ async function bootstrap() {
   });
 
   // Global Exception Filters
-  app.useGlobalFilters(
-    new HttpExceptionFilter(),
-    new PrismaExceptionFilter(),
-  );
+  app.useGlobalFilters(new HttpExceptionFilter(), new PrismaExceptionFilter());
 
   // Global Interceptors
   app.useGlobalInterceptors(
@@ -53,14 +51,16 @@ async function bootstrap() {
     .setVersion('1.0.0')
     .addBearerAuth()
     .build();
-  
+
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
-  
+
   logger.log(`Application is running on: http://localhost:${port}/api`);
-  logger.log(`Swagger documentation is available at: http://localhost:${port}/api/docs`);
+  logger.log(
+    `Swagger documentation is available at: http://localhost:${port}/api/docs`,
+  );
 }
 bootstrap();

@@ -11,13 +11,17 @@ export class MonitoringController {
   constructor(private readonly service: MonitoringService) {}
 
   @Get('plant/:plantId/live')
-  @ApiOperation({ summary: 'Get aggregated live electrical flow charts data for a plant' })
+  @ApiOperation({
+    summary: 'Get aggregated live electrical flow charts data for a plant',
+  })
   getPlantLive(@Param('plantId') plantId: string) {
     return this.service.getPlantLiveMetrics(plantId);
   }
 
   @Get('health')
-  @ApiOperation({ summary: 'Get global system health dashboard and active device alarms list' })
+  @ApiOperation({
+    summary: 'Get global system health dashboard and active device alarms list',
+  })
   getHealth() {
     return this.service.getRealTimeSystemHealth();
   }

@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { IAiProvider, AiMessage, AiResponse } from '../interfaces/ai-provider.interface';
+import {
+  IAiProvider,
+  AiMessage,
+  AiResponse,
+} from '../interfaces/ai-provider.interface';
 
 @Injectable()
 export class AnthropicProvider implements IAiProvider {
@@ -10,10 +14,16 @@ export class AnthropicProvider implements IAiProvider {
     return 'ANTHROPIC';
   }
 
-  async generateResponse(messages: AiMessage[], options?: any): Promise<AiResponse> {
+  async generateResponse(
+    messages: AiMessage[],
+    options?: any,
+  ): Promise<AiResponse> {
     const apiKey = this.configService.get<string>('ANTHROPIC_API_KEY');
     if (!apiKey) {
-      return { content: 'Ensure battery depth-of-discharge (DoD) matches cell specifications to prolong battery lifespan.' };
+      return {
+        content:
+          'Ensure battery depth-of-discharge (DoD) matches cell specifications to prolong battery lifespan.',
+      };
     }
 
     try {
@@ -38,7 +48,8 @@ export class AnthropicProvider implements IAiProvider {
       const data: any = await response.json();
       return {
         content: data.content[0].text,
-        tokensUsed: (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0),
+        tokensUsed:
+          (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0),
       };
     } catch (e: any) {
       throw new Error(`Anthropic execution error: ${e.message}`);

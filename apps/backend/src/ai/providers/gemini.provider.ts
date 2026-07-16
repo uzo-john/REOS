@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { IAiProvider, AiMessage, AiResponse } from '../interfaces/ai-provider.interface';
+import {
+  IAiProvider,
+  AiMessage,
+  AiResponse,
+} from '../interfaces/ai-provider.interface';
 
 @Injectable()
 export class GeminiProvider implements IAiProvider {
@@ -10,22 +14,29 @@ export class GeminiProvider implements IAiProvider {
     return 'GEMINI';
   }
 
-  async generateResponse(messages: AiMessage[], options?: any): Promise<AiResponse> {
+  async generateResponse(
+    messages: AiMessage[],
+    options?: any,
+  ): Promise<AiResponse> {
     const apiKey = this.configService.get<string>('GEMINI_API_KEY');
     if (!apiKey) {
       return {
-        content: 'Confirm your DisCo tariff class (e.g. Band A) to estimate grid export ROI and optimize solar power utilization.',
-        model: 'MOCK-GEMINI'
+        content:
+          'Confirm your DisCo tariff class (e.g. Band A) to estimate grid export ROI and optimize solar power utilization.',
+        model: 'MOCK-GEMINI',
       };
     }
 
     try {
-      const contents = messages.map(msg => ({
+      const contents = messages.map((msg) => ({
         role: msg.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: msg.content }]
+        parts: [{ text: msg.content }],
       }));
 
-      const modelName = options?.model || this.configService.get<string>('GEMINI_MODEL') || 'gemini-3.5-flash';
+      const modelName =
+        options?.model ||
+        this.configService.get<string>('GEMINI_MODEL') ||
+        'gemini-3.5-flash';
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
 
       const response = await fetch(url, {

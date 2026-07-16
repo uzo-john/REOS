@@ -1,4 +1,9 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TelemetryService } from '../telemetry/telemetry.service';
 import * as mqtt from 'mqtt';
@@ -16,13 +21,15 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
   onModuleInit() {
     const brokerUrl = this.configService.get<string>('MQTT_BROKER_URL');
     if (!brokerUrl) {
-      this.logger.warn('MQTT_BROKER_URL is not set. MQTT Telemetry subscriber disabled.');
+      this.logger.warn(
+        'MQTT_BROKER_URL is not set. MQTT Telemetry subscriber disabled.',
+      );
       return;
     }
 
     try {
       this.logger.log(`Connecting to MQTT broker at: ${brokerUrl}`);
-      
+
       const username = this.configService.get<string>('MQTT_USERNAME');
       const password = this.configService.get<string>('MQTT_PASSWORD');
       const clientOptions: mqtt.IClientOptions = {
@@ -41,7 +48,10 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
         const topic = 'reos/+/telemetry';
         this.client?.subscribe(topic, (err) => {
           if (err) {
-            this.logger.error(`Failed to subscribe to MQTT topic ${topic}`, err.stack);
+            this.logger.error(
+              `Failed to subscribe to MQTT topic ${topic}`,
+              err.stack,
+            );
           } else {
             this.logger.log(`Subscribed to MQTT topic ${topic}`);
           }
@@ -63,7 +73,10 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
             rawPayload: payload,
           });
         } catch (err) {
-          this.logger.error(`Error processing MQTT message: ${err.message}`, err.stack);
+          this.logger.error(
+            `Error processing MQTT message: ${err.message}`,
+            err.stack,
+          );
         }
       });
 
@@ -74,9 +87,11 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
       this.client.on('close', () => {
         this.logger.warn('MQTT connection closed');
       });
-
     } catch (error) {
-      this.logger.error(`MQTT initialization failed: ${error.message}`, error.stack);
+      this.logger.error(
+        `MQTT initialization failed: ${error.message}`,
+        error.stack,
+      );
     }
   }
 

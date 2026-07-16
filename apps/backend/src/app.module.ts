@@ -33,6 +33,7 @@ import { AdminModule } from './admin/admin.module';
 import { ApiKeysModule } from './api-keys/api-keys.module';
 import { MqttModule } from './mqtt/mqtt.module';
 import { ProducerModule } from './producer/producer.module';
+import { DispatchModule } from './dispatch/dispatch.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -41,19 +42,21 @@ import { AppService } from './app.service';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     // Rate limiter configured: default 100 requests per 60 seconds
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 100,
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
-    
+
     // Core & Foundation
     PrismaModule,
     AuditLogModule,
     UsersModule,
     AuthModule,
-    
+
     // Domain & Application Modules
     EngineeringModule,
     ProjectsModule,
@@ -63,7 +66,7 @@ import { AppService } from './app.service';
     ProcurementModule,
     IotModule,
     ConsumerModule,
-    
+
     // Phase 1 Extended Modules
     OrganizationsModule,
     PlantsModule,
@@ -80,6 +83,7 @@ import { AppService } from './app.service';
     ApiKeysModule,
     MqttModule,
     ProducerModule,
+    DispatchModule,
   ],
   controllers: [AppController],
   providers: [AppService],

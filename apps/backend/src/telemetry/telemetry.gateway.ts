@@ -15,7 +15,9 @@ import { Logger } from '@nestjs/common';
   },
   namespace: 'telemetry',
 })
-export class TelemetryGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class TelemetryGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -45,7 +47,9 @@ export class TelemetryGateway implements OnGatewayConnection, OnGatewayDisconnec
       this.deviceRooms.set(deviceId, new Set());
     }
     this.deviceRooms.get(deviceId)?.add(client.id);
-    this.logger.log(`Client ${client.id} subscribed to device telemetry: ${deviceId}`);
+    this.logger.log(
+      `Client ${client.id} subscribed to device telemetry: ${deviceId}`,
+    );
     return { status: 'subscribed', deviceId };
   }
 
@@ -53,7 +57,9 @@ export class TelemetryGateway implements OnGatewayConnection, OnGatewayDisconnec
   handleUnsubscribe(client: Socket, deviceId: string) {
     client.leave(deviceId);
     this.deviceRooms.get(deviceId)?.delete(client.id);
-    this.logger.log(`Client ${client.id} unsubscribed from device telemetry: ${deviceId}`);
+    this.logger.log(
+      `Client ${client.id} unsubscribed from device telemetry: ${deviceId}`,
+    );
     return { status: 'unsubscribed', deviceId };
   }
 

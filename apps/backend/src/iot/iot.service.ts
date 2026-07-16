@@ -3,7 +3,13 @@ import { Injectable, Logger } from '@nestjs/common';
 export interface Device {
   id: string;
   name: string;
-  type: 'INVERTER' | 'SMART_METER' | 'BMS' | 'WEATHER_STATION' | 'NEIGHBOUR_METER' | 'EDGE_GATEWAY';
+  type:
+    | 'INVERTER'
+    | 'SMART_METER'
+    | 'BMS'
+    | 'WEATHER_STATION'
+    | 'NEIGHBOUR_METER'
+    | 'EDGE_GATEWAY';
   status: 'ONLINE' | 'OFFLINE' | 'MAINTENANCE';
   projectId: string;
   firmwareVersion: string;
@@ -84,16 +90,16 @@ export interface SystemAlert {
 @Injectable()
 export class IotService {
   private readonly logger = new Logger(IotService.name);
-  
+
   // In-memory mock databases for resilience when DB is offline
   private devices: Device[] = [];
   private alerts: SystemAlert[] = [];
-  
+
   // Running system states that can be toggled by commands
   private gridExportEnabled = true;
   private neighbourTransferEnabled = true;
   private edgeGatewayBufferingActive = false;
-  
+
   // Accumulative variables to simulate progress
   private totalExportKwh = 0;
   private totalImportKwh = 0;
@@ -173,7 +179,7 @@ export class IotService {
         lastCommTime: new Date().toISOString(),
         signalStrength: -45,
         communicationQuality: 100,
-      }
+      },
     ];
   }
 
@@ -182,7 +188,12 @@ export class IotService {
     return this.devices;
   }
 
-  registerDevice(device: Omit<Device, 'lastCommTime' | 'signalStrength' | 'communicationQuality'>): Device {
+  registerDevice(
+    device: Omit<
+      Device,
+      'lastCommTime' | 'signalStrength' | 'communicationQuality'
+    >,
+  ): Device {
     const newDevice: Device = {
       ...device,
       lastCommTime: new Date().toISOString(),
@@ -190,13 +201,15 @@ export class IotService {
       communicationQuality: 95,
     };
     this.devices.push(newDevice);
-    this.logger.log(`Registered new device: ${newDevice.name} (${newDevice.id})`);
+    this.logger.log(
+      `Registered new device: ${newDevice.name} (${newDevice.id})`,
+    );
     return newDevice;
   }
 
   removeDevice(id: string): { success: boolean } {
     const initialLength = this.devices.length;
-    this.devices = this.devices.filter(d => d.id !== id);
+    this.devices = this.devices.filter((d) => d.id !== id);
     const success = this.devices.length < initialLength;
     if (success) {
       this.logger.log(`Removed device with ID: ${id}`);
@@ -205,7 +218,7 @@ export class IotService {
   }
 
   updateDeviceStatus(id: string, status: 'ONLINE' | 'OFFLINE' | 'MAINTENANCE') {
-    const dev = this.devices.find(d => d.id === id);
+    const dev = this.devices.find((d) => d.id === id);
     if (dev) {
       dev.status = status;
       dev.lastCommTime = new Date().toISOString();
@@ -217,19 +230,25 @@ export class IotService {
   // Command control toggles
   setGridExport(enabled: boolean) {
     this.gridExportEnabled = enabled;
-    this.logger.log(`Grid Export command dispatched: ${enabled ? 'ENABLED' : 'DISABLED'}`);
+    this.logger.log(
+      `Grid Export command dispatched: ${enabled ? 'ENABLED' : 'DISABLED'}`,
+    );
     this.evaluateAlerts();
   }
 
   setNeighbourTransfer(enabled: boolean) {
     this.neighbourTransferEnabled = enabled;
-    this.logger.log(`Neighbour Transfer command dispatched: ${enabled ? 'ENABLED' : 'DISABLED'}`);
+    this.logger.log(
+      `Neighbour Transfer command dispatched: ${enabled ? 'ENABLED' : 'DISABLED'}`,
+    );
     this.evaluateAlerts();
   }
 
   setEdgeGatewayBuffering(enabled: boolean) {
     this.edgeGatewayBufferingActive = enabled;
-    this.logger.log(`Edge Gateway local buffering updated: ${enabled ? 'ACTIVE' : 'INACTIVE'}`);
+    this.logger.log(
+      `Edge Gateway local buffering updated: ${enabled ? 'ACTIVE' : 'INACTIVE'}`,
+    );
   }
 
   // Telemetry query
@@ -261,15 +280,19 @@ export class IotService {
     this.totalExportKwh += (gridExportKw * deltaSec) / 3600;
     this.totalImportKwh += (gridImportKw * deltaSec) / 3600;
     this.totalNeighborDeliveredKwh += (neighborExportKw * deltaSec) / 3600;
-    
+
     // Add export revenue credit
     const rate = 225; // NGN per kWh
     this.earnedCredits += ((gridExportKw * deltaSec) / 3600) * rate;
-    this.neighborSettlementBalance += ((neighborExportKw * deltaSec) / 3600) * rate;
+    this.neighborSettlementBalance +=
+      ((neighborExportKw * deltaSec) / 3600) * rate;
 
     // Simulate fluctuations
     const gridVolt = 228 + (Math.random() * 6 - 3); // Hovering around 228V (slightly low, checking thresholds)
-    const currentA = gridExportKw > 0 ? (gridExportKw * 1000) / gridVolt : (gridImportKw * 1000) / gridVolt;
+    const currentA =
+      gridExportKw > 0
+        ? (gridExportKw * 1000) / gridVolt
+        : (gridImportKw * 1000) / gridVolt;
     const nbrVolt = 226 + (Math.random() * 4 - 2);
 
     // Evaluate alerts dynamically before returning telemetry
@@ -294,7 +317,8 @@ export class IotService {
         currentA: currentA,
         activePowerKw: gridExportKw > 0 ? gridExportKw : -gridImportKw,
         reactivePowerKvar: 0.12 + Math.random() * 0.05,
-        apparentPowerKva: Math.abs(gridExportKw > 0 ? gridExportKw : gridImportKw) * 1.02,
+        apparentPowerKva:
+          Math.abs(gridExportKw > 0 ? gridExportKw : gridImportKw) * 1.02,
         powerFactor: 0.98,
         frequencyHz: 50.0 + (Math.random() * 0.08 - 0.04),
         importEnergyKwh: this.totalImportKwh,
@@ -324,7 +348,8 @@ export class IotService {
         currentPricePerKwh: rate,
         earnedCredits: this.neighborSettlementBalance,
         purchasedCredits: this.totalNeighborReceivedKwh * rate,
-        settlementBalance: this.neighborSettlementBalance - (this.totalNeighborReceivedKwh * rate),
+        settlementBalance:
+          this.neighborSettlementBalance - this.totalNeighborReceivedKwh * rate,
         connectedNeighboursCount: 3,
         activeTransactionsCount: neighborExportKw > 0 ? 1 : 0,
         availableExportCapacityKw: Math.max(0, 1.5 - neighborExportKw),
@@ -333,7 +358,7 @@ export class IotService {
         solarIrradianceWm2: solarP > 0.5 ? 780 + (Math.random() * 40 - 20) : 0,
         ambientTempC: 31.0 + (Math.random() * 1.0 - 0.5),
         windSpeedMs: 3.4 + (Math.random() * 0.8 - 0.4),
-      }
+      },
     };
   }
 
@@ -343,7 +368,7 @@ export class IotService {
   }
 
   acknowledgeAlert(id: string): { success: boolean } {
-    const alert = this.alerts.find(a => a.id === id);
+    const alert = this.alerts.find((a) => a.id === id);
     if (alert) {
       alert.acknowledged = true;
       this.logger.log(`Acknowledged alert: ${alert.title} (${alert.id})`);
@@ -352,7 +377,11 @@ export class IotService {
     return { success: false };
   }
 
-  private evaluateAlerts(gridVolt: number = 230, gridSynced: boolean = true, activePowerKw: number = 0) {
+  private evaluateAlerts(
+    gridVolt: number = 230,
+    gridSynced: boolean = true,
+    activePowerKw: number = 0,
+  ) {
     // Generate alerts based on current system conditions
     const activeAlerts: SystemAlert[] = [];
 
@@ -364,7 +393,8 @@ export class IotService {
         title: 'Grid Undervoltage Fault',
         severity: 'WARNING',
         timestamp: new Date().toISOString(),
-        recommendedAction: 'Grid voltage falls below 230V threshold. Ensure automatic voltage regulator is active and check inverters settings.',
+        recommendedAction:
+          'Grid voltage falls below 230V threshold. Ensure automatic voltage regulator is active and check inverters settings.',
         acknowledged: this.isAlertAcked('alert-undervoltage'),
       });
     }
@@ -377,7 +407,8 @@ export class IotService {
         title: 'Inverter Synchronization Failure',
         severity: 'CRITICAL',
         timestamp: new Date().toISOString(),
-        recommendedAction: 'Inverter is out of sync with utility grid parameters. Check utility voltage/frequency ranges.',
+        recommendedAction:
+          'Inverter is out of sync with utility grid parameters. Check utility voltage/frequency ranges.',
         acknowledged: this.isAlertAcked('alert-sync-fail'),
       });
     }
@@ -389,7 +420,10 @@ export class IotService {
           id: `alert-dev-${dev.id}`,
           code: 'DEVICE_OFFLINE',
           title: `Device Offline: ${dev.name}`,
-          severity: dev.type === 'SMART_METER' || dev.type === 'INVERTER' ? 'CRITICAL' : 'WARNING',
+          severity:
+            dev.type === 'SMART_METER' || dev.type === 'INVERTER'
+              ? 'CRITICAL'
+              : 'WARNING',
           timestamp: new Date().toISOString(),
           recommendedAction: `Inspect connection links, verify Zigbee/Wi-Fi signal strength, and restart the ${dev.name}.`,
           acknowledged: this.isAlertAcked(`alert-dev-${dev.id}`),
@@ -405,7 +439,8 @@ export class IotService {
         title: 'Reverse Power Flow Detected',
         severity: 'CRITICAL',
         timestamp: new Date().toISOString(),
-        recommendedAction: 'Grid export is disabled but power export is detected. Check inverter export prevention settings.',
+        recommendedAction:
+          'Grid export is disabled but power export is detected. Check inverter export prevention settings.',
         acknowledged: this.isAlertAcked('alert-rev-power'),
       });
     }
@@ -415,7 +450,7 @@ export class IotService {
   }
 
   private isAlertAcked(id: string): boolean {
-    const existing = this.alerts.find(a => a.id === id);
+    const existing = this.alerts.find((a) => a.id === id);
     return existing ? existing.acknowledged : false;
   }
 }

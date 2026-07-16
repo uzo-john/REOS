@@ -1,4 +1,12 @@
-import { Controller, Get, Post, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { ProcurementService } from './procurement.service';
 import { CreateQuotationDto } from './dto/create-quotation.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -21,7 +29,10 @@ export class ProcurementController {
 
   @Post('quotation')
   @HttpCode(HttpStatus.OK)
-  generateQuotation(@GetUser('id') userId: string, @Body() dto: CreateQuotationDto) {
+  generateQuotation(
+    @GetUser('id') userId: string,
+    @Body() dto: CreateQuotationDto,
+  ) {
     return this.procurementService.generateQuotation(userId, dto);
   }
 }

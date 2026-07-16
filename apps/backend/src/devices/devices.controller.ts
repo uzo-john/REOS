@@ -1,5 +1,14 @@
 import {
-  Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards, Patch,
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Patch,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { DevicesService } from './devices.service';
@@ -30,8 +39,13 @@ export class DevicesController {
   }
 
   @Post('provision')
-  @ApiOperation({ summary: 'Provision/claim device via Serial number or QR code' })
-  provision(@Body() dto: DeviceProvisionDto, @CurrentUser('id') userId: string) {
+  @ApiOperation({
+    summary: 'Provision/claim device via Serial number or QR code',
+  })
+  provision(
+    @Body() dto: DeviceProvisionDto,
+    @CurrentUser('id') userId: string,
+  ) {
     return this.service.provision(dto, userId);
   }
 

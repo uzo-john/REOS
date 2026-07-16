@@ -1,9 +1,16 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
 import { GenerateBillDto, PayBillDto } from './dto/billing.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
-import { paginate, buildPaginationQuery } from '../common/utils/pagination.util';
+import {
+  paginate,
+  buildPaginationQuery,
+} from '../common/utils/pagination.util';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -23,7 +30,9 @@ export class BillingService {
     const totalAmount = subtotal + taxAmount;
 
     const currency = dto.currency || 'NGN';
-    const dueDate = dto.dueDate ? new Date(dto.dueDate) : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000); // 14 days default
+    const dueDate = dto.dueDate
+      ? new Date(dto.dueDate)
+      : new Date(Date.now() + 14 * 24 * 60 * 60 * 1000); // 14 days default
 
     return this.prisma.bill.create({
       data: {
@@ -59,7 +68,9 @@ export class BillingService {
         where,
         ...query,
         include: {
-          user: { select: { id: true, firstName: true, lastName: true, email: true } },
+          user: {
+            select: { id: true, firstName: true, lastName: true, email: true },
+          },
           payments: true,
         },
       }),
@@ -73,7 +84,9 @@ export class BillingService {
     const bill = await this.prisma.bill.findFirst({
       where: { id, deletedAt: null },
       include: {
-        user: { select: { id: true, firstName: true, lastName: true, email: true } },
+        user: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
         payments: true,
       },
     });
@@ -83,13 +96,19 @@ export class BillingService {
 
   async payBillWithWallet(billId: string, userId: string) {
     const bill = await this.findOne(billId);
-    if (bill.status === 'PAID') throw new BadRequestException('Bill is already paid');
-    if (bill.userId !== userId) throw new BadRequestException('Cannot pay bills for other users');
+    if (bill.status === 'PAID')
+      throw new BadRequestException('Bill is already paid');
+    if (bill.userId !== userId)
+      throw new BadRequestException('Cannot pay bills for other users');
 
     const wallets = await this.walletService.findByOwner(userId);
     const userWallet = wallets.find((w) => w.currency === bill.currency);
-    if (!userWallet) throw new BadRequestException(`No active wallet found for currency ${bill.currency}`);
-    if (userWallet.balance < bill.totalAmount) throw new BadRequestException('Insufficient wallet balance');
+    if (!userWallet)
+      throw new BadRequestException(
+        `No active wallet found for currency ${bill.currency}`,
+      );
+    if (userWallet.balance < bill.totalAmount)
+      throw new BadRequestException('Insufficient wallet balance');
 
     const ref = `billpay_${crypto.randomBytes(8).toString('hex')}`;
 
@@ -141,9 +160,11 @@ export class BillingService {
 
   async recordGatewayPayment(billId: string, userId: string, dto: PayBillDto) {
     const bill = await this.findOne(billId);
-    if (bill.status === 'PAID') throw new BadRequestException('Bill is already paid');
+    if (bill.status === 'PAID')
+      throw new BadRequestException('Bill is already paid');
 
-    const ref = dto.gatewayRef || `pay_${crypto.randomBytes(8).toString('hex')}`;
+    const ref =
+      dto.gatewayRef || `pay_${crypto.randomBytes(8).toString('hex')}`;
 
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.bill.update({

@@ -1,4 +1,11 @@
-import { Controller, Post, Body, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { FinancialService } from './financial.service';
 import { CalculateRoiDto } from './dto/calculate-roi.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';

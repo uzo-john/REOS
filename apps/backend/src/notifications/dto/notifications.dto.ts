@@ -1,4 +1,10 @@
-import { IsString, IsEnum, IsOptional, IsObject, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsObject,
+  IsBoolean,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { NotificationType } from '@prisma/client';
 
@@ -15,7 +21,10 @@ export class SendNotificationDto {
   @IsString()
   message: string;
 
-  @ApiPropertyOptional({ enum: NotificationType, default: NotificationType.INFO })
+  @ApiPropertyOptional({
+    enum: NotificationType,
+    default: NotificationType.INFO,
+  })
   @IsOptional()
   @IsEnum(NotificationType)
   type?: NotificationType;

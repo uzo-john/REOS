@@ -75,7 +75,8 @@ export class MonitoringService {
       metrics: {
         solarGenerationKw: totalSolarGenerationKw / 1000, // W to kW
         consumptionKw: totalConsumptionKw / 1000,
-        averageBatterySoc: batteryCount > 0 ? totalBatterySoc / batteryCount : null,
+        averageBatterySoc:
+          batteryCount > 0 ? totalBatterySoc / batteryCount : null,
         gridImportKwh: gridImportKw,
         gridExportKwh: gridExportKw,
         netGridFlowKw: (gridImportKw - gridExportKw) / 1000,
@@ -84,13 +85,22 @@ export class MonitoringService {
   }
 
   async getRealTimeSystemHealth() {
-    const [totalDevices, online, offline, fault, decommissioned] = await Promise.all([
-      this.prisma.device.count({ where: { deletedAt: null } }),
-      this.prisma.device.count({ where: { status: 'ONLINE', deletedAt: null } }),
-      this.prisma.device.count({ where: { status: 'OFFLINE', deletedAt: null } }),
-      this.prisma.device.count({ where: { status: 'FAULT', deletedAt: null } }),
-      this.prisma.device.count({ where: { status: 'DECOMMISSIONED', deletedAt: null } }),
-    ]);
+    const [totalDevices, online, offline, fault, decommissioned] =
+      await Promise.all([
+        this.prisma.device.count({ where: { deletedAt: null } }),
+        this.prisma.device.count({
+          where: { status: 'ONLINE', deletedAt: null },
+        }),
+        this.prisma.device.count({
+          where: { status: 'OFFLINE', deletedAt: null },
+        }),
+        this.prisma.device.count({
+          where: { status: 'FAULT', deletedAt: null },
+        }),
+        this.prisma.device.count({
+          where: { status: 'DECOMMISSIONED', deletedAt: null },
+        }),
+      ]);
 
     // Retrieve active alarms
     const activeAlarms = await this.prisma.faultLog.findMany({

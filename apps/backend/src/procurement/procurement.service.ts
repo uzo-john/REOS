@@ -97,7 +97,7 @@ export class ProcurementService {
     await this.auditLog.log(
       'PROCUREMENT_QUOTE_GENERATE',
       { quotationId: quotation.id, total: grandTotal },
-      userId
+      userId,
     );
 
     return {

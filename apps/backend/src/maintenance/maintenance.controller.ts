@@ -1,9 +1,22 @@
 import {
-  Controller, Get, Post, Put, Body, Param, Query, UseGuards, Delete, Patch,
+  Controller,
+  Get,
+  Post,
+  Put,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Delete,
+  Patch,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { MaintenanceService } from './maintenance.service';
-import { CreateMaintenanceDto, UpdateMaintenanceDto, ResolveFaultDto } from './dto/maintenance.dto';
+import {
+  CreateMaintenanceDto,
+  UpdateMaintenanceDto,
+  ResolveFaultDto,
+} from './dto/maintenance.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -18,7 +31,9 @@ export class MaintenanceController {
   constructor(private readonly service: MaintenanceService) {}
 
   @Post('ticket')
-  @ApiOperation({ summary: 'Create maintenance task / dispatch work order (Admin/Engineer)' })
+  @ApiOperation({
+    summary: 'Create maintenance task / dispatch work order (Admin/Engineer)',
+  })
   @Roles('ADMIN', 'SUPER_ADMIN', 'ENGINEER', 'PLANT_OPERATOR')
   create(@Body() dto: CreateMaintenanceDto, @CurrentUser('id') userId: string) {
     return this.service.create(dto, userId);
@@ -42,7 +57,9 @@ export class MaintenanceController {
   }
 
   @Patch('ticket/:id')
-  @ApiOperation({ summary: 'Update ticket status, cost, or notes (Engineer/Admin)' })
+  @ApiOperation({
+    summary: 'Update ticket status, cost, or notes (Engineer/Admin)',
+  })
   @Roles('ADMIN', 'SUPER_ADMIN', 'ENGINEER', 'MAINTENANCE_ENGINEER')
   update(@Param('id') id: string, @Body() dto: UpdateMaintenanceDto) {
     return this.service.update(id, dto);
@@ -57,7 +74,10 @@ export class MaintenanceController {
 
   @Get('faults')
   @ApiOperation({ summary: 'List active unresolved device faults/alarms' })
-  getActiveFaults(@Query() pagination: PaginationDto, @Query('severity') severity?: string) {
+  getActiveFaults(
+    @Query() pagination: PaginationDto,
+    @Query('severity') severity?: string,
+  ) {
     return this.service.getActiveFaults(pagination, severity);
   }
 

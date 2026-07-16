@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateWalletDto,
@@ -14,7 +18,10 @@ import {
   DisputeMessageDto,
 } from './dto/wallet.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
-import { paginate, buildPaginationQuery } from '../common/utils/pagination.util';
+import {
+  paginate,
+  buildPaginationQuery,
+} from '../common/utils/pagination.util';
 import * as crypto from 'crypto';
 
 const PLATFORM_FEE_NGN = 500; // ₦500 flat per transaction
@@ -29,18 +36,30 @@ export class WalletService {
 
   async create(dto: CreateWalletDto) {
     if (!dto.userId && !dto.organizationId) {
-      throw new BadRequestException('Either userId or organizationId must be provided');
+      throw new BadRequestException(
+        'Either userId or organizationId must be provided',
+      );
     }
     const currency = dto.currency || 'NGN';
     if (dto.userId) {
-      const existing = await this.prisma.energyWallet.findFirst({ where: { userId: dto.userId, currency } });
+      const existing = await this.prisma.energyWallet.findFirst({
+        where: { userId: dto.userId, currency },
+      });
       if (existing) return existing;
     } else if (dto.organizationId) {
-      const existing = await this.prisma.energyWallet.findFirst({ where: { organizationId: dto.organizationId, currency } });
+      const existing = await this.prisma.energyWallet.findFirst({
+        where: { organizationId: dto.organizationId, currency },
+      });
       if (existing) return existing;
     }
     return this.prisma.energyWallet.create({
-      data: { userId: dto.userId, organizationId: dto.organizationId, currency, balance: 0, lockedBalance: 0 },
+      data: {
+        userId: dto.userId,
+        organizationId: dto.organizationId,
+        currency,
+        balance: 0,
+        lockedBalance: 0,
+      },
     });
   }
 
@@ -58,7 +77,9 @@ export class WalletService {
     const wallet = await this.prisma.energyWallet.findUnique({
       where: { id },
       include: {
-        user: { select: { id: true, firstName: true, lastName: true, email: true } },
+        user: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
         organization: { select: { id: true, name: true } },
       },
     });
@@ -72,7 +93,7 @@ export class WalletService {
 
   async getConsumerDashboard(userId: string) {
     const wallets = await this.findByOwner(userId);
-    const mainWallet = wallets.find(w => w.currency === 'NGN') || wallets[0];
+    const mainWallet = wallets.find((w) => w.currency === 'NGN') || wallets[0];
 
     const [escrowHeld, recentTx, pendingRefunds] = await Promise.all([
       this.prisma.escrowTransaction.findMany({
@@ -85,7 +106,9 @@ export class WalletService {
         orderBy: { createdAt: 'desc' },
         take: 20,
       }),
-      this.prisma.refund.count({ where: { buyerId: userId, status: 'PENDING' } }),
+      this.prisma.refund.count({
+        where: { buyerId: userId, status: 'PENDING' },
+      }),
     ]);
 
     const totalEscrowHeld = escrowHeld.reduce((s, e) => s + e.grossAmount, 0);
@@ -107,11 +130,16 @@ export class WalletService {
 
   async getPlantOwnerDashboard(userId: string) {
     const wallets = await this.findByOwner(userId);
-    const mainWallet = wallets.find(w => w.currency === 'NGN') || wallets[0];
+    const mainWallet = wallets.find((w) => w.currency === 'NGN') || wallets[0];
 
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-    const [pendingSettlements, recentSales, completedTrades, pendingWithdrawals] = await Promise.all([
+    const [
+      pendingSettlements,
+      recentSales,
+      completedTrades,
+      pendingWithdrawals,
+    ] = await Promise.all([
       this.prisma.escrowTransaction.findMany({
         where: { sellerId: userId, status: 'HOLDING' },
       }),
@@ -120,20 +148,32 @@ export class WalletService {
         orderBy: { createdAt: 'desc' },
         take: 20,
       }),
-      this.prisma.escrowTransaction.count({ where: { sellerId: userId, status: 'RELEASED' } }),
+      this.prisma.escrowTransaction.count({
+        where: { sellerId: userId, status: 'RELEASED' },
+      }),
       this.prisma.withdrawalRequest.findMany({
-        where: { userId, status: { in: ['PENDING', 'APPROVED', 'PROCESSING'] } },
+        where: {
+          userId,
+          status: { in: ['PENDING', 'APPROVED', 'PROCESSING'] },
+        },
       }),
     ]);
 
     // 7-day revenue data
     const weeklyRevenue = await this.prisma.walletTransaction.groupBy({
       by: ['createdAt'],
-      where: { walletId: mainWallet?.id, type: 'ENERGY_SALE', createdAt: { gte: sevenDaysAgo } },
+      where: {
+        walletId: mainWallet?.id,
+        type: 'ENERGY_SALE',
+        createdAt: { gte: sevenDaysAgo },
+      },
       _sum: { amount: true },
     });
 
-    const totalPendingSettlement = pendingSettlements.reduce((s, e) => s + e.netAmountToSeller, 0);
+    const totalPendingSettlement = pendingSettlements.reduce(
+      (s, e) => s + e.netAmountToSeller,
+      0,
+    );
 
     return {
       wallet: mainWallet,
@@ -153,7 +193,8 @@ export class WalletService {
 
   async topUp(walletId: string, dto: TopUpWalletDto, createdBy: string) {
     const wallet = await this.findOne(walletId);
-    const ref = dto.reference || `topup_${crypto.randomBytes(8).toString('hex')}`;
+    const ref =
+      dto.reference || `topup_${crypto.randomBytes(8).toString('hex')}`;
 
     await this.prisma.payment.create({
       data: {
@@ -210,11 +251,18 @@ export class WalletService {
 
   async buyEnergy(buyerId: string, dto: BuyEnergyDto) {
     // 1. Fetch the P2P session (offer)
-    const session = await this.prisma.p2PSession.findUnique({ where: { id: dto.sessionId } });
+    const session = await this.prisma.p2PSession.findUnique({
+      where: { id: dto.sessionId },
+    });
     if (!session) throw new NotFoundException('Energy offer not found');
-    if (session.status !== 'PENDING') throw new BadRequestException('This energy offer is no longer available');
-    if (session.sellerId === buyerId) throw new BadRequestException('You cannot buy your own energy listing');
-    if (dto.energyKwh > session.energyAmountKwh) throw new BadRequestException('Requested amount exceeds available energy');
+    if (session.status !== 'PENDING')
+      throw new BadRequestException('This energy offer is no longer available');
+    if (session.sellerId === buyerId)
+      throw new BadRequestException('You cannot buy your own energy listing');
+    if (dto.energyKwh > session.energyAmountKwh)
+      throw new BadRequestException(
+        'Requested amount exceeds available energy',
+      );
 
     const currency = dto.currency || 'NGN';
     const grossAmount = dto.energyKwh * session.offerPricePerKwh;
@@ -223,8 +271,11 @@ export class WalletService {
 
     // 2. Get buyer wallet
     const buyerWallets = await this.findByOwner(buyerId);
-    const buyerWallet = buyerWallets.find(w => w.currency === currency);
-    if (!buyerWallet) throw new BadRequestException(`No ${currency} wallet found. Please create one first.`);
+    const buyerWallet = buyerWallets.find((w) => w.currency === currency);
+    if (!buyerWallet)
+      throw new BadRequestException(
+        `No ${currency} wallet found. Please create one first.`,
+      );
     if (buyerWallet.balance < totalCharge)
       throw new BadRequestException(
         `Insufficient balance. Need ₦${totalCharge.toLocaleString()} (energy: ₦${grossAmount.toLocaleString()} + fee: ₦${PLATFORM_FEE_NGN})`,
@@ -320,7 +371,12 @@ export class WalletService {
         },
       });
 
-      return { escrow, reference: ref, totalCharged: totalCharge, platformFee: PLATFORM_FEE_NGN };
+      return {
+        escrow,
+        reference: ref,
+        totalCharged: totalCharge,
+        platformFee: PLATFORM_FEE_NGN,
+      };
     });
   }
 
@@ -334,7 +390,8 @@ export class WalletService {
       include: { buyer: true, seller: true },
     });
     if (!escrow) throw new NotFoundException('Escrow transaction not found');
-    if (escrow.status !== 'HOLDING') throw new BadRequestException(`Escrow is already ${escrow.status}`);
+    if (escrow.status !== 'HOLDING')
+      throw new BadRequestException(`Escrow is already ${escrow.status}`);
 
     // Verify delivered amount is sufficient (at least 90% of ordered)
     const deliveryRatio = dto.deliveredKwh / escrow.energyKwh;
@@ -346,12 +403,16 @@ export class WalletService {
 
     // Get seller wallet
     const sellerWallets = await this.findByOwner(escrow.sellerId);
-    const sellerWallet = sellerWallets.find(w => w.currency === escrow.currency);
+    const sellerWallet = sellerWallets.find(
+      (w) => w.currency === escrow.currency,
+    );
     if (!sellerWallet) throw new BadRequestException('Seller wallet not found');
 
     // Get buyer wallet to unlock lockedBalance
     const buyerWallets = await this.findByOwner(escrow.buyerId);
-    const buyerWallet = buyerWallets.find(w => w.currency === escrow.currency);
+    const buyerWallet = buyerWallets.find(
+      (w) => w.currency === escrow.currency,
+    );
     if (!buyerWallet) throw new BadRequestException('Buyer wallet not found');
 
     const ref = `release_${crypto.randomBytes(8).toString('hex')}`;
@@ -415,7 +476,11 @@ export class WalletService {
         },
       });
 
-      return { success: true, amountReleased: escrow.netAmountToSeller, reference: ref };
+      return {
+        success: true,
+        amountReleased: escrow.netAmountToSeller,
+        reference: ref,
+      };
     });
   }
 
@@ -423,18 +488,36 @@ export class WalletService {
   // REFUND
   // ──────────────────────────────────────────────────────────────────────────
 
-  async requestRefund(escrowId: string, buyerId: string, dto: RequestRefundDto) {
-    const escrow = await this.prisma.escrowTransaction.findUnique({ where: { id: escrowId } });
+  async requestRefund(
+    escrowId: string,
+    buyerId: string,
+    dto: RequestRefundDto,
+  ) {
+    const escrow = await this.prisma.escrowTransaction.findUnique({
+      where: { id: escrowId },
+    });
     if (!escrow) throw new NotFoundException('Escrow not found');
-    if (escrow.buyerId !== buyerId) throw new BadRequestException('You cannot request a refund for this transaction');
+    if (escrow.buyerId !== buyerId)
+      throw new BadRequestException(
+        'You cannot request a refund for this transaction',
+      );
     if (!['HOLDING', 'DISPUTED'].includes(escrow.status))
-      throw new BadRequestException(`Cannot refund escrow in ${escrow.status} status`);
+      throw new BadRequestException(
+        `Cannot refund escrow in ${escrow.status} status`,
+      );
 
-    const existing = await this.prisma.refund.findUnique({ where: { escrowId } });
-    if (existing) throw new BadRequestException('A refund has already been requested for this transaction');
+    const existing = await this.prisma.refund.findUnique({
+      where: { escrowId },
+    });
+    if (existing)
+      throw new BadRequestException(
+        'A refund has already been requested for this transaction',
+      );
 
     const refundAmount =
-      dto.type === 'PARTIAL' && dto.partialAmount ? dto.partialAmount : escrow.grossAmount;
+      dto.type === 'PARTIAL' && dto.partialAmount
+        ? dto.partialAmount
+        : escrow.grossAmount;
 
     return this.prisma.refund.create({
       data: {
@@ -455,17 +538,24 @@ export class WalletService {
       include: { escrow: true },
     });
     if (!refund) throw new NotFoundException('Refund not found');
-    if (refund.status !== 'PENDING') throw new BadRequestException('Refund is not pending');
+    if (refund.status !== 'PENDING')
+      throw new BadRequestException('Refund is not pending');
 
     if (!approve) {
       return this.prisma.refund.update({
         where: { id: refundId },
-        data: { status: 'REJECTED', approvedBy: adminId, processedAt: new Date() },
+        data: {
+          status: 'REJECTED',
+          approvedBy: adminId,
+          processedAt: new Date(),
+        },
       });
     }
 
     const buyerWallets = await this.findByOwner(refund.buyerId);
-    const buyerWallet = buyerWallets.find(w => w.currency === refund.currency);
+    const buyerWallet = buyerWallets.find(
+      (w) => w.currency === refund.currency,
+    );
     if (!buyerWallet) throw new BadRequestException('Buyer wallet not found');
 
     const ref = `refund_${crypto.randomBytes(8).toString('hex')}`;
@@ -499,7 +589,12 @@ export class WalletService {
       // Update refund and escrow
       await tx.refund.update({
         where: { id: refundId },
-        data: { status: 'PROCESSED', approvedBy: adminId, processedAt: new Date(), reference: ref },
+        data: {
+          status: 'PROCESSED',
+          approvedBy: adminId,
+          processedAt: new Date(),
+          reference: ref,
+        },
       });
       await tx.escrowTransaction.update({
         where: { id: refund.escrowId },
@@ -526,10 +621,12 @@ export class WalletService {
 
   async requestWithdrawal(userId: string, dto: RequestWithdrawalDto) {
     const wallets = await this.findByOwner(userId);
-    const wallet = wallets.find(w => w.currency === (dto.currency || 'NGN'));
+    const wallet = wallets.find((w) => w.currency === (dto.currency || 'NGN'));
     if (!wallet) throw new BadRequestException('Wallet not found');
     if (wallet.balance < dto.amount)
-      throw new BadRequestException(`Insufficient balance. Available: ₦${wallet.balance.toLocaleString()}`);
+      throw new BadRequestException(
+        `Insufficient balance. Available: ₦${wallet.balance.toLocaleString()}`,
+      );
 
     // Lock the amount
     await this.prisma.energyWallet.update({
@@ -568,13 +665,18 @@ export class WalletService {
     return withdrawal;
   }
 
-  async processWithdrawal(withdrawalId: string, adminId: string, dto: ProcessWithdrawalDto) {
+  async processWithdrawal(
+    withdrawalId: string,
+    adminId: string,
+    dto: ProcessWithdrawalDto,
+  ) {
     const wd = await this.prisma.withdrawalRequest.findUnique({
       where: { id: withdrawalId },
       include: { wallet: true },
     });
     if (!wd) throw new NotFoundException('Withdrawal request not found');
-    if (wd.status !== 'PENDING') throw new BadRequestException('Withdrawal is not pending');
+    if (wd.status !== 'PENDING')
+      throw new BadRequestException('Withdrawal is not pending');
 
     if (dto.decision === 'REJECTED') {
       // Unlock balance
@@ -587,7 +689,12 @@ export class WalletService {
       });
       await this.prisma.withdrawalRequest.update({
         where: { id: withdrawalId },
-        data: { status: 'REJECTED', processedBy: adminId, processedAt: new Date(), adminNote: dto.adminNote },
+        data: {
+          status: 'REJECTED',
+          processedBy: adminId,
+          processedAt: new Date(),
+          adminNote: dto.adminNote,
+        },
       });
       await this.prisma.notification.create({
         data: {
@@ -623,13 +730,19 @@ export class WalletService {
       });
       await tx.withdrawalRequest.update({
         where: { id: withdrawalId },
-        data: { status: 'COMPLETED', processedBy: adminId, processedAt: new Date(), completedAt: new Date(), adminNote: dto.adminNote },
+        data: {
+          status: 'COMPLETED',
+          processedBy: adminId,
+          processedAt: new Date(),
+          completedAt: new Date(),
+          adminNote: dto.adminNote,
+        },
       });
       // Platform withdrawal fee
       await tx.platformRevenueRecord.create({
         data: {
           source: 'WITHDRAWAL_FEE',
-          amount: 0,  // free for now, can be extended
+          amount: 0, // free for now, can be extended
           currency: wd.currency,
           userId: wd.userId,
           description: `Withdrawal approved: ${ref}`,
@@ -652,17 +765,27 @@ export class WalletService {
   // ──────────────────────────────────────────────────────────────────────────
 
   async openDispute(escrowId: string, raisedBy: string, dto: OpenDisputeDto) {
-    const escrow = await this.prisma.escrowTransaction.findUnique({ where: { id: escrowId } });
+    const escrow = await this.prisma.escrowTransaction.findUnique({
+      where: { id: escrowId },
+    });
     if (!escrow) throw new NotFoundException('Escrow transaction not found');
     if (escrow.buyerId !== raisedBy && escrow.sellerId !== raisedBy)
       throw new BadRequestException('You are not part of this transaction');
     if (!['HOLDING', 'RELEASED'].includes(escrow.status))
-      throw new BadRequestException(`Cannot open dispute for escrow in ${escrow.status} status`);
+      throw new BadRequestException(
+        `Cannot open dispute for escrow in ${escrow.status} status`,
+      );
 
-    const existing = await this.prisma.dispute.findUnique({ where: { escrowId } });
-    if (existing) throw new BadRequestException('A dispute already exists for this transaction');
+    const existing = await this.prisma.dispute.findUnique({
+      where: { escrowId },
+    });
+    if (existing)
+      throw new BadRequestException(
+        'A dispute already exists for this transaction',
+      );
 
-    const againstUserId = raisedBy === escrow.buyerId ? escrow.sellerId : escrow.buyerId;
+    const againstUserId =
+      raisedBy === escrow.buyerId ? escrow.sellerId : escrow.buyerId;
 
     const dispute = await this.prisma.dispute.create({
       data: {
@@ -676,7 +799,10 @@ export class WalletService {
       },
     });
 
-    await this.prisma.escrowTransaction.update({ where: { id: escrowId }, data: { status: 'DISPUTED' } });
+    await this.prisma.escrowTransaction.update({
+      where: { id: escrowId },
+      data: { status: 'DISPUTED' },
+    });
 
     await this.prisma.notification.create({
       data: {
@@ -690,8 +816,15 @@ export class WalletService {
     return dispute;
   }
 
-  async addDisputeMessage(disputeId: string, senderId: string, dto: DisputeMessageDto, isAdmin = false) {
-    const dispute = await this.prisma.dispute.findUnique({ where: { id: disputeId } });
+  async addDisputeMessage(
+    disputeId: string,
+    senderId: string,
+    dto: DisputeMessageDto,
+    isAdmin = false,
+  ) {
+    const dispute = await this.prisma.dispute.findUnique({
+      where: { id: disputeId },
+    });
     if (!dispute) throw new NotFoundException('Dispute not found');
 
     return this.prisma.disputeMessage.create({
@@ -705,7 +838,11 @@ export class WalletService {
     });
   }
 
-  async resolveDispute(disputeId: string, adminId: string, dto: ResolveDisputeDto) {
+  async resolveDispute(
+    disputeId: string,
+    adminId: string,
+    dto: ResolveDisputeDto,
+  ) {
     const dispute = await this.prisma.dispute.findUnique({
       where: { id: disputeId },
       include: { escrow: true },
@@ -720,7 +857,9 @@ export class WalletService {
       if (dto.resolution === 'RESOLVED_FOR_BUYER') {
         // Refund buyer
         const buyerWallets = await this.findByOwner(escrow.buyerId);
-        const buyerWallet = buyerWallets.find(w => w.currency === escrow.currency);
+        const buyerWallet = buyerWallets.find(
+          (w) => w.currency === escrow.currency,
+        );
         if (buyerWallet) {
           await tx.energyWallet.update({
             where: { id: buyerWallet.id },
@@ -743,30 +882,61 @@ export class WalletService {
               createdBy: adminId,
             },
           });
-          await tx.escrowTransaction.update({ where: { id: escrow.id }, data: { status: 'REFUNDED', refundedAt: new Date() } });
+          await tx.escrowTransaction.update({
+            where: { id: escrow.id },
+            data: { status: 'REFUNDED', refundedAt: new Date() },
+          });
           await tx.notification.create({
-            data: { userId: escrow.buyerId, title: '⚖️ Dispute Resolved — Refund Issued', message: `Your dispute was resolved in your favour. ₦${escrow.grossAmount.toLocaleString()} refunded.`, type: 'DISPUTE' },
+            data: {
+              userId: escrow.buyerId,
+              title: '⚖️ Dispute Resolved — Refund Issued',
+              message: `Your dispute was resolved in your favour. ₦${escrow.grossAmount.toLocaleString()} refunded.`,
+              type: 'DISPUTE',
+            },
           });
         }
       } else if (dto.resolution === 'RESOLVED_FOR_SELLER') {
         // Release to seller
         const sellerWallets = await this.findByOwner(escrow.sellerId);
-        const sellerWallet = sellerWallets.find(w => w.currency === escrow.currency);
+        const sellerWallet = sellerWallets.find(
+          (w) => w.currency === escrow.currency,
+        );
         const buyerWallets = await this.findByOwner(escrow.buyerId);
-        const buyerWallet = buyerWallets.find(w => w.currency === escrow.currency);
+        const buyerWallet = buyerWallets.find(
+          (w) => w.currency === escrow.currency,
+        );
         if (sellerWallet && buyerWallet) {
-          await tx.energyWallet.update({ where: { id: buyerWallet.id }, data: { lockedBalance: { decrement: escrow.grossAmount } } });
-          await tx.energyWallet.update({ where: { id: sellerWallet.id }, data: { balance: { increment: escrow.netAmountToSeller } } });
-          await tx.escrowTransaction.update({ where: { id: escrow.id }, data: { status: 'RELEASED', releasedAt: new Date() } });
+          await tx.energyWallet.update({
+            where: { id: buyerWallet.id },
+            data: { lockedBalance: { decrement: escrow.grossAmount } },
+          });
+          await tx.energyWallet.update({
+            where: { id: sellerWallet.id },
+            data: { balance: { increment: escrow.netAmountToSeller } },
+          });
+          await tx.escrowTransaction.update({
+            where: { id: escrow.id },
+            data: { status: 'RELEASED', releasedAt: new Date() },
+          });
           await tx.notification.create({
-            data: { userId: escrow.sellerId, title: '⚖️ Dispute Resolved — Payment Released', message: `Dispute resolved in your favour. ₦${escrow.netAmountToSeller.toLocaleString()} credited.`, type: 'DISPUTE' },
+            data: {
+              userId: escrow.sellerId,
+              title: '⚖️ Dispute Resolved — Payment Released',
+              message: `Dispute resolved in your favour. ₦${escrow.netAmountToSeller.toLocaleString()} credited.`,
+              type: 'DISPUTE',
+            },
           });
         }
       }
 
       await tx.dispute.update({
         where: { id: disputeId },
-        data: { status: dto.resolution as any, resolvedBy: adminId, resolvedAt: new Date(), adminNote: dto.adminNote },
+        data: {
+          status: dto.resolution as any,
+          resolvedBy: adminId,
+          resolvedAt: new Date(),
+          adminNote: dto.adminNote,
+        },
       });
     });
 
@@ -801,20 +971,44 @@ export class WalletService {
       totalWallets,
       recentRevenue,
     ] = await Promise.all([
-      this.prisma.escrowTransaction.aggregate({ _sum: { grossAmount: true }, where: { status: 'HOLDING' } }),
+      this.prisma.escrowTransaction.aggregate({
+        _sum: { grossAmount: true },
+        where: { status: 'HOLDING' },
+      }),
       this.prisma.platformRevenueRecord.aggregate({ _sum: { amount: true } }),
-      this.prisma.withdrawalRequest.findMany({ where: { status: 'PENDING' }, include: { user: { select: { firstName: true, lastName: true, email: true } } }, orderBy: { createdAt: 'desc' }, take: 20 }),
-      this.prisma.dispute.findMany({ where: { status: 'OPEN' }, include: { escrow: true }, orderBy: { createdAt: 'desc' }, take: 20 }),
-      this.prisma.refund.findMany({ where: { status: 'PENDING' }, orderBy: { createdAt: 'desc' }, take: 20 }),
+      this.prisma.withdrawalRequest.findMany({
+        where: { status: 'PENDING' },
+        include: {
+          user: { select: { firstName: true, lastName: true, email: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      }),
+      this.prisma.dispute.findMany({
+        where: { status: 'OPEN' },
+        include: { escrow: true },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      }),
+      this.prisma.refund.findMany({
+        where: { status: 'PENDING' },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      }),
       this.prisma.energyWallet.count(),
-      this.prisma.platformRevenueRecord.findMany({ orderBy: { createdAt: 'desc' }, take: 30 }),
+      this.prisma.platformRevenueRecord.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 30,
+      }),
     ]);
 
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const [dayVolume, weekVolume] = await Promise.all([
       this.prisma.escrowTransaction.aggregate({
         _sum: { grossAmount: true },
-        where: { createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
+        where: {
+          createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+        },
       }),
       this.prisma.escrowTransaction.aggregate({
         _sum: { grossAmount: true },
@@ -840,8 +1034,13 @@ export class WalletService {
     const where: any = { ...(status && { status }) };
     const [data, total] = await Promise.all([
       this.prisma.withdrawalRequest.findMany({
-        where, ...query,
-        include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },
+        where,
+        ...query,
+        include: {
+          user: {
+            select: { id: true, firstName: true, lastName: true, email: true },
+          },
+        },
       }),
       this.prisma.withdrawalRequest.count({ where }),
     ]);
@@ -853,8 +1052,12 @@ export class WalletService {
     const where: any = { ...(status && { status }) };
     const [data, total] = await Promise.all([
       this.prisma.dispute.findMany({
-        where, ...query,
-        include: { escrow: true, messages: { take: 1, orderBy: { createdAt: 'desc' } } },
+        where,
+        ...query,
+        include: {
+          escrow: true,
+          messages: { take: 1, orderBy: { createdAt: 'desc' } },
+        },
       }),
       this.prisma.dispute.count({ where }),
     ]);
@@ -866,7 +1069,8 @@ export class WalletService {
     const where: any = { ...(status && { status }) };
     const [data, total] = await Promise.all([
       this.prisma.escrowTransaction.findMany({
-        where, ...query,
+        where,
+        ...query,
         include: {
           buyer: { select: { id: true, firstName: true, lastName: true } },
           seller: { select: { id: true, firstName: true, lastName: true } },
@@ -881,32 +1085,85 @@ export class WalletService {
   // LEGACY HELPERS (preserved for existing code compatibility)
   // ──────────────────────────────────────────────────────────────────────────
 
-  async transfer(senderWalletId: string, dto: TransferFundsDto, createdBy: string) {
+  async transfer(
+    senderWalletId: string,
+    dto: TransferFundsDto,
+    createdBy: string,
+  ) {
     const sender = await this.findOne(senderWalletId);
     const recipient = await this.findOne(dto.recipientWalletId);
-    if (sender.id === recipient.id) throw new BadRequestException('Cannot transfer to same wallet');
-    if (sender.currency !== recipient.currency) throw new BadRequestException('Currency mismatch');
-    if (sender.balance < dto.amount) throw new BadRequestException('Insufficient balance');
+    if (sender.id === recipient.id)
+      throw new BadRequestException('Cannot transfer to same wallet');
+    if (sender.currency !== recipient.currency)
+      throw new BadRequestException('Currency mismatch');
+    if (sender.balance < dto.amount)
+      throw new BadRequestException('Insufficient balance');
 
     const ref = `tx_${crypto.randomBytes(8).toString('hex')}`;
     return this.prisma.$transaction(async (tx) => {
-      await tx.energyWallet.update({ where: { id: senderWalletId }, data: { balance: { decrement: dto.amount } } });
-      await tx.energyWallet.update({ where: { id: dto.recipientWalletId }, data: { balance: { increment: dto.amount } } });
-      await tx.walletTransaction.create({ data: { walletId: senderWalletId, type: 'DEBIT', amount: dto.amount, currency: sender.currency, balanceBefore: sender.balance, balanceAfter: sender.balance - dto.amount, reference: ref, description: dto.description || `Transfer`, status: 'COMPLETED', createdBy } });
-      await tx.walletTransaction.create({ data: { walletId: dto.recipientWalletId, type: 'CREDIT', amount: dto.amount, currency: recipient.currency, balanceBefore: recipient.balance, balanceAfter: recipient.balance + dto.amount, reference: `${ref}_recv`, description: dto.description || `Transfer`, status: 'COMPLETED', createdBy } });
+      await tx.energyWallet.update({
+        where: { id: senderWalletId },
+        data: { balance: { decrement: dto.amount } },
+      });
+      await tx.energyWallet.update({
+        where: { id: dto.recipientWalletId },
+        data: { balance: { increment: dto.amount } },
+      });
+      await tx.walletTransaction.create({
+        data: {
+          walletId: senderWalletId,
+          type: 'DEBIT',
+          amount: dto.amount,
+          currency: sender.currency,
+          balanceBefore: sender.balance,
+          balanceAfter: sender.balance - dto.amount,
+          reference: ref,
+          description: dto.description || `Transfer`,
+          status: 'COMPLETED',
+          createdBy,
+        },
+      });
+      await tx.walletTransaction.create({
+        data: {
+          walletId: dto.recipientWalletId,
+          type: 'CREDIT',
+          amount: dto.amount,
+          currency: recipient.currency,
+          balanceBefore: recipient.balance,
+          balanceAfter: recipient.balance + dto.amount,
+          reference: `${ref}_recv`,
+          description: dto.description || `Transfer`,
+          status: 'COMPLETED',
+          createdBy,
+        },
+      });
       return { success: true };
     });
   }
 
   async lockBalance(walletId: string, amount: number) {
     const wallet = await this.findOne(walletId);
-    if (wallet.balance < amount) throw new BadRequestException('Insufficient balance to lock');
-    return this.prisma.energyWallet.update({ where: { id: walletId }, data: { balance: { decrement: amount }, lockedBalance: { increment: amount } } });
+    if (wallet.balance < amount)
+      throw new BadRequestException('Insufficient balance to lock');
+    return this.prisma.energyWallet.update({
+      where: { id: walletId },
+      data: {
+        balance: { decrement: amount },
+        lockedBalance: { increment: amount },
+      },
+    });
   }
 
   async releaseBalance(walletId: string, amount: number) {
     const wallet = await this.findOne(walletId);
-    if (wallet.lockedBalance < amount) throw new BadRequestException('Insufficient locked balance');
-    return this.prisma.energyWallet.update({ where: { id: walletId }, data: { balance: { increment: amount }, lockedBalance: { decrement: amount } } });
+    if (wallet.lockedBalance < amount)
+      throw new BadRequestException('Insufficient locked balance');
+    return this.prisma.energyWallet.update({
+      where: { id: walletId },
+      data: {
+        balance: { increment: amount },
+        lockedBalance: { decrement: amount },
+      },
+    });
   }
 }

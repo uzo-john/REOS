@@ -1,7 +1,19 @@
 import {
-  Controller, Post, Get, Body, Param, Query, UseGuards, ParseIntPipe,
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  ParseIntPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { TelemetryService } from './telemetry.service';
 import { IngestTelemetryDto, BatchTelemetryDto } from './dto/telemetry.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
@@ -30,7 +42,9 @@ export class TelemetryController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Get('device/:deviceId/history')
-  @ApiOperation({ summary: 'Get historical telemetry for a device with filters' })
+  @ApiOperation({
+    summary: 'Get historical telemetry for a device with filters',
+  })
   @ApiQuery({ name: 'startDate', required: false, type: String })
   @ApiQuery({ name: 'endDate', required: false, type: String })
   getHistory(
@@ -46,7 +60,12 @@ export class TelemetryController {
   @UseGuards(JwtAuthGuard)
   @Get('device/:deviceId/power')
   @ApiOperation({ summary: 'Get recent power readings' })
-  @ApiQuery({ name: 'rangeMinutes', required: false, type: Number, description: 'Default: 60 minutes' })
+  @ApiQuery({
+    name: 'rangeMinutes',
+    required: false,
+    type: Number,
+    description: 'Default: 60 minutes',
+  })
   getPower(
     @Param('deviceId') deviceId: string,
     @Query('rangeMinutes') rangeMinutes?: number,
@@ -59,7 +78,12 @@ export class TelemetryController {
   @UseGuards(JwtAuthGuard)
   @Get('device/:deviceId/solar')
   @ApiOperation({ summary: 'Get recent solar generation statistics' })
-  @ApiQuery({ name: 'rangeHours', required: false, type: Number, description: 'Default: 24 hours' })
+  @ApiQuery({
+    name: 'rangeHours',
+    required: false,
+    type: Number,
+    description: 'Default: 24 hours',
+  })
   getSolar(
     @Param('deviceId') deviceId: string,
     @Query('rangeHours') rangeHours?: number,
@@ -72,7 +96,12 @@ export class TelemetryController {
   @UseGuards(JwtAuthGuard)
   @Get('device/:deviceId/battery')
   @ApiOperation({ summary: 'Get recent battery charging/status profiles' })
-  @ApiQuery({ name: 'rangeHours', required: false, type: Number, description: 'Default: 24 hours' })
+  @ApiQuery({
+    name: 'rangeHours',
+    required: false,
+    type: Number,
+    description: 'Default: 24 hours',
+  })
   getBattery(
     @Param('deviceId') deviceId: string,
     @Query('rangeHours') rangeHours?: number,

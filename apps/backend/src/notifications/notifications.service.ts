@@ -2,7 +2,10 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { SendNotificationDto } from './dto/notifications.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
-import { paginate, buildPaginationQuery } from '../common/utils/pagination.util';
+import {
+  paginate,
+  buildPaginationQuery,
+} from '../common/utils/pagination.util';
 
 @Injectable()
 export class NotificationsService {
@@ -22,7 +25,11 @@ export class NotificationsService {
     });
   }
 
-  async getUserNotifications(userId: string, pagination: PaginationDto, unreadOnly = false) {
+  async getUserNotifications(
+    userId: string,
+    pagination: PaginationDto,
+    unreadOnly = false,
+  ) {
     const query = buildPaginationQuery(pagination);
     const where = {
       userId,
@@ -41,9 +48,12 @@ export class NotificationsService {
   }
 
   async markAsRead(id: string, userId: string) {
-    const notification = await this.prisma.notification.findUnique({ where: { id } });
+    const notification = await this.prisma.notification.findUnique({
+      where: { id },
+    });
     if (!notification) throw new NotFoundException('Notification not found');
-    if (notification.userId !== userId) throw new NotFoundException('Notification not found for current user');
+    if (notification.userId !== userId)
+      throw new NotFoundException('Notification not found for current user');
 
     return this.prisma.notification.update({
       where: { id },

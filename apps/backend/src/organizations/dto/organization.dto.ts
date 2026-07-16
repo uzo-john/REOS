@@ -94,7 +94,10 @@ export class AddMemberDto {
   @IsString()
   userId: string;
 
-  @ApiPropertyOptional({ enum: ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'], default: 'MEMBER' })
+  @ApiPropertyOptional({
+    enum: ['OWNER', 'ADMIN', 'MEMBER', 'VIEWER'],
+    default: 'MEMBER',
+  })
   @IsOptional()
   @IsString()
   role?: string;

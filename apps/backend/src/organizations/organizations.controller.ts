@@ -1,9 +1,22 @@
 import {
-  Controller, Get, Post, Put, Delete, Patch, Body, Param, Query, UseGuards,
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Patch,
+  Body,
+  Param,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { OrganizationsService } from './organizations.service';
-import { CreateOrganizationDto, UpdateOrganizationDto, AddMemberDto } from './dto/organization.dto';
+import {
+  CreateOrganizationDto,
+  UpdateOrganizationDto,
+  AddMemberDto,
+} from './dto/organization.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -19,7 +32,10 @@ export class OrganizationsController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new organization' })
-  create(@Body() dto: CreateOrganizationDto, @CurrentUser('id') userId: string) {
+  create(
+    @Body() dto: CreateOrganizationDto,
+    @CurrentUser('id') userId: string,
+  ) {
     return this.service.create(dto, userId);
   }
 

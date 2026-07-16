@@ -19,14 +19,18 @@ export class FinancialService {
       throw new NotFoundException('Project not found or access denied');
     }
 
-    const capex = dto.equipmentCost + dto.installationCost + (dto.laborCost ?? 0) + (dto.taxes ?? 0);
+    const capex =
+      dto.equipmentCost +
+      dto.installationCost +
+      (dto.laborCost ?? 0) +
+      (dto.taxes ?? 0);
 
     const results = calculateFinancials(
       capex,
       dto.annualSavings,
       dto.annualOpex ?? 0,
       dto.lifespanYrs ?? 25,
-      dto.discountRate ?? 0.1
+      dto.discountRate ?? 0.1,
     );
 
     const simResult = await this.prisma.simulationResult.create({
@@ -45,8 +49,12 @@ export class FinancialService {
 
     await this.auditLog.log(
       'FINANCIAL_CALCULATE',
-      { projectId: dto.projectId, capex: results.totalCapex, payback: results.paybackPeriodYrs },
-      userId
+      {
+        projectId: dto.projectId,
+        capex: results.totalCapex,
+        payback: results.paybackPeriodYrs,
+      },
+      userId,
     );
 
     return {

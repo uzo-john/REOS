@@ -1,4 +1,11 @@
-import { IsArray, IsNumber, IsOptional, ValidateNested, Min, Max } from 'class-validator';
+import {
+  IsArray,
+  IsNumber,
+  IsOptional,
+  ValidateNested,
+  Min,
+  Max,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class ApplianceItemDto {

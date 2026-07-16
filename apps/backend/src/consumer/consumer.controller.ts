@@ -1,4 +1,13 @@
-import { Controller, Post, Get, Body, Param, UseGuards, HttpStatus, HttpCode } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  UseGuards,
+  HttpStatus,
+  HttpCode,
+} from '@nestjs/common';
 import { ConsumerService } from './consumer.service';
 import { CreateInviteDto } from './dto/create-invite.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -13,20 +22,37 @@ export class ConsumerController {
   constructor(private readonly consumerService: ConsumerService) {}
 
   @Post('invite')
-  @Roles(UserRole.SYSTEM_OWNER, UserRole.ENGINEER, UserRole.ADMIN, UserRole.CUSTOMER) // Keep CUSTOMER for backward compatibility
-  createInvitation(@GetUser('id') supplierId: string, @Body() dto: CreateInviteDto) {
+  @Roles(
+    UserRole.SYSTEM_OWNER,
+    UserRole.ENGINEER,
+    UserRole.ADMIN,
+    UserRole.CUSTOMER,
+  ) // Keep CUSTOMER for backward compatibility
+  createInvitation(
+    @GetUser('id') supplierId: string,
+    @Body() dto: CreateInviteDto,
+  ) {
     return this.consumerService.createInvitation(supplierId, dto);
   }
 
   @Get('invitation/:code')
-  @Roles(UserRole.SYSTEM_OWNER, UserRole.CONSUMER, UserRole.CUSTOMER, UserRole.ENGINEER, UserRole.ADMIN)
+  @Roles(
+    UserRole.SYSTEM_OWNER,
+    UserRole.CONSUMER,
+    UserRole.CUSTOMER,
+    UserRole.ENGINEER,
+    UserRole.ADMIN,
+  )
   getInvitation(@Param('code') code: string) {
     return this.consumerService.getInvitation(code);
   }
 
   @Post('accept')
   @Roles(UserRole.CONSUMER, UserRole.CUSTOMER)
-  acceptInvitation(@GetUser('id') consumerId: string, @Body('invitationCode') code: string) {
+  acceptInvitation(
+    @GetUser('id') consumerId: string,
+    @Body('invitationCode') code: string,
+  ) {
     return this.consumerService.acceptInvitation(consumerId, code);
   }
 
@@ -49,7 +75,11 @@ export class ConsumerController {
     @Body('amount') amount: number,
     @Body('paymentGateway') gateway: string,
   ) {
-    return this.consumerService.topUpWallet(consumerId, amount, gateway || 'PAYSTACK');
+    return this.consumerService.topUpWallet(
+      consumerId,
+      amount,
+      gateway || 'PAYSTACK',
+    );
   }
 
   @Post('pay-invoice/:invoiceId')
@@ -60,7 +90,11 @@ export class ConsumerController {
     @Param('invoiceId') invoiceId: string,
     @Body('paymentGateway') gateway: string,
   ) {
-    return this.consumerService.payInvoice(consumerId, invoiceId, gateway || 'PAYSTACK');
+    return this.consumerService.payInvoice(
+      consumerId,
+      invoiceId,
+      gateway || 'PAYSTACK',
+    );
   }
 
   @Get('notifications')

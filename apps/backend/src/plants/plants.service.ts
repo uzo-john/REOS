@@ -1,8 +1,17 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreatePlantDto, UpdatePlantDto, CreateSiteDto, AssignDeviceDto } from './dto/plant.dto';
+import {
+  CreatePlantDto,
+  UpdatePlantDto,
+  CreateSiteDto,
+  AssignDeviceDto,
+} from './dto/plant.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
-import { paginate, buildPaginationQuery, buildSearchFilter } from '../common/utils/pagination.util';
+import {
+  paginate,
+  buildPaginationQuery,
+  buildSearchFilter,
+} from '../common/utils/pagination.util';
 
 @Injectable()
 export class PlantsService {
@@ -17,7 +26,10 @@ export class PlantsService {
 
   async findAll(pagination: PaginationDto, orgId?: string) {
     const query = buildPaginationQuery(pagination);
-    const searchFilter = buildSearchFilter(['name', 'address', 'city'], pagination.search);
+    const searchFilter = buildSearchFilter(
+      ['name', 'address', 'city'],
+      pagination.search,
+    );
     const where: any = {
       deletedAt: null,
       ...(orgId && { organizationId: orgId }),
@@ -46,7 +58,11 @@ export class PlantsService {
         organization: true,
         sites: { where: { deletedAt: null } },
         plantDevices: {
-          include: { device: { select: { id: true, name: true, type: true, status: true } } },
+          include: {
+            device: {
+              select: { id: true, name: true, type: true, status: true },
+            },
+          },
         },
       },
     });
@@ -61,7 +77,10 @@ export class PlantsService {
 
   async softDelete(id: string) {
     await this.findOne(id);
-    return this.prisma.plant.update({ where: { id }, data: { deletedAt: new Date(), status: 'DECOMMISSIONED' } });
+    return this.prisma.plant.update({
+      where: { id },
+      data: { deletedAt: new Date(), status: 'DECOMMISSIONED' },
+    });
   }
 
   // ── Sites ─────────────────────────────────────────
@@ -80,7 +99,10 @@ export class PlantsService {
   async deleteSite(siteId: string) {
     const site = await this.prisma.site.findUnique({ where: { id: siteId } });
     if (!site) throw new NotFoundException('Site not found');
-    return this.prisma.site.update({ where: { id: siteId }, data: { deletedAt: new Date() } });
+    return this.prisma.site.update({
+      where: { id: siteId },
+      data: { deletedAt: new Date() },
+    });
   }
 
   // ── Device Assignment ──────────────────────────────
@@ -103,12 +125,21 @@ export class PlantsService {
     const plant = await this.findOne(plantId);
     const [totalDevices, onlineDevices, faultDevices] = await Promise.all([
       this.prisma.plantDevice.count({ where: { plantId } }),
-      this.prisma.plantDevice.count({ where: { plantId, device: { status: 'ONLINE' } } }),
-      this.prisma.plantDevice.count({ where: { plantId, device: { status: 'FAULT' } } }),
+      this.prisma.plantDevice.count({
+        where: { plantId, device: { status: 'ONLINE' } },
+      }),
+      this.prisma.plantDevice.count({
+        where: { plantId, device: { status: 'FAULT' } },
+      }),
     ]);
     return {
       ...plant,
-      summary: { totalDevices, onlineDevices, offlineDevices: totalDevices - onlineDevices, faultDevices },
+      summary: {
+        totalDevices,
+        onlineDevices,
+        offlineDevices: totalDevices - onlineDevices,
+        faultDevices,
+      },
     };
   }
 }

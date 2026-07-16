@@ -2,7 +2,10 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { IngestTelemetryDto, BatchTelemetryDto } from './dto/telemetry.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
-import { paginate, buildPaginationQuery } from '../common/utils/pagination.util';
+import {
+  paginate,
+  buildPaginationQuery,
+} from '../common/utils/pagination.util';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
@@ -17,7 +20,8 @@ export class TelemetryService {
     const device = await this.prisma.device.findUnique({
       where: { id: dto.deviceId },
     });
-    if (!device) throw new NotFoundException(`Device ${dto.deviceId} not found`);
+    if (!device)
+      throw new NotFoundException(`Device ${dto.deviceId} not found`);
 
     const timestamp = dto.timestamp ? new Date(dto.timestamp) : new Date();
 
@@ -49,7 +53,9 @@ export class TelemetryService {
       data: {
         lastCommTime: timestamp,
         status: dto.alarmStatus ? 'FAULT' : 'ONLINE',
-        signalStrength: dto.commQuality ? Math.round(dto.commQuality) : undefined,
+        signalStrength: dto.commQuality
+          ? Math.round(dto.commQuality)
+          : undefined,
       },
     });
 
@@ -57,7 +63,11 @@ export class TelemetryService {
     const promises: Promise<any>[] = [];
 
     // General power metrics
-    if (dto.voltage !== undefined || dto.current !== undefined || dto.activePower !== undefined) {
+    if (
+      dto.voltage !== undefined ||
+      dto.current !== undefined ||
+      dto.activePower !== undefined
+    ) {
       promises.push(
         this.prisma.powerReading.create({
           data: {
@@ -83,9 +93,13 @@ export class TelemetryService {
             deviceId: dto.deviceId,
             timestamp,
             acPowerW: dto.activePower,
-            energyTodayKwh: dto.energyExported ? dto.energyExported % 24 : undefined, // estimation mock
+            energyTodayKwh: dto.energyExported
+              ? dto.energyExported % 24
+              : undefined, // estimation mock
             energyTotalKwh: dto.energyExported,
-            efficiency: device.metadata ? (device.metadata as any).efficiency : undefined,
+            efficiency: device.metadata
+              ? (device.metadata as any).efficiency
+              : undefined,
           },
         }),
       );
@@ -101,14 +115,23 @@ export class TelemetryService {
             socPercent: dto.batterySoc,
             voltageV: dto.voltage,
             currentA: dto.current,
-            state: dto.current && dto.current > 0 ? 'CHARGING' : dto.current && dto.current < 0 ? 'DISCHARGING' : 'IDLE',
+            state:
+              dto.current && dto.current > 0
+                ? 'CHARGING'
+                : dto.current && dto.current < 0
+                  ? 'DISCHARGING'
+                  : 'IDLE',
           },
         }),
       );
     }
 
     // Alarm / Fault generation
-    if (dto.alarmStatus && dto.alarmStatus !== 'OK' && dto.alarmStatus !== 'NORMAL') {
+    if (
+      dto.alarmStatus &&
+      dto.alarmStatus !== 'OK' &&
+      dto.alarmStatus !== 'NORMAL'
+    ) {
       promises.push(
         this.prisma.faultLog.create({
           data: {
@@ -131,11 +154,26 @@ export class TelemetryService {
   }
 
   async ingestBatch(dto: BatchTelemetryDto) {
-    const device = await this.prisma.device.findUnique({ where: { id: dto.deviceId } });
-    if (!device) throw new NotFoundException(`Device ${dto.deviceId} not found`);
+    const device = await this.prisma.device.findUnique({
+      where: { id: dto.deviceId },
+    });
+    if (!device)
+      throw new NotFoundException(`Device ${dto.deviceId} not found`);
 
-    const startTs = new Date(Math.min(...dto.readings.map(r => new Date(r.timestamp || new Date()).getTime())));
-    const endTs = new Date(Math.max(...dto.readings.map(r => new Date(r.timestamp || new Date()).getTime())));
+    const startTs = new Date(
+      Math.min(
+        ...dto.readings.map((r) =>
+          new Date(r.timestamp || new Date()).getTime(),
+        ),
+      ),
+    );
+    const endTs = new Date(
+      Math.max(
+        ...dto.readings.map((r) =>
+          new Date(r.timestamp || new Date()).getTime(),
+        ),
+      ),
+    );
 
     // Create a batch tracking record
     await this.prisma.telemetryBatch.create({
@@ -151,11 +189,11 @@ export class TelemetryService {
 
     // Ingest all readings
     const results = await Promise.all(
-      dto.readings.map(reading =>
+      dto.readings.map((reading) =>
         this.ingest({
           ...reading,
           deviceId: dto.deviceId,
-        }).catch(err => {
+        }).catch((err) => {
           console.error(`Failed to ingest record inside batch: ${err.message}`);
           return null;
         }),
@@ -165,7 +203,7 @@ export class TelemetryService {
     return {
       deviceId: dto.deviceId,
       totalReceived: dto.readings.length,
-      totalProcessed: results.filter(r => r !== null).length,
+      totalProcessed: results.filter((r) => r !== null).length,
     };
   }
 
@@ -178,12 +216,14 @@ export class TelemetryService {
     const query = buildPaginationQuery(pagination);
     const where: any = {
       deviceId,
-      ...(startDate || endDate ? {
-        timestamp: {
-          ...(startDate && { gte: new Date(startDate) }),
-          ...(endDate && { lte: new Date(endDate) }),
-        },
-      } : {}),
+      ...(startDate || endDate
+        ? {
+            timestamp: {
+              ...(startDate && { gte: new Date(startDate) }),
+              ...(endDate && { lte: new Date(endDate) }),
+            },
+          }
+        : {}),
     };
 
     const [data, total] = await Promise.all([

@@ -1,4 +1,10 @@
-import { IsString, IsEnum, IsOptional, IsDateString, IsNumber } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsDateString,
+  IsNumber,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { MaintenanceType, MaintenanceStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
@@ -23,7 +29,10 @@ export class CreateMaintenanceDto {
   @IsString()
   description?: string;
 
-  @ApiPropertyOptional({ enum: MaintenanceType, default: MaintenanceType.PREVENTIVE })
+  @ApiPropertyOptional({
+    enum: MaintenanceType,
+    default: MaintenanceType.PREVENTIVE,
+  })
   @IsOptional()
   @IsEnum(MaintenanceType)
   type?: MaintenanceType;

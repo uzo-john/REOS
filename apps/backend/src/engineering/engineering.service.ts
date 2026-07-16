@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { 
-  calculateLoadProfile, 
-  sizeSolarPV, 
-  sizeBattery, 
-  sizeInverter, 
-  calculateVoltageDrop, 
-  calculateFinancials, 
+import {
+  calculateLoadProfile,
+  sizeSolarPV,
+  sizeBattery,
+  sizeInverter,
+  calculateVoltageDrop,
+  calculateFinancials,
   runEnergySimulation,
   LoadProfileResult,
   SolarSizingResult,
@@ -13,7 +13,7 @@ import {
   InverterSizingResult,
   CableSizingResult,
   FinancialResult,
-  SimulationResult
+  SimulationResult,
 } from '@reos/engineering';
 import { LoadAnalysisDto } from './dto/load-analysis.dto';
 import { PvSizingDto } from './dto/pv-sizing.dto';
@@ -25,12 +25,11 @@ import { SimulateDto } from './dto/simulate.dto';
 
 @Injectable()
 export class EngineeringService {
-  
   runLoadAnalysis(dto: LoadAnalysisDto): LoadProfileResult {
     return calculateLoadProfile(
       dto.appliances,
       dto.demandFactor ?? 1.0,
-      dto.diversityFactor ?? 1.0
+      dto.diversityFactor ?? 1.0,
     );
   }
 
@@ -40,7 +39,7 @@ export class EngineeringService {
       dto.peakSunHours,
       dto.losses ?? 0.15,
       dto.tempDerating ?? 0.9,
-      dto.panelRatingW ?? 400
+      dto.panelRatingW ?? 400,
     );
   }
 
@@ -52,7 +51,7 @@ export class EngineeringService {
       dto.autonomyDays ?? 1.0,
       dto.efficiency ?? 0.95,
       dto.singleBatteryAh ?? 200,
-      dto.singleBatteryVoltage ?? 12
+      dto.singleBatteryVoltage ?? 12,
     );
   }
 
@@ -60,7 +59,7 @@ export class EngineeringService {
     return sizeInverter(
       dto.loadMaxPowerW,
       dto.loadSurgePowerW,
-      dto.safetyMargin ?? 1.25
+      dto.safetyMargin ?? 1.25,
     );
   }
 
@@ -70,7 +69,7 @@ export class EngineeringService {
       dto.lengthMeters,
       dto.voltageV,
       dto.areaMm2,
-      dto.resistivity ?? 1.72e-8
+      dto.resistivity ?? 1.72e-8,
     );
   }
 
@@ -80,7 +79,7 @@ export class EngineeringService {
       dto.annualSavings,
       dto.opex ?? 0,
       dto.lifespanYrs ?? 25,
-      dto.discountRate ?? 0.1
+      dto.discountRate ?? 0.1,
     );
   }
 
@@ -89,7 +88,7 @@ export class EngineeringService {
       dto.hourlySolarGenKwh,
       dto.hourlyLoadDemandKwh,
       dto.batteryCapacityKwh,
-      dto.batteryMaxPowerKw ?? 3.0
+      dto.batteryMaxPowerKw ?? 3.0,
     );
   }
 }

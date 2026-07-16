@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import {
@@ -61,22 +65,45 @@ export class ProducerService {
       const feederA = 'feeder-A-123';
       const feederB = 'feeder-B-123';
       ProducerService.mockFeeders.push(
-        { id: feederA, name: 'Sharada Feeder A (Zone 1)', plantId: defaultPlantId, capacityKw: 1000, status: 'ACTIVE', createdAt: new Date() },
-        { id: feederB, name: 'Bompai Feeder B (Zone 2)', plantId: defaultPlantId, capacityKw: 1500, status: 'ACTIVE', createdAt: new Date() }
+        {
+          id: feederA,
+          name: 'Sharada Feeder A (Zone 1)',
+          plantId: defaultPlantId,
+          capacityKw: 1000,
+          status: 'ACTIVE',
+          createdAt: new Date(),
+        },
+        {
+          id: feederB,
+          name: 'Bompai Feeder B (Zone 2)',
+          plantId: defaultPlantId,
+          capacityKw: 1500,
+          status: 'ACTIVE',
+          createdAt: new Date(),
+        },
       );
 
       // Add mock Zones
       const zone1 = 'zone-1-123';
-      ProducerService.mockZones.push(
-        { id: zone1, name: 'Sharada Heavy Industry Zone', plantId: defaultPlantId, status: 'ACTIVE', createdAt: new Date() }
-      );
+      ProducerService.mockZones.push({
+        id: zone1,
+        name: 'Sharada Heavy Industry Zone',
+        plantId: defaultPlantId,
+        status: 'ACTIVE',
+        createdAt: new Date(),
+      });
 
       // Add mock consumers and smart meters
       ProducerService.mockConnections.push(
         {
           id: 'conn-1',
           consumerId: 'user-consumer-1',
-          consumer: { id: 'user-consumer-1', firstName: 'Standard', lastName: 'Brewery Ltd.', email: 'brewery@kanoclean.com' },
+          consumer: {
+            id: 'user-consumer-1',
+            firstName: 'Standard',
+            lastName: 'Brewery Ltd.',
+            email: 'brewery@kanoclean.com',
+          },
           plantId: defaultPlantId,
           feederId: feederA,
           zoneId: zone1,
@@ -91,7 +118,12 @@ export class ProducerService {
         {
           id: 'conn-2',
           consumerId: 'user-consumer-2',
-          consumer: { id: 'user-consumer-2', firstName: 'Kano Glass', lastName: 'Works', email: 'glassworks@kanoclean.com' },
+          consumer: {
+            id: 'user-consumer-2',
+            firstName: 'Kano Glass',
+            lastName: 'Works',
+            email: 'glassworks@kanoclean.com',
+          },
           plantId: defaultPlantId,
           feederId: feederA,
           zoneId: zone1,
@@ -106,7 +138,12 @@ export class ProducerService {
         {
           id: 'conn-3',
           consumerId: 'user-consumer-3',
-          consumer: { id: 'user-consumer-3', firstName: 'Challawa', lastName: 'Water Works', email: 'challawa@kano.gov' },
+          consumer: {
+            id: 'user-consumer-3',
+            firstName: 'Challawa',
+            lastName: 'Water Works',
+            email: 'challawa@kano.gov',
+          },
           plantId: defaultPlantId,
           feederId: feederB,
           zoneId: null,
@@ -117,26 +154,96 @@ export class ProducerService {
           connectionStatus: 'CONNECTED',
           createdAt: new Date(),
           updatedAt: new Date(),
-        }
+        },
       );
 
       // Add mock allocations
       ProducerService.mockAllocations.push(
-        { id: 'alloc-1', plantId: defaultPlantId, targetType: 'FEEDER', targetId: feederA, allocatedKw: 750.0, priority: 1, allocationType: 'MANUAL', isActive: true, createdAt: new Date() },
-        { id: 'alloc-2', plantId: defaultPlantId, targetType: 'FEEDER', targetId: feederB, allocatedKw: 800.0, priority: 2, allocationType: 'MANUAL', isActive: true, createdAt: new Date() },
-        { id: 'alloc-3', plantId: defaultPlantId, targetType: 'GRID', targetId: 'NATIONAL-GRID', allocatedKw: 250.0, priority: 3, allocationType: 'AUTO', isActive: true, createdAt: new Date() }
+        {
+          id: 'alloc-1',
+          plantId: defaultPlantId,
+          targetType: 'FEEDER',
+          targetId: feederA,
+          allocatedKw: 750.0,
+          priority: 1,
+          allocationType: 'MANUAL',
+          isActive: true,
+          createdAt: new Date(),
+        },
+        {
+          id: 'alloc-2',
+          plantId: defaultPlantId,
+          targetType: 'FEEDER',
+          targetId: feederB,
+          allocatedKw: 800.0,
+          priority: 2,
+          allocationType: 'MANUAL',
+          isActive: true,
+          createdAt: new Date(),
+        },
+        {
+          id: 'alloc-3',
+          plantId: defaultPlantId,
+          targetType: 'GRID',
+          targetId: 'NATIONAL-GRID',
+          allocatedKw: 250.0,
+          priority: 3,
+          allocationType: 'AUTO',
+          isActive: true,
+          createdAt: new Date(),
+        },
       );
 
       // Add mock dispatches
       ProducerService.mockDispatches.push(
-        { id: 'disp-1', plantId: defaultPlantId, feederId: feederA, targetType: 'FEEDER', targetId: feederA, allocatedKw: 750.0, dispatchedKw: 677.5, status: 'ACTIVE', createdAt: new Date() },
-        { id: 'disp-2', plantId: defaultPlantId, feederId: feederB, targetType: 'FEEDER', targetId: feederB, allocatedKw: 800.0, dispatchedKw: 720.0, status: 'ACTIVE', createdAt: new Date() }
+        {
+          id: 'disp-1',
+          plantId: defaultPlantId,
+          feederId: feederA,
+          targetType: 'FEEDER',
+          targetId: feederA,
+          allocatedKw: 750.0,
+          dispatchedKw: 677.5,
+          status: 'ACTIVE',
+          createdAt: new Date(),
+        },
+        {
+          id: 'disp-2',
+          plantId: defaultPlantId,
+          feederId: feederB,
+          targetType: 'FEEDER',
+          targetId: feederB,
+          allocatedKw: 800.0,
+          dispatchedKw: 720.0,
+          status: 'ACTIVE',
+          createdAt: new Date(),
+        },
       );
 
       // Add mock Grid Export logs
       ProducerService.mockGridExports.push(
-        { id: 'export-1', plantId: defaultPlantId, exportedEnergyKwh: 2450.0, importedEnergyKwh: 120.0, revenue: 551250, feedInTariff: 225.0, netMeteringCredit: 524250, settlementStatus: 'SETTLED', timestamp: new Date(Date.now() - 24 * 3600 * 1000) },
-        { id: 'export-2', plantId: defaultPlantId, exportedEnergyKwh: 1800.0, importedEnergyKwh: 95.0, revenue: 405000, feedInTariff: 225.0, netMeteringCredit: 383625, settlementStatus: 'PENDING', timestamp: new Date() }
+        {
+          id: 'export-1',
+          plantId: defaultPlantId,
+          exportedEnergyKwh: 2450.0,
+          importedEnergyKwh: 120.0,
+          revenue: 551250,
+          feedInTariff: 225.0,
+          netMeteringCredit: 524250,
+          settlementStatus: 'SETTLED',
+          timestamp: new Date(Date.now() - 24 * 3600 * 1000),
+        },
+        {
+          id: 'export-2',
+          plantId: defaultPlantId,
+          exportedEnergyKwh: 1800.0,
+          importedEnergyKwh: 95.0,
+          revenue: 405000,
+          feedInTariff: 225.0,
+          netMeteringCredit: 383625,
+          settlementStatus: 'PENDING',
+          timestamp: new Date(),
+        },
       );
     }
   }
@@ -168,7 +275,11 @@ export class ProducerService {
         updatedAt: new Date(),
       };
       ProducerService.mockPlants.push(newPlant);
-      await this.auditLog.log('PRODUCER_PLANT_REGISTER', { plantId: newPlant.id, name: newPlant.name }, ownerId);
+      await this.auditLog.log(
+        'PRODUCER_PLANT_REGISTER',
+        { plantId: newPlant.id, name: newPlant.name },
+        ownerId,
+      );
       return newPlant;
     }
 
@@ -196,17 +307,25 @@ export class ProducerService {
       },
     });
 
-    await this.auditLog.log('PRODUCER_PLANT_REGISTER', { plantId: plant.id, name: plant.name }, ownerId);
+    await this.auditLog.log(
+      'PRODUCER_PLANT_REGISTER',
+      { plantId: plant.id, name: plant.name },
+      ownerId,
+    );
     return plant;
   }
 
   async updatePlant(id: string, dto: UpdatePlantDto, operatorId: string) {
     if (!this.prisma.isConnected) {
       this.checkAndSeedMock();
-      const plant = ProducerService.mockPlants.find(p => p.id === id);
+      const plant = ProducerService.mockPlants.find((p) => p.id === id);
       if (!plant) throw new NotFoundException('Plant not found');
       Object.assign(plant, dto, { updatedAt: new Date() });
-      await this.auditLog.log('PRODUCER_PLANT_UPDATE', { plantId: id, updates: dto }, operatorId);
+      await this.auditLog.log(
+        'PRODUCER_PLANT_UPDATE',
+        { plantId: id, updates: dto },
+        operatorId,
+      );
       return plant;
     }
 
@@ -214,7 +333,11 @@ export class ProducerService {
       where: { id },
       data: dto as any,
     });
-    await this.auditLog.log('PRODUCER_PLANT_UPDATE', { plantId: id, updates: dto }, operatorId);
+    await this.auditLog.log(
+      'PRODUCER_PLANT_UPDATE',
+      { plantId: id, updates: dto },
+      operatorId,
+    );
     return updated;
   }
 
@@ -239,17 +362,21 @@ export class ProducerService {
   async getPlantDetails(id: string) {
     if (!this.prisma.isConnected) {
       this.checkAndSeedMock();
-      const plant = ProducerService.mockPlants.find(p => p.id === id);
+      const plant = ProducerService.mockPlants.find((p) => p.id === id);
       if (!plant) throw new NotFoundException('Plant not found');
-      const feeders = ProducerService.mockFeeders.filter(f => f.plantId === id);
-      const connections = ProducerService.mockConnections.filter(c => c.plantId === id);
-      const zones = ProducerService.mockZones.filter(z => z.plantId === id);
+      const feeders = ProducerService.mockFeeders.filter(
+        (f) => f.plantId === id,
+      );
+      const connections = ProducerService.mockConnections.filter(
+        (c) => c.plantId === id,
+      );
+      const zones = ProducerService.mockZones.filter((z) => z.plantId === id);
 
       return {
         ...plant,
         feedersCount: feeders.length,
         consumersCount: connections.length,
-        metersCount: connections.filter(c => c.smartMeterId).length,
+        metersCount: connections.filter((c) => c.smartMeterId).length,
         feeders,
         connections,
         zones,
@@ -271,7 +398,8 @@ export class ProducerService {
       ...plant,
       feedersCount: plant.feeders.length,
       consumersCount: plant.consumerConnections.length,
-      metersCount: plant.consumerConnections.filter(c => c.smartMeterId).length,
+      metersCount: plant.consumerConnections.filter((c) => c.smartMeterId)
+        .length,
     };
   }
 
@@ -307,7 +435,7 @@ export class ProducerService {
   async getFeeders(plantId: string) {
     if (!this.prisma.isConnected) {
       this.checkAndSeedMock();
-      return ProducerService.mockFeeders.filter(f => f.plantId === plantId);
+      return ProducerService.mockFeeders.filter((f) => f.plantId === plantId);
     }
     return this.prisma.feeder.findMany({ where: { plantId } });
   }
@@ -342,7 +470,7 @@ export class ProducerService {
   async getZones(plantId: string) {
     if (!this.prisma.isConnected) {
       this.checkAndSeedMock();
-      return ProducerService.mockZones.filter(z => z.plantId === plantId);
+      return ProducerService.mockZones.filter((z) => z.plantId === plantId);
     }
     return this.prisma.distributionZone.findMany({ where: { plantId } });
   }
@@ -354,11 +482,17 @@ export class ProducerService {
       const newConn = {
         id: `conn-${uuidv4()}`,
         consumerId: dto.consumerId,
-        consumer: { id: dto.consumerId, firstName: 'Consumer', lastName: 'Customer', email: 'consumer@reos.io' },
+        consumer: {
+          id: dto.consumerId,
+          firstName: 'Consumer',
+          lastName: 'Customer',
+          email: 'consumer@reos.io',
+        },
         plantId: dto.plantId,
         feederId: dto.feederId || null,
         zoneId: dto.zoneId || null,
-        smartMeterId: dto.smartMeterId || `SM-${Math.floor(1000 + Math.random() * 9000)}`,
+        smartMeterId:
+          dto.smartMeterId || `SM-${Math.floor(1000 + Math.random() * 9000)}`,
         allocatedPowerKw: dto.allocatedPowerKw ?? 50.0,
         actualPowerKw: 0.0,
         remainingAllocationKwh: (dto.allocatedPowerKw ?? 50.0) * 10,
@@ -391,14 +525,22 @@ export class ProducerService {
     if (!this.prisma.isConnected) {
       this.checkAndSeedMock();
       // Periodically simulate variable power consumption
-      ProducerService.mockConnections.forEach(c => {
+      ProducerService.mockConnections.forEach((c) => {
         if (c.plantId === plantId && c.connectionStatus === 'CONNECTED') {
           const delta = (Math.random() - 0.5) * 10;
-          c.actualPowerKw = Math.max(0.1, Math.min(c.allocatedPowerKw, c.actualPowerKw + delta));
-          c.remainingAllocationKwh = Math.max(0, c.remainingAllocationKwh - (c.actualPowerKw / 1200)); // reduce remaining
+          c.actualPowerKw = Math.max(
+            0.1,
+            Math.min(c.allocatedPowerKw, c.actualPowerKw + delta),
+          );
+          c.remainingAllocationKwh = Math.max(
+            0,
+            c.remainingAllocationKwh - c.actualPowerKw / 1200,
+          ); // reduce remaining
         }
       });
-      return ProducerService.mockConnections.filter(c => c.plantId === plantId);
+      return ProducerService.mockConnections.filter(
+        (c) => c.plantId === plantId,
+      );
     }
     return this.prisma.consumerConnection.findMany({
       where: { plantId },
@@ -409,11 +551,17 @@ export class ProducerService {
   async disconnectConsumer(connectionId: string, operatorId: string) {
     if (!this.prisma.isConnected) {
       this.checkAndSeedMock();
-      const conn = ProducerService.mockConnections.find(c => c.id === connectionId);
+      const conn = ProducerService.mockConnections.find(
+        (c) => c.id === connectionId,
+      );
       if (!conn) throw new NotFoundException('Connection not found');
       conn.connectionStatus = 'DISCONNECTED';
       conn.actualPowerKw = 0.0;
-      await this.auditLog.log('PRODUCER_CONSUMER_DISCONNECT', { connectionId }, operatorId);
+      await this.auditLog.log(
+        'PRODUCER_CONSUMER_DISCONNECT',
+        { connectionId },
+        operatorId,
+      );
       return conn;
     }
 
@@ -421,17 +569,27 @@ export class ProducerService {
       where: { id: connectionId },
       data: { connectionStatus: 'DISCONNECTED', actualPowerKw: 0.0 },
     });
-    await this.auditLog.log('PRODUCER_CONSUMER_DISCONNECT', { connectionId }, operatorId);
+    await this.auditLog.log(
+      'PRODUCER_CONSUMER_DISCONNECT',
+      { connectionId },
+      operatorId,
+    );
     return conn;
   }
 
   async reconnectConsumer(connectionId: string, operatorId: string) {
     if (!this.prisma.isConnected) {
       this.checkAndSeedMock();
-      const conn = ProducerService.mockConnections.find(c => c.id === connectionId);
+      const conn = ProducerService.mockConnections.find(
+        (c) => c.id === connectionId,
+      );
       if (!conn) throw new NotFoundException('Connection not found');
       conn.connectionStatus = 'CONNECTED';
-      await this.auditLog.log('PRODUCER_CONSUMER_RECONNECT', { connectionId }, operatorId);
+      await this.auditLog.log(
+        'PRODUCER_CONSUMER_RECONNECT',
+        { connectionId },
+        operatorId,
+      );
       return conn;
     }
 
@@ -439,7 +597,11 @@ export class ProducerService {
       where: { id: connectionId },
       data: { connectionStatus: 'CONNECTED' },
     });
-    await this.auditLog.log('PRODUCER_CONSUMER_RECONNECT', { connectionId }, operatorId);
+    await this.auditLog.log(
+      'PRODUCER_CONSUMER_RECONNECT',
+      { connectionId },
+      operatorId,
+    );
     return conn;
   }
 
@@ -455,7 +617,9 @@ export class ProducerService {
         allocatedKw: dto.allocatedKw,
         priority: dto.priority ?? 1,
         allocationType: dto.allocationType ?? 'MANUAL',
-        scheduledStart: dto.scheduledStart ? new Date(dto.scheduledStart) : null,
+        scheduledStart: dto.scheduledStart
+          ? new Date(dto.scheduledStart)
+          : null,
         scheduledEnd: dto.scheduledEnd ? new Date(dto.scheduledEnd) : null,
         isActive: true,
         createdAt: new Date(),
@@ -478,7 +642,9 @@ export class ProducerService {
 
       // If allocating directly to a connected consumer, let's update their connection
       if (dto.targetType === 'CONSUMER') {
-        const conn = ProducerService.mockConnections.find(c => c.consumerId === dto.targetId);
+        const conn = ProducerService.mockConnections.find(
+          (c) => c.consumerId === dto.targetId,
+        );
         if (conn) {
           conn.allocatedPowerKw = dto.allocatedKw;
           conn.remainingAllocationKwh = dto.allocatedKw * 10;
@@ -497,7 +663,9 @@ export class ProducerService {
         allocatedKw: dto.allocatedKw,
         priority: dto.priority,
         allocationType: dto.allocationType,
-        scheduledStart: dto.scheduledStart ? new Date(dto.scheduledStart) : null,
+        scheduledStart: dto.scheduledStart
+          ? new Date(dto.scheduledStart)
+          : null,
         scheduledEnd: dto.scheduledEnd ? new Date(dto.scheduledEnd) : null,
         feederId: dto.feederId,
         zoneId: dto.zoneId,
@@ -508,7 +676,10 @@ export class ProducerService {
     if (dto.targetType === 'CONSUMER') {
       await this.prisma.consumerConnection.updateMany({
         where: { consumerId: dto.targetId, plantId: dto.plantId },
-        data: { allocatedPowerKw: dto.allocatedKw, remainingAllocationKwh: dto.allocatedKw * 10 },
+        data: {
+          allocatedPowerKw: dto.allocatedKw,
+          remainingAllocationKwh: dto.allocatedKw * 10,
+        },
       });
     }
 
@@ -530,7 +701,9 @@ export class ProducerService {
   async getAllocations(plantId: string) {
     if (!this.prisma.isConnected) {
       this.checkAndSeedMock();
-      return ProducerService.mockAllocations.filter(a => a.plantId === plantId);
+      return ProducerService.mockAllocations.filter(
+        (a) => a.plantId === plantId,
+      );
     }
     return this.prisma.energyAllocation.findMany({ where: { plantId } });
   }
@@ -601,7 +774,9 @@ export class ProducerService {
   async getDispatches(plantId: string) {
     if (!this.prisma.isConnected) {
       this.checkAndSeedMock();
-      return ProducerService.mockDispatches.filter(d => d.plantId === plantId);
+      return ProducerService.mockDispatches.filter(
+        (d) => d.plantId === plantId,
+      );
     }
     return this.prisma.energyDispatch.findMany({ where: { plantId } });
   }
@@ -609,7 +784,7 @@ export class ProducerService {
   async pauseDispatch(id: string, operatorId: string) {
     if (!this.prisma.isConnected) {
       this.checkAndSeedMock();
-      const dispatch = ProducerService.mockDispatches.find(d => d.id === id);
+      const dispatch = ProducerService.mockDispatches.find((d) => d.id === id);
       if (!dispatch) throw new NotFoundException('Dispatch not found');
       dispatch.status = 'PAUSED';
       dispatch.dispatchedKw = 0.0;
@@ -653,7 +828,7 @@ export class ProducerService {
   async resumeDispatch(id: string, operatorId: string) {
     if (!this.prisma.isConnected) {
       this.checkAndSeedMock();
-      const dispatch = ProducerService.mockDispatches.find(d => d.id === id);
+      const dispatch = ProducerService.mockDispatches.find((d) => d.id === id);
       if (!dispatch) throw new NotFoundException('Dispatch not found');
       dispatch.status = 'ACTIVE';
       dispatch.dispatchedKw = dispatch.allocatedKw;
@@ -674,7 +849,9 @@ export class ProducerService {
       return dispatch;
     }
 
-    const dispatch = await this.prisma.energyDispatch.findUnique({ where: { id } });
+    const dispatch = await this.prisma.energyDispatch.findUnique({
+      where: { id },
+    });
     if (!dispatch) throw new NotFoundException('Dispatch not found');
 
     const updated = await this.prisma.energyDispatch.update({
@@ -700,7 +877,9 @@ export class ProducerService {
   async getDispatchLogs(plantId: string) {
     if (!this.prisma.isConnected) {
       this.checkAndSeedMock();
-      return ProducerService.mockDispatchLogs.filter(l => l.plantId === plantId).reverse();
+      return ProducerService.mockDispatchLogs
+        .filter((l) => l.plantId === plantId)
+        .reverse();
     }
     return this.prisma.dispatchLog.findMany({
       where: { plantId },
@@ -713,7 +892,10 @@ export class ProducerService {
   async logGridExport(dto: LogGridExportDto, operatorId: string) {
     const tariff = dto.feedInTariff;
     const revenue = dto.exportedEnergyKwh * tariff;
-    const netCredit = Math.max(0, (dto.exportedEnergyKwh - (dto.importedEnergyKwh ?? 0)) * tariff);
+    const netCredit = Math.max(
+      0,
+      (dto.exportedEnergyKwh - (dto.importedEnergyKwh ?? 0)) * tariff,
+    );
 
     if (!this.prisma.isConnected) {
       this.checkAndSeedMock();
@@ -729,7 +911,11 @@ export class ProducerService {
         timestamp: new Date(),
       };
       ProducerService.mockGridExports.push(newRec);
-      await this.auditLog.log('PRODUCER_GRID_EXPORT_RECORD', newRec, operatorId);
+      await this.auditLog.log(
+        'PRODUCER_GRID_EXPORT_RECORD',
+        newRec,
+        operatorId,
+      );
       return newRec;
     }
 
@@ -751,7 +937,9 @@ export class ProducerService {
   async getGridExports(plantId: string) {
     if (!this.prisma.isConnected) {
       this.checkAndSeedMock();
-      return ProducerService.mockGridExports.filter(e => e.plantId === plantId);
+      return ProducerService.mockGridExports.filter(
+        (e) => e.plantId === plantId,
+      );
     }
     return this.prisma.gridExportRecord.findMany({
       where: { plantId },
@@ -763,10 +951,12 @@ export class ProducerService {
   async getAnalytics(plantId: string) {
     this.checkAndSeedMock();
     const liveLoad = ProducerService.mockConnections
-      .filter(c => c.plantId === plantId && c.connectionStatus === 'CONNECTED')
+      .filter(
+        (c) => c.plantId === plantId && c.connectionStatus === 'CONNECTED',
+      )
       .reduce((acc, c) => acc + c.actualPowerKw, 0);
 
-    const liveGen = liveLoad * 1.15 + (Math.random() * 50); // generation is load + export + losses
+    const liveGen = liveLoad * 1.15 + Math.random() * 50; // generation is load + export + losses
     const losses = liveGen * 0.04;
     const efficiency = 96.0;
 
@@ -826,7 +1016,7 @@ export class ProducerService {
       generationForecastKw: generationForecast,
       demandForecastKw: demandForecast,
       batterySocForecastPercent: batterySocForecast,
-      lossForecastKw: demandForecast.map(d => Math.round(d * 0.045)),
+      lossForecastKw: demandForecast.map((d) => Math.round(d * 0.045)),
       revenueForecast: {
         directConsumer: 2450000,
         gridExport: 540000,
@@ -838,7 +1028,8 @@ export class ProducerService {
           category: 'BATTERY_OPTIMIZATION',
           priority: 'HIGH',
           title: 'Charge Battery from 08:00 - 10:00',
-          description: 'Midday generation will exceed consumer demands. Absorb excess 450 kW in Battery Storage to defer grid charging charges.',
+          description:
+            'Midday generation will exceed consumer demands. Absorb excess 450 kW in Battery Storage to defer grid charging charges.',
           savingsImpact: '₦145,000/day',
         },
         {
@@ -846,7 +1037,8 @@ export class ProducerService {
           category: 'PEAK_SHAVING',
           priority: 'MEDIUM',
           title: 'Shave peak demand at Bompai Substation',
-          description: 'Industrial feeders will spike by 15% at 15:30. Limit community allocation manually or discharge battery by 150 kW during peak hours.',
+          description:
+            'Industrial feeders will spike by 15% at 15:30. Limit community allocation manually or discharge battery by 150 kW during peak hours.',
           savingsImpact: '₦95,000/day',
         },
         {
@@ -854,7 +1046,8 @@ export class ProducerService {
           category: 'DISPATCH_BALANCING',
           priority: 'INFO',
           title: 'Shift Grid Export to Peak Tariff Hours',
-          description: 'Exporting during off-peak provides lower margins. Throttle grid connection to 50 kW until peak period (17:00-20:00) when Feed-in Tariffs spike by 25%.',
+          description:
+            'Exporting during off-peak provides lower margins. Throttle grid connection to 50 kW until peak period (17:00-20:00) when Feed-in Tariffs spike by 25%.',
           savingsImpact: '₦210,000/day',
         },
       ],
@@ -863,17 +1056,43 @@ export class ProducerService {
 
   async getBillingSettlements(plantId: string) {
     this.checkAndSeedMock();
-    const connections = ProducerService.mockConnections.filter(c => c.plantId === plantId);
+    const connections = ProducerService.mockConnections.filter(
+      (c) => c.plantId === plantId,
+    );
 
-    const directConsumerRevenue = connections.reduce((sum, c) => sum + (c.allocatedPowerKw * 125 * 30), 0); // ₦125 per kW/h rate approximation
+    const directConsumerRevenue = connections.reduce(
+      (sum, c) => sum + c.allocatedPowerKw * 125 * 30,
+      0,
+    ); // ₦125 per kW/h rate approximation
     const gridExportRevenue = ProducerService.mockGridExports
-      .filter(g => g.plantId === plantId)
+      .filter((g) => g.plantId === plantId)
       .reduce((sum, g) => sum + g.revenue, 0);
 
     const transactionHistory = [
-      { id: 'tx-201', consumerName: 'Standard Brewery Ltd.', energySoldKwh: 12450.0, amount: 1556250, status: 'PAID', date: new Date(Date.now() - 3 * 24 * 3600 * 1000) },
-      { id: 'tx-202', consumerName: 'Kano Glass Works', energySoldKwh: 8900.0, amount: 1112500, status: 'PAID', date: new Date(Date.now() - 5 * 24 * 3600 * 1000) },
-      { id: 'tx-203', consumerName: 'Challawa Water Works', energySoldKwh: 21500.0, amount: 2687500, status: 'PENDING', date: new Date(Date.now() - 1 * 24 * 3600 * 1000) },
+      {
+        id: 'tx-201',
+        consumerName: 'Standard Brewery Ltd.',
+        energySoldKwh: 12450.0,
+        amount: 1556250,
+        status: 'PAID',
+        date: new Date(Date.now() - 3 * 24 * 3600 * 1000),
+      },
+      {
+        id: 'tx-202',
+        consumerName: 'Kano Glass Works',
+        energySoldKwh: 8900.0,
+        amount: 1112500,
+        status: 'PAID',
+        date: new Date(Date.now() - 5 * 24 * 3600 * 1000),
+      },
+      {
+        id: 'tx-203',
+        consumerName: 'Challawa Water Works',
+        energySoldKwh: 21500.0,
+        amount: 2687500,
+        status: 'PENDING',
+        date: new Date(Date.now() - 1 * 24 * 3600 * 1000),
+      },
     ];
 
     return {
@@ -884,9 +1103,24 @@ export class ProducerService {
       walletBalance: 3450890.0,
       gridExportRevenue,
       settlementReports: [
-        { month: 'June 2026', energySoldMwh: 45.8, revenue: 5725000, status: 'SETTLED' },
-        { month: 'May 2026', energySoldMwh: 42.1, revenue: 5262500, status: 'SETTLED' },
-        { month: 'April 2026', energySoldMwh: 38.6, revenue: 4825000, status: 'SETTLED' },
+        {
+          month: 'June 2026',
+          energySoldMwh: 45.8,
+          revenue: 5725000,
+          status: 'SETTLED',
+        },
+        {
+          month: 'May 2026',
+          energySoldMwh: 42.1,
+          revenue: 5262500,
+          status: 'SETTLED',
+        },
+        {
+          month: 'April 2026',
+          energySoldMwh: 38.6,
+          revenue: 4825000,
+          status: 'SETTLED',
+        },
       ],
       transactions: transactionHistory,
     };

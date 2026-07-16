@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { IAiProvider, AiMessage, AiResponse } from './interfaces/ai-provider.interface';
+import {
+  IAiProvider,
+  AiMessage,
+  AiResponse,
+} from './interfaces/ai-provider.interface';
 import { OpenAiProvider } from './providers/openai.provider';
 import { GeminiProvider } from './providers/gemini.provider';
 import { AnthropicProvider } from './providers/anthropic.provider';
@@ -21,8 +25,13 @@ export class AiService {
     this.providers.set(this.anthropic.getName(), this.anthropic);
   }
 
-  async generateResponse(messages: AiMessage[], options?: any): Promise<AiResponse> {
-    const primaryName = (this.configService.get<string>('AI_PROVIDER') || 'GEMINI').toUpperCase();
+  async generateResponse(
+    messages: AiMessage[],
+    options?: any,
+  ): Promise<AiResponse> {
+    const primaryName = (
+      this.configService.get<string>('AI_PROVIDER') || 'GEMINI'
+    ).toUpperCase();
     const provider = this.providers.get(primaryName);
 
     if (!provider) {
@@ -33,23 +42,34 @@ export class AiService {
       this.logger.log(`Invoking primary AI provider: ${primaryName}`);
       return await provider.generateResponse(messages, options);
     } catch (e: any) {
-      this.logger.warn(`Primary AI provider '${primaryName}' failed: ${e.message}. Initiating failover logic.`);
-      
-      const alternateNames = Array.from(this.providers.keys()).filter(name => name !== primaryName);
-      
+      this.logger.warn(
+        `Primary AI provider '${primaryName}' failed: ${e.message}. Initiating failover logic.`,
+      );
+
+      const alternateNames = Array.from(this.providers.keys()).filter(
+        (name) => name !== primaryName,
+      );
+
       for (const altName of alternateNames) {
         try {
           const altProvider = this.providers.get(altName)!;
           this.logger.log(`Failover rebound: Attempting provider: ${altName}`);
-          const response = await altProvider.generateResponse(messages, options);
+          const response = await altProvider.generateResponse(
+            messages,
+            options,
+          );
           this.logger.log(`Failover successful with provider: ${altName}`);
           return response;
         } catch (err: any) {
-          this.logger.warn(`Failover provider '${altName}' failed: ${err.message}`);
+          this.logger.warn(
+            `Failover provider '${altName}' failed: ${err.message}`,
+          );
         }
       }
 
-      throw new Error(`AI generation failed: All providers exhausted. Primary error: ${e.message}`);
+      throw new Error(
+        `AI generation failed: All providers exhausted. Primary error: ${e.message}`,
+      );
     }
   }
 }

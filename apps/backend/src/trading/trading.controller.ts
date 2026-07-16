@@ -1,9 +1,20 @@
 import {
-  Controller, Get, Post, Body, Param, Query, UseGuards, Delete,
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  Delete,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { TradingService } from './trading.service';
-import { CreateP2PSessionDto, BuyEnergyDto, CreateOrderDto } from './dto/trading.dto';
+import {
+  CreateP2PSessionDto,
+  BuyEnergyDto,
+  CreateOrderDto,
+} from './dto/trading.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -16,8 +27,13 @@ export class TradingController {
   constructor(private readonly service: TradingService) {}
 
   @Post('session')
-  @ApiOperation({ summary: 'Open a P2P energy seller session (List surplus solar)' })
-  createSession(@Body() dto: CreateP2PSessionDto, @CurrentUser('id') userId: string) {
+  @ApiOperation({
+    summary: 'Open a P2P energy seller session (List surplus solar)',
+  })
+  createSession(
+    @Body() dto: CreateP2PSessionDto,
+    @CurrentUser('id') userId: string,
+  ) {
     return this.service.createP2PSession(userId, dto);
   }
 
@@ -33,7 +49,10 @@ export class TradingController {
 
   @Get('sessions')
   @ApiOperation({ summary: 'Get active P2P energy listings' })
-  getSessions(@Query() pagination: PaginationDto, @Query('activeOnly') activeOnly?: string) {
+  getSessions(
+    @Query() pagination: PaginationDto,
+    @Query('activeOnly') activeOnly?: string,
+  ) {
     const active = activeOnly !== 'false';
     return this.service.listP2PSessions(pagination, active);
   }

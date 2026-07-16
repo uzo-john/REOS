@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Delete, Param, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Param,
+  Body,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { IotService, Device } from './iot.service';
 
 @Controller('iot')
@@ -11,7 +20,13 @@ export class IotController {
   }
 
   @Post('devices')
-  registerDevice(@Body() device: Omit<Device, 'lastCommTime' | 'signalStrength' | 'communicationQuality'>) {
+  registerDevice(
+    @Body()
+    device: Omit<
+      Device,
+      'lastCommTime' | 'signalStrength' | 'communicationQuality'
+    >,
+  ) {
     return this.iotService.registerDevice(device);
   }
 
@@ -21,7 +36,10 @@ export class IotController {
   }
 
   @Post('devices/:id/status')
-  updateDeviceStatus(@Param('id') id: string, @Body('status') status: 'ONLINE' | 'OFFLINE' | 'MAINTENANCE') {
+  updateDeviceStatus(
+    @Param('id') id: string,
+    @Body('status') status: 'ONLINE' | 'OFFLINE' | 'MAINTENANCE',
+  ) {
     this.iotService.updateDeviceStatus(id, status);
     return { success: true };
   }

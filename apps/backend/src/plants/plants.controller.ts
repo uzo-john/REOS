@@ -1,9 +1,22 @@
 import {
-  Controller, Get, Post, Put, Delete, Body, Param, Query, UseGuards,
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { PlantsService } from './plants.service';
-import { CreatePlantDto, UpdatePlantDto, CreateSiteDto, AssignDeviceDto } from './dto/plant.dto';
+import {
+  CreatePlantDto,
+  UpdatePlantDto,
+  CreateSiteDto,
+  AssignDeviceDto,
+} from './dto/plant.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -53,7 +66,11 @@ export class PlantsController {
 
   @Post(':id/sites')
   @ApiOperation({ summary: 'Create site within plant' })
-  createSite(@Param('id') plantId: string, @Body() dto: CreateSiteDto, @CurrentUser('id') userId: string) {
+  createSite(
+    @Param('id') plantId: string,
+    @Body() dto: CreateSiteDto,
+    @CurrentUser('id') userId: string,
+  ) {
     return this.service.createSite(plantId, dto, userId);
   }
 
@@ -77,7 +94,10 @@ export class PlantsController {
 
   @Delete(':id/devices/:deviceId')
   @ApiOperation({ summary: 'Unassign device from plant' })
-  unassignDevice(@Param('id') plantId: string, @Param('deviceId') deviceId: string) {
+  unassignDevice(
+    @Param('id') plantId: string,
+    @Param('deviceId') deviceId: string,
+  ) {
     return this.service.unassignDevice(plantId, deviceId);
   }
 }

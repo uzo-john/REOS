@@ -1,4 +1,13 @@
-import { IsString, IsNumber, IsOptional, IsEnum, IsBoolean, IsArray, IsDateString, IsUUID } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsEnum,
+  IsBoolean,
+  IsArray,
+  IsDateString,
+  IsUUID,
+} from 'class-validator';
 
 export class RegisterPlantDto {
   @IsString()

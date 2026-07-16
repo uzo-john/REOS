@@ -16,7 +16,9 @@ export class RequestReportDto {
   @IsString()
   organizationId?: string;
 
-  @ApiPropertyOptional({ description: 'Optional custom parameters like startDate, endDate' })
+  @ApiPropertyOptional({
+    description: 'Optional custom parameters like startDate, endDate',
+  })
   @IsOptional()
   @IsObject()
   parameters?: any;

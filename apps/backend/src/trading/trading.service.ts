@@ -1,9 +1,20 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletService } from '../wallet/wallet.service';
-import { CreateP2PSessionDto, BuyEnergyDto, CreateOrderDto } from './dto/trading.dto';
+import {
+  CreateP2PSessionDto,
+  BuyEnergyDto,
+  CreateOrderDto,
+} from './dto/trading.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
-import { paginate, buildPaginationQuery } from '../common/utils/pagination.util';
+import {
+  paginate,
+  buildPaginationQuery,
+} from '../common/utils/pagination.util';
 import * as crypto from 'crypto';
 
 @Injectable()
@@ -19,7 +30,9 @@ export class TradingService {
     const wallets = await this.walletService.findByOwner(sellerId);
     const sellerWallet = wallets.find((w) => w.currency === currency);
     if (!sellerWallet) {
-      throw new BadRequestException(`No active wallet found for currency ${currency}. Create one first.`);
+      throw new BadRequestException(
+        `No active wallet found for currency ${currency}. Create one first.`,
+      );
     }
 
     return this.prisma.p2PSession.create({
@@ -35,30 +48,52 @@ export class TradingService {
     });
   }
 
-  async purchaseP2PEnergy(sessionId: string, buyerId: string, dto: BuyEnergyDto) {
+  async purchaseP2PEnergy(
+    sessionId: string,
+    buyerId: string,
+    dto: BuyEnergyDto,
+  ) {
     const session = await this.prisma.p2PSession.findUnique({
       where: { id: sessionId },
     });
     if (!session) throw new NotFoundException('Trading session not found');
-    if (session.status !== 'PENDING') throw new BadRequestException('Session is no longer active');
-    if (session.sellerId === buyerId) throw new BadRequestException('Cannot buy your own energy listing');
-    if (dto.energyKwh > session.energyAmountKwh) throw new BadRequestException('Requested energy exceeds availability');
+    if (session.status !== 'PENDING')
+      throw new BadRequestException('Session is no longer active');
+    if (session.sellerId === buyerId)
+      throw new BadRequestException('Cannot buy your own energy listing');
+    if (dto.energyKwh > session.energyAmountKwh)
+      throw new BadRequestException('Requested energy exceeds availability');
     if (dto.energyKwh < (session.minimumKwh ?? 1.0)) {
-      throw new BadRequestException(`Must purchase at least the minimum of ${session.minimumKwh} kWh`);
+      throw new BadRequestException(
+        `Must purchase at least the minimum of ${session.minimumKwh} kWh`,
+      );
     }
 
     const totalCost = dto.energyKwh * session.offerPricePerKwh;
 
     // Retrieve buyer wallet
     const buyerWallets = await this.walletService.findByOwner(buyerId);
-    const buyerWallet = buyerWallets.find((w) => w.currency === session.currency);
-    if (!buyerWallet) throw new BadRequestException(`No wallet found for currency ${session.currency}`);
-    if (buyerWallet.balance < totalCost) throw new BadRequestException('Insufficient wallet balance');
+    const buyerWallet = buyerWallets.find(
+      (w) => w.currency === session.currency,
+    );
+    if (!buyerWallet)
+      throw new BadRequestException(
+        `No wallet found for currency ${session.currency}`,
+      );
+    if (buyerWallet.balance < totalCost)
+      throw new BadRequestException('Insufficient wallet balance');
 
     // Retrieve seller wallet
-    const sellerWallets = await this.walletService.findByOwner(session.sellerId);
-    const sellerWallet = sellerWallets.find((w) => w.currency === session.currency);
-    if (!sellerWallet) throw new BadRequestException(`Seller wallet missing for currency ${session.currency}`);
+    const sellerWallets = await this.walletService.findByOwner(
+      session.sellerId,
+    );
+    const sellerWallet = sellerWallets.find(
+      (w) => w.currency === session.currency,
+    );
+    if (!sellerWallet)
+      throw new BadRequestException(
+        `Seller wallet missing for currency ${session.currency}`,
+      );
 
     const settlementRef = `p2p_${crypto.randomBytes(8).toString('hex')}`;
 
@@ -110,7 +145,10 @@ export class TradingService {
           energyAmountKwh: { decrement: dto.energyKwh },
           buyerId,
           matchedAt: new Date(),
-          status: session.energyAmountKwh - dto.energyKwh <= 0.01 ? 'EXECUTED' : 'PENDING',
+          status:
+            session.energyAmountKwh - dto.energyKwh <= 0.01
+              ? 'EXECUTED'
+              : 'PENDING',
         },
       });
 
@@ -165,8 +203,14 @@ export class TradingService {
     if (dto.type === 'BUY') {
       const wallets = await this.walletService.findByOwner(userId);
       const userWallet = wallets.find((w) => w.currency === currency);
-      if (!userWallet) throw new BadRequestException(`No wallet found for currency ${currency}`);
-      if (userWallet.balance < totalCost) throw new BadRequestException('Insufficient wallet balance to place buy order');
+      if (!userWallet)
+        throw new BadRequestException(
+          `No wallet found for currency ${currency}`,
+        );
+      if (userWallet.balance < totalCost)
+        throw new BadRequestException(
+          'Insufficient wallet balance to place buy order',
+        );
 
       // Escrow the cost
       await this.walletService.lockBalance(userWallet.id, totalCost);
@@ -187,17 +231,23 @@ export class TradingService {
 
     // Run Order Matcher asynchronously
     this.matchOrders(order.id).catch((err) =>
-      console.error(`Order matching failure for order ${order.id}: ${err.message}`),
+      console.error(
+        `Order matching failure for order ${order.id}: ${err.message}`,
+      ),
     );
 
     return order;
   }
 
   async cancelLimitOrder(orderId: string, userId: string) {
-    const order = await this.prisma.tradingOrder.findUnique({ where: { id: orderId } });
+    const order = await this.prisma.tradingOrder.findUnique({
+      where: { id: orderId },
+    });
     if (!order) throw new NotFoundException('Order not found');
-    if (order.userId !== userId) throw new BadRequestException('Cannot cancel someone else\'s order');
-    if (order.status !== 'PENDING') throw new BadRequestException('Order is not in pending state');
+    if (order.userId !== userId)
+      throw new BadRequestException("Cannot cancel someone else's order");
+    if (order.status !== 'PENDING')
+      throw new BadRequestException('Order is not in pending state');
 
     if (order.type === 'BUY') {
       const wallets = await this.walletService.findByOwner(userId);
@@ -232,7 +282,9 @@ export class TradingService {
 
   // ─── Automated Order Matcher Engine ───
   private async matchOrders(newOrderId: string) {
-    const order = await this.prisma.tradingOrder.findUnique({ where: { id: newOrderId } });
+    const order = await this.prisma.tradingOrder.findUnique({
+      where: { id: newOrderId },
+    });
     if (!order || order.status !== 'PENDING') return;
 
     // Search matches: opposite order types matching price thresholds
@@ -242,7 +294,10 @@ export class TradingService {
         type: order.type === 'BUY' ? 'SELL' : 'BUY',
         currency: order.currency,
         userId: { not: order.userId }, // can't match oneself
-        pricePerKwh: order.type === 'BUY' ? { lte: order.pricePerKwh } : { gte: order.pricePerKwh },
+        pricePerKwh:
+          order.type === 'BUY'
+            ? { lte: order.pricePerKwh }
+            : { gte: order.pricePerKwh },
       },
       orderBy: { createdAt: 'asc' },
     });
@@ -267,15 +322,24 @@ export class TradingService {
             data: {
               filledKwh: { increment: fillKwh },
               remainingKwh: { decrement: fillKwh },
-              status: match.remainingKwh - fillKwh <= 0.01 ? 'EXECUTED' : 'PENDING',
+              status:
+                match.remainingKwh - fillKwh <= 0.01 ? 'EXECUTED' : 'PENDING',
             },
           });
 
           // Resolve buyer escrow & transfer
-          const buyerWallets = await tx.energyWallet.findMany({ where: { userId: buyerId } });
-          const buyerWallet = buyerWallets.find((w) => w.currency === order.currency);
-          const sellerWallets = await tx.energyWallet.findMany({ where: { userId: sellerId } });
-          const sellerWallet = sellerWallets.find((w) => w.currency === order.currency);
+          const buyerWallets = await tx.energyWallet.findMany({
+            where: { userId: buyerId },
+          });
+          const buyerWallet = buyerWallets.find(
+            (w) => w.currency === order.currency,
+          );
+          const sellerWallets = await tx.energyWallet.findMany({
+            where: { userId: sellerId },
+          });
+          const sellerWallet = sellerWallets.find(
+            (w) => w.currency === order.currency,
+          );
 
           if (buyerWallet && sellerWallet) {
             // Deduct locked escrow from buyer, credit seller

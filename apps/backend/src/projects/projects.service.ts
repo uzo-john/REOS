@@ -104,7 +104,9 @@ export class ProjectsService {
 
     // Build 24-hour arrays (use flat values if no hour-by-hour breakdown available)
     const hourlyLoad = Array(24).fill(load.dailyEnergyKwh / 24);
-    const hourlySolar = Array(24).fill((results.solar?.expectedAnnualGenKwh ?? 0) / 8760);
+    const hourlySolar = Array(24).fill(
+      (results.solar?.expectedAnnualGenKwh ?? 0) / 8760,
+    );
     const hourlyBattery = Array(24).fill(50); // default SoC percentage placeholder
 
     // Delete old simulation rows for this project
@@ -124,7 +126,6 @@ export class ProjectsService {
       },
     });
   }
-
 
   async create(userId: string, dto: CreateProjectDto) {
     if (!this.prisma.isConnected) {
@@ -160,7 +161,11 @@ export class ProjectsService {
     await this.syncDesign(project.id, dto.results);
     await this.syncSimulation(project.id, dto.results);
 
-    await this.auditLog.log('PROJECT_CREATE', { projectId: project.id, name: project.name }, userId);
+    await this.auditLog.log(
+      'PROJECT_CREATE',
+      { projectId: project.id, name: project.name },
+      userId,
+    );
     return project;
   }
 
@@ -246,7 +251,11 @@ export class ProjectsService {
     await this.syncDesign(project.id, dto.results);
     await this.syncSimulation(project.id, dto.results);
 
-    await this.auditLog.log('PROJECT_UPDATE', { projectId: project.id, updates: dto }, userId);
+    await this.auditLog.log(
+      'PROJECT_UPDATE',
+      { projectId: project.id, updates: dto },
+      userId,
+    );
     return project;
   }
 
