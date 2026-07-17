@@ -355,6 +355,14 @@ export default function TradingScreen() {
         <Text style={{ color: sub, fontSize: 12, lineHeight: 18 }}>Escrow-protected energy trades. Smart meter verified. ₦500 platform fee per transaction.</Text>
       </View>
 
+      {/* Sandbox Warning Banner */}
+      <View style={{ backgroundColor: isDark ? "rgba(0,212,255,0.06)" : "rgba(2,132,199,0.05)", borderRadius: 14, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: isDark ? "rgba(0,212,255,0.2)" : "rgba(2,132,199,0.15)" }}>
+        <Text style={{ color: isDark ? blue : "#0284C7", fontSize: 12, fontWeight: "700" }}>🛡️ Demo Sandbox Mode</Text>
+        <Text style={{ color: sub, fontSize: 11, marginTop: 4 }}>
+          Live payment integrations are simulated. Top Up deposits and withdrawal request processing are mock-executed instantly for testing.
+        </Text>
+      </View>
+
       {/* Wallet Summary Strip */}
       <View style={{ backgroundColor: card, borderRadius: 20, padding: 20, marginBottom: 16, borderWidth: 1, borderColor: border }}>
         <Text style={{ color: sub, fontSize: 10, fontWeight: "700", letterSpacing: 1.5, marginBottom: 12 }}>ENERGY WALLET</Text>

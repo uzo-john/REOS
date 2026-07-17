@@ -81,7 +81,7 @@ function StackedBar({ gen, load, export_: exp }: { gen: number; load: number; ex
   );
 }
 
-type Period = "7D" | "30D" | "3M";
+type Period = "7 Days" | "30 Days" | "3 Months";
 
 export default function AnalyticsScreen() {
   const { theme, telemetry, results } = useStore();
@@ -93,7 +93,7 @@ export default function AnalyticsScreen() {
   const sub    = isDark ? "#94A3B8" : "#64748B";
   const accent = "#00D4FF";
 
-  const [period, setPeriod] = useState<Period>("7D");
+  const [period, setPeriod] = useState<Period>("7 Days");
   const [tab, setTab] = useState<"generation" | "financial" | "system">("generation");
 
   const totalGen  = WEEKLY_DATA.reduce((s, d) => s + d.generation, 0).toFixed(1);
@@ -120,7 +120,7 @@ export default function AnalyticsScreen() {
 
       {/* Period Selector */}
       <View style={{ flexDirection: "row", backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)", borderRadius: 14, padding: 4, marginBottom: 16 }}>
-        {(["7D", "30D", "3M"] as Period[]).map(p => (
+        {(["7 Days", "30 Days", "3 Months"] as Period[]).map(p => (
           <TouchableOpacity
             key={p}
             onPress={() => setPeriod(p)}

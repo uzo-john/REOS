@@ -28,23 +28,50 @@ export class GeminiProvider implements IAiProvider {
     }
 
     try {
-      const contents = messages.map((msg) => ({
-        role: msg.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: msg.content }],
-      }));
+      const systemMessage = messages.find((msg) => msg.role === 'system');
+      const chatMessages = messages.filter((msg) => msg.role !== 'system');
+
+      // format contents and group consecutive messages of the same role to prevent validation issues
+      const contents: any[] = [];
+      for (const msg of chatMessages) {
+        const role = msg.role === 'assistant' ? 'model' : 'user';
+        if (contents.length > 0 && contents[contents.length - 1].role === role) {
+          contents[contents.length - 1].parts[0].text += `\n\n${msg.content}`;
+        } else {
+          contents.push({
+            role,
+            parts: [{ text: msg.content }],
+          });
+        }
+      }
+
+      // Gemini requires contents to start with a 'user' turn
+      if (contents.length > 0 && contents[0].role === 'model') {
+        contents.unshift({
+          role: 'user',
+          parts: [{ text: 'Hello' }],
+        });
+      }
 
       const modelName =
         options?.model ||
         this.configService.get<string>('GEMINI_MODEL') ||
-        'gemini-3.5-flash';
+        'gemini-1.5-flash';
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+      const requestBody: any = { contents };
+      if (systemMessage) {
+        requestBody.systemInstruction = {
+          parts: [{ text: systemMessage.content }],
+        };
+      }
 
       const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ contents }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {

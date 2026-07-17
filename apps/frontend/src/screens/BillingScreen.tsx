@@ -53,6 +53,14 @@ export default function BillingScreen() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: bg }} contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+      {/* Sandbox Warning Banner */}
+      <View style={{ backgroundColor: isDark ? "rgba(0,212,255,0.06)" : "rgba(2,132,199,0.05)", borderRadius: 14, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: isDark ? "rgba(0,212,255,0.2)" : "rgba(2,132,199,0.15)" }}>
+        <Text style={{ color: isDark ? accent : "#0284C7", fontSize: 12, fontWeight: "700" }}>🛡️ Demo Sandbox Mode</Text>
+        <Text style={{ color: sub, fontSize: 11, marginTop: 4 }}>
+          Live payment gateways (Paystack/Flutterwave) are simulated. Top Up payments are mock-processed instantly for demonstration.
+        </Text>
+      </View>
+
       {/* Wallet Card */}
       <View style={{ backgroundColor: isDark ? "rgba(17,24,39,0.95)" : "rgba(0,212,255,0.06)", borderRadius: 24, padding: 24, marginBottom: 16, borderWidth: 1, borderColor: "rgba(0,212,255,0.2)", shadowColor: "#00D4FF", shadowOpacity: 0.1, shadowRadius: 20, shadowOffset: { width: 0, height: 4 }, elevation: 4 }}>
         <Text style={{ color: sub, fontSize: 12, fontWeight: "600", letterSpacing: 0.5, marginBottom: 8 }}>⚡ ENERGY WALLET • {cycle}</Text>

@@ -393,11 +393,49 @@ export class WalletService {
     if (escrow.status !== 'HOLDING')
       throw new BadRequestException(`Escrow is already ${escrow.status}`);
 
+    // Try to auto-verify using smart meter telemetry delta if a smart meter is claimed by the buyer
+    let verifiedDeliveredKwh = dto.deliveredKwh;
+
+    try {
+      const meterDevice = await this.prisma.device.findFirst({
+        where: { ownerId: escrow.buyerId, type: 'SMART_METER' },
+      });
+
+      if (meterDevice) {
+        const firstTelemetry = await this.prisma.telemetry.findFirst({
+          where: {
+            deviceId: meterDevice.id,
+            timestamp: { gte: escrow.createdAt },
+          },
+          orderBy: { timestamp: 'asc' },
+        });
+
+        const latestTelemetry = await this.prisma.telemetry.findFirst({
+          where: { deviceId: meterDevice.id },
+          orderBy: { timestamp: 'desc' },
+        });
+
+        if (
+          firstTelemetry &&
+          latestTelemetry &&
+          firstTelemetry.energyImported !== null &&
+          latestTelemetry.energyImported !== null
+        ) {
+          const delta = latestTelemetry.energyImported - firstTelemetry.energyImported;
+          if (delta > 0) {
+            verifiedDeliveredKwh = delta;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Telemetry verification check encountered an error, falling back to DTO payload', err);
+    }
+
     // Verify delivered amount is sufficient (at least 90% of ordered)
-    const deliveryRatio = dto.deliveredKwh / escrow.energyKwh;
+    const deliveryRatio = verifiedDeliveredKwh / escrow.energyKwh;
     if (deliveryRatio < 0.9) {
       throw new BadRequestException(
-        `Delivery verification failed: delivered ${dto.deliveredKwh} kWh but expected ${escrow.energyKwh} kWh`,
+        `Delivery verification failed: verified ${verifiedDeliveredKwh.toFixed(2)} kWh but expected ${escrow.energyKwh} kWh`,
       );
     }
 

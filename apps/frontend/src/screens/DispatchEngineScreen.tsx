@@ -22,7 +22,9 @@ export default function DispatchEngineScreen() {
     fetchDermsCurtailments,
     fetchDermsConstraints,
     fetchDermsSafetyLogs,
-    fetchDermsControlLogs
+    fetchDermsControlLogs,
+    fetchProducerPlants,
+    producerPlants,
   } = useStore() as any;
 
   const isDark = theme === "dark";
@@ -55,35 +57,53 @@ export default function DispatchEngineScreen() {
   const isAdmin = userRole === "ADMIN" || userRole === "SUPER_ADMIN" || activeTab === "ADMIN";
 
   const loadData = useCallback(async () => {
-    if (selectedProducerPlantId) {
+    let plantId = selectedProducerPlantId;
+    if (!plantId) {
+      try {
+        await fetchProducerPlants();
+        const state = useStore.getState() as any;
+        if (state.selectedProducerPlantId) {
+          plantId = state.selectedProducerPlantId;
+        } else if (state.producerPlants && state.producerPlants.length > 0) {
+          plantId = state.producerPlants[0].id;
+        }
+      } catch (e) {
+        console.warn("Failed to fetch producer plants", e);
+      }
+    }
+
+    if (plantId) {
       try {
         await Promise.all([
-          fetchDermsOverview(selectedProducerPlantId),
-          fetchDermsRules(selectedProducerPlantId),
-          fetchDermsCurtailments(selectedProducerPlantId),
-          fetchDermsConstraints(selectedProducerPlantId),
-          fetchDermsSafetyLogs(selectedProducerPlantId),
-          fetchDermsControlLogs(selectedProducerPlantId)
+          fetchDermsOverview(plantId),
+          fetchDermsRules(plantId),
+          fetchDermsCurtailments(plantId),
+          fetchDermsConstraints(plantId),
+          fetchDermsSafetyLogs(plantId),
+          fetchDermsControlLogs(plantId)
         ]);
       } catch (e) {
         console.warn("Failed to fetch DERMS data", e);
       } finally {
         setLoading(false);
       }
+    } else {
+      setLoading(false);
     }
-  }, [selectedProducerPlantId]);
+  }, [selectedProducerPlantId, fetchProducerPlants, fetchDermsOverview, fetchDermsRules, fetchDermsCurtailments, fetchDermsConstraints, fetchDermsSafetyLogs, fetchDermsControlLogs]);
 
   useEffect(() => {
     loadData();
     const interval = setInterval(() => {
-      if (selectedProducerPlantId) {
-        fetchDermsOverview(selectedProducerPlantId);
-        fetchDermsSafetyLogs(selectedProducerPlantId);
-        fetchDermsControlLogs(selectedProducerPlantId);
+      const plantId = selectedProducerPlantId || (producerPlants && producerPlants[0]?.id);
+      if (plantId) {
+        fetchDermsOverview(plantId);
+        fetchDermsSafetyLogs(plantId);
+        fetchDermsControlLogs(plantId);
       }
     }, 4000);
     return () => clearInterval(interval);
-  }, [selectedProducerPlantId]);
+  }, [selectedProducerPlantId, producerPlants]);
 
   // Load configuration variables from state rules
   useEffect(() => {
