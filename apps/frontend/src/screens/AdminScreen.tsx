@@ -146,32 +146,32 @@ export default function AdminScreen() {
 
       if (finRes.status === "fulfilled" && finRes.value.ok) setOverview(await finRes.value.json());
       if (escRes.status === "fulfilled" && escRes.value.ok) {
-        const d = await escRes.value.json(); setEscrow(Array.isArray(d) ? d : d.data || DEMO_ESCROW);
+        const d = await escRes.value.json(); setEscrow(Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : DEMO_ESCROW));
       }
       if (wdRes.status === "fulfilled" && wdRes.value.ok) {
-        const d = await wdRes.value.json(); setWithdrawals(Array.isArray(d) ? d : d.data || DEMO_WITHDRAWALS);
+        const d = await wdRes.value.json(); setWithdrawals(Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : DEMO_WITHDRAWALS));
       }
       if (dispRes.status === "fulfilled" && dispRes.value.ok) {
-        const d = await dispRes.value.json(); setDisputes(Array.isArray(d) ? d : d.data || DEMO_DISPUTES);
+        const d = await dispRes.value.json(); setDisputes(Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : DEMO_DISPUTES));
       }
       if (revRes.status === "fulfilled" && revRes.value.ok) {
-        const d = await revRes.value.json(); setRevenue(Array.isArray(d) ? d : d.data || DEMO_REVENUE);
+        const d = await revRes.value.json(); setRevenue(Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : DEMO_REVENUE));
       }
       if (usersRes.status === "fulfilled" && usersRes.value.ok) {
-        const d = await usersRes.value.json(); setUsers(Array.isArray(d) ? d : d.data || DEMO_USERS);
+        const d = await usersRes.value.json(); setUsers(Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : DEMO_USERS));
       }
       if (plantsRes.status === "fulfilled" && plantsRes.value.ok) {
-        const d = await plantsRes.value.json(); setPlants(Array.isArray(d) ? d : d.data || DEMO_PLANTS);
+        const d = await plantsRes.value.json(); setPlants(Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : DEMO_PLANTS));
       } else {
         setPlants(DEMO_PLANTS);
       }
       if (devicesRes.status === "fulfilled" && devicesRes.value.ok) {
-        const d = await devicesRes.value.json(); setDevices(Array.isArray(d) ? d : d.data || DEMO_DEVICES);
+        const d = await devicesRes.value.json(); setDevices(Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : DEMO_DEVICES));
       } else {
         setDevices(DEMO_DEVICES);
       }
       if (billingRes.status === "fulfilled" && billingRes.value.ok) {
-        const d = await billingRes.value.json(); setInvoices(Array.isArray(d) ? d : d.data || DEMO_INVOICES);
+        const d = await billingRes.value.json(); setInvoices(Array.isArray(d) ? d : (Array.isArray(d?.data) ? d.data : DEMO_INVOICES));
       } else {
         setInvoices(DEMO_INVOICES);
       }
@@ -631,7 +631,7 @@ export default function AdminScreen() {
                 <Text style={{ color: d.status === "ONLINE" || d.status === "ACTIVE" ? green : red, fontSize: 11, fontWeight: "700" }}>● {d.status}</Text>
               </View>
               <Text style={{ color: sub, fontSize: 12 }}>Serial Number: <Text style={{ color: text }}>{d.serialNumber}</Text></Text>
-              <Text style={{ color: sub, fontSize: 12, marginTop: 2 }}>Type: <Text style={{ color: text }}>{d.type.replace(/_/g, " ")}</Text> • Protocol: <Text style={{ color: text }}>{d.protocol}</Text></Text>
+              <Text style={{ color: sub, fontSize: 12, marginTop: 2 }}>Type: <Text style={{ color: text }}>{(d.type || "GENERIC").replace(/_/g, " ")}</Text> • Protocol: <Text style={{ color: text }}>{d.protocol || "MQTT"}</Text></Text>
               <Text style={{ color: sub, fontSize: 11, marginTop: 2 }}>Last Seen: {d.lastCommTime ? new Date(d.lastCommTime).toLocaleString() : "Never"}</Text>
             </View>
           ))}
@@ -679,17 +679,17 @@ export default function AdminScreen() {
           {invoices.map(inv => (
             <View key={inv.id} style={{ backgroundColor: card, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: border }}>
               <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 6 }}>
-                <Text style={{ color: text, fontSize: 14, fontWeight: "800" }}>{inv.billNumber || `INV-${inv.id.slice(0,6)}`}</Text>
+                <Text style={{ color: text, fontSize: 14, fontWeight: "800" }}>{inv.billNumber || `INV-${String(inv.id || "").slice(0, 6)}`}</Text>
                 <View style={{ backgroundColor: `${inv.status === "PAID" ? green : red}15`, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
                   <Text style={{ color: inv.status === "PAID" ? green : red, fontSize: 10, fontWeight: "800" }}>{inv.status}</Text>
                 </View>
               </View>
-              <Text style={{ color: sub, fontSize: 12 }}>Customer: <Text style={{ color: text, fontWeight: "600" }}>{inv.userName}</Text></Text>
-              <Text style={{ color: sub, fontSize: 12, marginTop: 2 }}>Consumption: <Text style={{ color: text }}>{inv.energyConsumedKwh} kWh</Text> • Rate: <Text style={{ color: text }}>₦{inv.tariffRate}/kWh</Text></Text>
-              <Text style={{ color: sub, fontSize: 12, marginTop: 2 }}>Due Date: {new Date(inv.dueDate).toLocaleDateString()}</Text>
+              <Text style={{ color: sub, fontSize: 12 }}>Customer: <Text style={{ color: text, fontWeight: "600" }}>{inv.userName || "N/A"}</Text></Text>
+              <Text style={{ color: sub, fontSize: 12, marginTop: 2 }}>Consumption: <Text style={{ color: text }}>{inv.energyConsumedKwh || 0} kWh</Text> • Rate: <Text style={{ color: text }}>₦{inv.tariffRate || 0}/kWh</Text></Text>
+              <Text style={{ color: sub, fontSize: 12, marginTop: 2 }}>Due Date: {inv.dueDate ? new Date(inv.dueDate).toLocaleDateString() : "N/A"}</Text>
               <View style={{ borderTopWidth: 1, borderTopColor: border, marginTop: 10, paddingTop: 10, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
                 <Text style={{ color: sub, fontSize: 10 }}>TOTAL DUE</Text>
-                <Text style={{ color: text, fontSize: 16, fontWeight: "900" }}>₦{(inv.totalAmount || inv.amount).toLocaleString()}</Text>
+                <Text style={{ color: text, fontSize: 16, fontWeight: "900" }}>₦{(inv.totalAmount || inv.amount || 0).toLocaleString()}</Text>
               </View>
             </View>
           ))}

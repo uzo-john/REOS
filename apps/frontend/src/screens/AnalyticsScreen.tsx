@@ -25,6 +25,46 @@ const generate7DayData = () => {
 
 const WEEKLY_DATA = generate7DayData();
 
+const generate30DayData = () => {
+  const arr = [];
+  for (let i = 1; i <= 30; i++) {
+    const base = 16 + Math.sin(i * 0.2) * 3;
+    const variation = (Math.random() * 4 - 2);
+    const gen = Math.max(5, base + variation);
+    const load = gen * (0.6 + Math.random() * 0.15);
+    const export_ = Math.max(0, gen - load);
+    arr.push({
+      day: `D${i}`,
+      generation: parseFloat(gen.toFixed(1)),
+      load: parseFloat(load.toFixed(1)),
+      export: parseFloat(export_.toFixed(1)),
+      revenue: parseFloat((export_ * 225 / 1000).toFixed(0)),
+    });
+  }
+  return arr;
+};
+
+const generateThreeMonthData = () => {
+  const weeks = ["W1", "W2", "W3", "W4", "W5", "W6", "W7", "W8", "W9", "W10", "W11", "W12"];
+  return weeks.map((w, i) => {
+    const base = 105 + Math.sin(i * 0.5) * 12;
+    const variation = (Math.random() * 16 - 8);
+    const gen = Math.max(40, base + variation);
+    const load = gen * (0.55 + Math.random() * 0.18);
+    const export_ = Math.max(0, gen - load);
+    return {
+      day: w,
+      generation: parseFloat(gen.toFixed(1)),
+      load: parseFloat(load.toFixed(1)),
+      export: parseFloat(export_.toFixed(1)),
+      revenue: parseFloat((export_ * 225 / 1000).toFixed(0)),
+    };
+  });
+};
+
+const MONTHLY_DATA = generate30DayData();
+const THREE_MONTH_DATA = generateThreeMonthData();
+
 // Simulated 30-day monthly data
 const MONTHLY_TOTALS = {
   totalGenKwh: 482.6,
@@ -96,12 +136,19 @@ export default function AnalyticsScreen() {
   const [period, setPeriod] = useState<Period>("7 Days");
   const [tab, setTab] = useState<"generation" | "financial" | "system">("generation");
 
-  const totalGen  = WEEKLY_DATA.reduce((s, d) => s + d.generation, 0).toFixed(1);
-  const totalLoad = WEEKLY_DATA.reduce((s, d) => s + d.load, 0).toFixed(1);
-  const totalExp  = WEEKLY_DATA.reduce((s, d) => s + d.export, 0).toFixed(1);
-  const totalRev  = WEEKLY_DATA.reduce((s, d) => s + d.revenue, 0).toFixed(0);
+  const getPeriodData = () => {
+    if (period === "7 Days") return WEEKLY_DATA;
+    if (period === "30 Days") return MONTHLY_DATA;
+    return THREE_MONTH_DATA;
+  };
 
-  const maxGen = Math.max(...WEEKLY_DATA.map(d => d.generation));
+  const currentData = getPeriodData();
+  const totalGen  = currentData.reduce((s, d) => s + d.generation, 0).toFixed(1);
+  const totalLoad = currentData.reduce((s, d) => s + d.load, 0).toFixed(1);
+  const totalExp  = currentData.reduce((s, d) => s + d.export, 0).toFixed(1);
+  const totalRev  = currentData.reduce((s, d) => s + d.revenue, 0).toFixed(0);
+
+  const maxGen = Math.max(...currentData.map(d => d.generation));
 
   return (
     <ScrollView
@@ -178,15 +225,18 @@ export default function AnalyticsScreen() {
           <View style={{ backgroundColor: card, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: border, marginBottom: 14 }}>
             <Text style={{ color: text, fontSize: 14, fontWeight: "800", marginBottom: 14 }}>☀️ Daily Generation (kWh)</Text>
             <View style={{ flexDirection: "row", alignItems: "flex-end", height: 80, gap: 4 }}>
-              {WEEKLY_DATA.map((d, i) => (
-                <View key={i} style={{ flex: 1, alignItems: "center" }}>
-                  <View style={{ width: "100%", height: Math.max(2, (d.generation / maxGen) * 68), backgroundColor: "#F59E0B", borderRadius: 4, marginBottom: 4 }} />
-                  <Text style={{ color: sub, fontSize: 9, fontWeight: "600" }}>{d.day}</Text>
-                </View>
-              ))}
+              {currentData.map((d, i) => {
+                const showLabel = period !== "30 Days" || i % 5 === 0;
+                return (
+                  <View key={i} style={{ flex: 1, alignItems: "center" }}>
+                    <View style={{ width: "100%", height: Math.max(2, (d.generation / maxGen) * 68), backgroundColor: "#F59E0B", borderRadius: 4, marginBottom: 4 }} />
+                    <Text style={{ color: sub, fontSize: 9, fontWeight: "600" }}>{showLabel ? d.day : ""}</Text>
+                  </View>
+                );
+              })}
             </View>
           </View>
-
+ 
           {/* Daily Breakdown Table */}
           <View style={{ backgroundColor: card, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: border, marginBottom: 14 }}>
             <Text style={{ color: text, fontSize: 14, fontWeight: "800", marginBottom: 14 }}>📋 Day-by-Day Breakdown</Text>
@@ -195,8 +245,8 @@ export default function AnalyticsScreen() {
                 <Text key={h} style={{ flex: 1, color: sub, fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</Text>
               ))}
             </View>
-            {WEEKLY_DATA.map((d, i) => (
-              <View key={d.day} style={{ flexDirection: "row", paddingVertical: 10, borderBottomWidth: i < WEEKLY_DATA.length - 1 ? 1 : 0, borderBottomColor: border }}>
+            {currentData.map((d, i) => (
+              <View key={d.day} style={{ flexDirection: "row", paddingVertical: 10, borderBottomWidth: i < currentData.length - 1 ? 1 : 0, borderBottomColor: border }}>
                 <Text style={{ flex: 1, color: text, fontSize: 13, fontWeight: "600" }}>{d.day}</Text>
                 <Text style={{ flex: 1, color: "#F59E0B", fontSize: 13, fontWeight: "700" }}>{d.generation}</Text>
                 <Text style={{ flex: 1, color: accent, fontSize: 13, fontWeight: "700" }}>{d.load}</Text>
@@ -237,7 +287,7 @@ export default function AnalyticsScreen() {
         <>
           {/* Revenue Summary */}
           <View style={{ backgroundColor: isDark ? "rgba(16,185,129,0.08)" : "rgba(16,185,129,0.05)", borderRadius: 20, padding: 20, marginBottom: 14, borderWidth: 1, borderColor: "rgba(16,185,129,0.2)" }}>
-            <Text style={{ color: sub, fontSize: 11, fontWeight: "600", marginBottom: 4 }}>7-DAY EXPORT REVENUE</Text>
+            <Text style={{ color: sub, fontSize: 11, fontWeight: "600", marginBottom: 4 }}>{period.toUpperCase()} EXPORT REVENUE</Text>
             <Text style={{ color: "#10B981", fontSize: 32, fontWeight: "900" }}>₦{parseInt(totalRev).toLocaleString()}</Text>
             <Text style={{ color: sub, fontSize: 12, marginTop: 4 }}>@ ₦225/kWh grid tariff • {totalExp} kWh exported</Text>
           </View>
@@ -257,17 +307,20 @@ export default function AnalyticsScreen() {
 
           {/* Daily Revenue Chart */}
           <View style={{ backgroundColor: card, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: border, marginBottom: 14 }}>
-            <Text style={{ color: text, fontSize: 14, fontWeight: "800", marginBottom: 14 }}>💰 Daily Export Revenue (₦)</Text>
+            <Text style={{ color: text, fontSize: 14, fontWeight: "800", marginBottom: 14 }}>💰 Export Revenue (₦)</Text>
             <View style={{ flexDirection: "row", alignItems: "flex-end", height: 80, gap: 4 }}>
-              {WEEKLY_DATA.map((d, i) => {
-                const maxRev = Math.max(...WEEKLY_DATA.map(x => x.revenue));
+              {currentData.map((d, i) => {
+                const maxRev = Math.max(...currentData.map(x => x.revenue));
+                const showLabel = period !== "30 Days" || i % 5 === 0;
                 return (
                   <View key={i} style={{ flex: 1, alignItems: "center" }}>
-                    <Text style={{ color: "#10B981", fontSize: 8, marginBottom: 2, fontWeight: "700" }}>
-                      {d.revenue > 0 ? d.revenue : ""}
-                    </Text>
+                    {period === "7 Days" && (
+                      <Text style={{ color: "#10B981", fontSize: 8, marginBottom: 2, fontWeight: "700" }}>
+                        {d.revenue > 0 ? d.revenue : ""}
+                      </Text>
+                    )}
                     <View style={{ width: "100%", height: Math.max(2, (d.revenue / Math.max(maxRev, 1)) * 56), backgroundColor: "#10B981", borderRadius: 4, marginBottom: 4 }} />
-                    <Text style={{ color: sub, fontSize: 9, fontWeight: "600" }}>{d.day}</Text>
+                    <Text style={{ color: sub, fontSize: 9, fontWeight: "600" }}>{showLabel ? d.day : ""}</Text>
                   </View>
                 );
               })}
