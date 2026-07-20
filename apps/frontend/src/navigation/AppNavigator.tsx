@@ -106,7 +106,7 @@ function CustomDrawerContent(props: any) {
 
       {/* Nav Items */}
       <DrawerContentScrollView {...props} contentContainerStyle={{ paddingVertical: 12 }} scrollIndicatorInsets={{ right: 1 }}>
-        {NAV_ITEMS.filter(item => item.userTypes.includes(userType)).map((item) => {
+        {NAV_ITEMS.filter(item => !item.userTypes || !userType || item.userTypes.includes(userType as any)).map((item) => {
           const isActive = currentRoute === item.name;
           return (
             <TouchableOpacity

@@ -63,7 +63,7 @@ function DeviceCard({ device, onRemove, onVerify, onSelectHealth }: { device: an
   );
 }
 
-export default function DeviceManagementScreen() {
+export default function DeviceManagementScreen({ navigation }: { navigation?: any }) {
   const {
     devices,
     theme,
@@ -137,6 +137,30 @@ export default function DeviceManagementScreen() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: bg }} contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
+      {/* Quick Access Onboarding Buttons */}
+      <View style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
+        <TouchableOpacity
+          onPress={() => navigation?.navigate("RegisterConsumerMeter")}
+          style={{ flex: 1, backgroundColor: `${accent}18`, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: `${accent}35`, flexDirection: "row", alignItems: "center", gap: 8 }}
+        >
+          <Text style={{ fontSize: 20 }}>📟</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: text, fontSize: 12, fontWeight: "800" }}>Register Meter</Text>
+            <Text style={{ color: sub, fontSize: 10 }}>Consumer Smart Meter</Text>
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => navigation?.navigate("ProducerSetupWizard")}
+          style={{ flex: 1, backgroundColor: "rgba(124,58,237,0.18)", borderRadius: 14, padding: 12, borderWidth: 1, borderColor: "rgba(124,58,237,0.35)", flexDirection: "row", alignItems: "center", gap: 8 }}
+        >
+          <Text style={{ fontSize: 20 }}>🏭</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: text, fontSize: 12, fontWeight: "800" }}>Producer Wizard</Text>
+            <Text style={{ color: sub, fontSize: 10 }}>Plant Onboarding</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
       {/* 7-Step Onboarding Stepper Header */}
       <View style={{ backgroundColor: `${accent}12`, borderRadius: 18, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: `${accent}30` }}>
         <Text style={{ color: text, fontSize: 13, fontWeight: "900", marginBottom: 8 }}>
