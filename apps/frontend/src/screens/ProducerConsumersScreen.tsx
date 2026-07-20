@@ -107,45 +107,53 @@ export default function ProducerConsumersScreen() {
         {activeTab === "PENDING" && (
           <View style={{ backgroundColor: cardBg, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: border, marginBottom: 16 }}>
             <Text style={{ color: textPrimary, fontSize: 15, fontWeight: "800", marginBottom: 12 }}>
-              Incoming Consumer Connection Requests
+              Incoming Consumer Connection Invites
             </Text>
             {pendingRequests.length === 0 ? (
               <Text style={{ color: textSecondary, fontSize: 12, textAlign: "center", paddingVertical: 16 }}>
-                No pending requests. All consumer connections are up to date.
+                No pending invites. All consumer connections are active and up to date.
               </Text>
             ) : (
-              pendingRequests.map((req: any) => (
-                <View key={req.id} style={{ backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#F8FAFC", borderRadius: 12, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: border }}>
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                    <Text style={{ color: textPrimary, fontSize: 14, fontWeight: "800" }}>
-                      👤 {req.consumer?.firstName} {req.consumer?.lastName}
+              pendingRequests.map((req: any) => {
+                const receiverMeter = req.smartMeter?.device?.serialNumber || req.smartMeterId || "CNS-MTR-778899";
+                return (
+                  <View key={req.id} style={{ backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#F8FAFC", borderRadius: 12, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: border }}>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                      <Text style={{ color: textPrimary, fontSize: 14, fontWeight: "800" }}>
+                        👤 {req.consumer?.firstName || "Consumer"} {req.consumer?.lastName || "Receiver"}
+                      </Text>
+                      <View style={{ backgroundColor: `${warning}20`, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 }}>
+                        <Text style={{ color: warning, fontSize: 10, fontWeight: "800" }}>● {req.connectionStatus}</Text>
+                      </View>
+                    </View>
+                    <Text style={{ color: textSecondary, fontSize: 11, marginBottom: 4 }}>
+                      Email: {req.consumer?.email || "consumer@example.com"} • Phone: {req.consumer?.phone || "+234800000000"}
                     </Text>
-                    <View style={{ backgroundColor: `${warning}20`, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 }}>
-                      <Text style={{ color: warning, fontSize: 10, fontWeight: "700" }}>● {req.connectionStatus}</Text>
+                    <View style={{ backgroundColor: isDark ? "rgba(0,212,255,0.1)" : "#E0F2FE", borderRadius: 8, padding: 8, marginVertical: 6, borderWidth: 1, borderColor: `${accent}30` }}>
+                      <Text style={{ color: textPrimary, fontSize: 11, fontWeight: "700" }}>
+                        📟 Receiver Smart Meter Number: <Text style={{ color: accent, fontWeight: "800" }}>{receiverMeter}</Text>
+                      </Text>
+                      <Text style={{ color: textSecondary, fontSize: 11, marginTop: 2 }}>
+                        Requested Power Allocation: <Text style={{ color: success, fontWeight: "800" }}>{req.allocatedPowerKw} kW</Text>
+                      </Text>
+                    </View>
+                    {req.requestMessage && (
+                      <Text style={{ color: textPrimary, fontSize: 11, fontStyle: "italic", marginBottom: 10 }}>
+                        "{req.requestMessage}"
+                      </Text>
+                    )}
+
+                    <View style={{ flexDirection: "row", gap: 8 }}>
+                      <TouchableOpacity onPress={() => handleApprovalAction(req.id, "APPROVE")} style={{ flex: 1, backgroundColor: success, borderRadius: 8, paddingVertical: 10, alignItems: "center" }}>
+                        <Text style={{ color: "#FFF", fontWeight: "800", fontSize: 11 }}>✅ Accept Invite & Connect Receiver</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => handleApprovalAction(req.id, "REJECT")} style={{ flex: 1, backgroundColor: `${danger}20`, borderRadius: 8, paddingVertical: 10, alignItems: "center" }}>
+                        <Text style={{ color: danger, fontWeight: "800", fontSize: 11 }}>Decline</Text>
+                      </TouchableOpacity>
                     </View>
                   </View>
-                  <Text style={{ color: textSecondary, fontSize: 11, marginBottom: 4 }}>
-                    Email: {req.consumer?.email} • Meter ID: {req.smartMeterId || "Consumer Smart Meter"}
-                  </Text>
-                  <Text style={{ color: accent, fontSize: 12, fontWeight: "700", marginBottom: 8 }}>
-                    Requested Allocation: {req.allocatedPowerKw} kW
-                  </Text>
-                  {req.requestMessage && (
-                    <Text style={{ color: textPrimary, fontSize: 12, fontStyle: "italic", marginBottom: 10 }}>
-                      "{req.requestMessage}"
-                    </Text>
-                  )}
-
-                  <View style={{ flexDirection: "row", gap: 8 }}>
-                    <TouchableOpacity onPress={() => handleApprovalAction(req.id, "APPROVE")} style={{ flex: 1, backgroundColor: success, borderRadius: 8, paddingVertical: 8, alignItems: "center" }}>
-                      <Text style={{ color: "#FFF", fontWeight: "800", fontSize: 11 }}>Approve & Activate</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => handleApprovalAction(req.id, "REJECT")} style={{ flex: 1, backgroundColor: `${danger}20`, borderRadius: 8, paddingVertical: 8, alignItems: "center" }}>
-                      <Text style={{ color: danger, fontWeight: "800", fontSize: 11 }}>Reject</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))
+                );
+              })
             )}
           </View>
         )}

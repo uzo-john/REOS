@@ -254,7 +254,7 @@ export default function DeviceManagementScreen({ navigation }: { navigation?: an
       {activeTab === "REQUESTS" && (
         <View style={{ backgroundColor: card, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: border }}>
           <Text style={{ color: text, fontSize: 16, fontWeight: "800", marginBottom: 14 }}>
-            Incoming Consumer Connection Requests
+            Incoming Consumer Connection Invites
           </Text>
 
           {connectionRequests.length === 0 ? (
@@ -263,23 +263,29 @@ export default function DeviceManagementScreen({ navigation }: { navigation?: an
             connectionRequests.map((req: any) => {
               const isPending = req.connectionStatus === "PENDING";
               const isApproved = req.connectionStatus === "CONNECTED";
+              const receiverMeter = req.smartMeter?.device?.serialNumber || req.smartMeterId || "CNS-MTR-778899";
 
               return (
                 <View key={req.id} style={{ backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#F8FAFC", borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: border }}>
                   <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
                     <Text style={{ color: text, fontSize: 14, fontWeight: "800" }}>
-                      👤 {req.consumer?.firstName} {req.consumer?.lastName}
+                      👤 {req.consumer?.firstName || "Consumer"} {req.consumer?.lastName || "Receiver"}
                     </Text>
                     <View style={{ backgroundColor: isApproved ? `${success}20` : `${warning}20`, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
                       <Text style={{ color: isApproved ? success : warning, fontSize: 10, fontWeight: "800" }}>● {req.connectionStatus}</Text>
                     </View>
                   </View>
-                  <Text style={{ color: sub, fontSize: 12, marginBottom: 4 }}>
-                    Email: {req.consumer?.email} • Meter: {req.smartMeter?.device?.name || "Consumer Smart Meter"}
+                  <Text style={{ color: sub, fontSize: 11, marginBottom: 4 }}>
+                    Email: {req.consumer?.email || "consumer@example.com"} • Target Plant: {req.plant?.name || "Solar Farm"}
                   </Text>
-                  <Text style={{ color: accent, fontSize: 12, fontWeight: "700", marginBottom: 8 }}>
-                    Requested Allocation: {req.allocatedPowerKw} kW
-                  </Text>
+                  <View style={{ backgroundColor: isDark ? "rgba(0,212,255,0.1)" : "#E0F2FE", borderRadius: 8, padding: 8, marginVertical: 6, borderWidth: 1, borderColor: `${accent}30` }}>
+                    <Text style={{ color: text, fontSize: 11, fontWeight: "700" }}>
+                      📟 Receiver Smart Meter Number: <Text style={{ color: accent, fontWeight: "800" }}>{receiverMeter}</Text>
+                    </Text>
+                    <Text style={{ color: sub, fontSize: 11, marginTop: 2 }}>
+                      Requested Power Allocation: <Text style={{ color: success, fontWeight: "800" }}>{req.allocatedPowerKw} kW</Text>
+                    </Text>
+                  </View>
                   {req.requestMessage && (
                     <Text style={{ color: text, fontSize: 12, fontStyle: "italic", marginBottom: 12 }}>
                       "{req.requestMessage}"
@@ -288,11 +294,11 @@ export default function DeviceManagementScreen({ navigation }: { navigation?: an
 
                   {isPending && (
                     <View style={{ flexDirection: "row", gap: 10 }}>
-                      <TouchableOpacity onPress={() => handleApprovalAction(req.id, "APPROVE")} style={{ flex: 1, backgroundColor: success, borderRadius: 10, padding: 10, alignItems: "center" }}>
-                        <Text style={{ color: "#FFF", fontWeight: "800", fontSize: 12 }}>Approve Connection</Text>
+                      <TouchableOpacity onPress={() => handleApprovalAction(req.id, "APPROVE")} style={{ flex: 1, backgroundColor: success, borderRadius: 10, padding: 12, alignItems: "center" }}>
+                        <Text style={{ color: "#FFF", fontWeight: "800", fontSize: 12 }}>✅ Accept & Connect Receiver</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity onPress={() => handleApprovalAction(req.id, "REJECT")} style={{ flex: 1, backgroundColor: "rgba(239,68,68,0.15)", borderRadius: 10, padding: 10, alignItems: "center" }}>
-                        <Text style={{ color: danger, fontWeight: "800", fontSize: 12 }}>Reject</Text>
+                      <TouchableOpacity onPress={() => handleApprovalAction(req.id, "REJECT")} style={{ flex: 1, backgroundColor: "rgba(239,68,68,0.15)", borderRadius: 10, padding: 12, alignItems: "center" }}>
+                        <Text style={{ color: danger, fontWeight: "800", fontSize: 12 }}>Decline</Text>
                       </TouchableOpacity>
                     </View>
                   )}

@@ -18,9 +18,11 @@ export default function ConsumerMeterRegistrationScreen() {
     verifyDevice,
     searchProducerPlants,
     submitConnectionRequest,
+    fetchProducerConnectionRequests,
+    connectionRequests,
     plantSearchResults,
     fetchIotData,
-  } = useStore();
+  } = useStore() as any;
 
   const isDark = theme === "dark";
   const bg = isDark ? "#050810" : "#F1F5F9";
@@ -61,6 +63,7 @@ export default function ConsumerMeterRegistrationScreen() {
   useEffect(() => {
     fetchIotData();
     searchProducerPlants();
+    fetchProducerConnectionRequests();
   }, []);
 
   const registeredMeters = devices.filter((d: any) => d.type === "SMART_METER");
@@ -335,53 +338,53 @@ export default function ConsumerMeterRegistrationScreen() {
         ))}
       </View>
 
-      {/* Step 4: Connection Request Status & Tracking */}
+      {/* Step 4: Connection Request Status & Live Tracking */}
       <View style={{ backgroundColor: card, borderRadius: 20, padding: 20, marginBottom: 20, borderWidth: 1, borderColor: border }}>
         <Text style={{ color: text, fontSize: 16, fontWeight: "800", marginBottom: 4 }}>
-          4. Connection Request Status & Live Tracking
+          4. Connection Invites Sent & Live Status Tracking
         </Text>
         <Text style={{ color: sub, fontSize: 12, marginBottom: 14 }}>
-          Track the live review status of your energy connection requests sent to Producers & Prosumers.
+          Track the live review status of energy connection invites sent from your smart meter to Producers & Prosumers.
         </Text>
 
-        {/* Demo / Live Request Items */}
-        {[
-          {
-            id: "req-live-1",
-            producerName: "Kano Clean Energy Industrial Plant",
-            meterName: "Home Main Smart Meter",
-            requestedKw: 5.0,
-            status: "CONNECTED",
-            date: "Today, 02:15 PM",
-            msg: "Approved! 5kW clean solar dispatch activated.",
-          },
-          {
-            id: "req-live-2",
-            producerName: "Sharada Solar Microgrid (Prosumer)",
-            meterName: "Backup Meter B",
-            requestedKw: 2.5,
-            status: "PENDING",
-            date: "Today, 04:30 PM",
-            msg: "Awaiting producer approval.",
-          },
-        ].map((item) => (
-          <View key={item.id} style={{ backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#F8FAFC", borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: border }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-              <Text style={{ color: text, fontSize: 13, fontWeight: "800" }}>{item.producerName}</Text>
-              <View style={{ backgroundColor: item.status === "CONNECTED" ? `${success}20` : `${warning}20`, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 }}>
-                <Text style={{ color: item.status === "CONNECTED" ? success : warning, fontSize: 10, fontWeight: "800" }}>
-                  ● {item.status}
+        {(!connectionRequests || connectionRequests.length === 0) ? (
+          <Text style={{ color: sub, fontSize: 12, textAlign: "center", paddingVertical: 14 }}>
+            No connection requests sent yet. Search for a Producer above to submit an invite.
+          </Text>
+        ) : (
+          (connectionRequests || []).map((item: any) => {
+            const isConnected = item.connectionStatus === "CONNECTED";
+            const isPending = item.connectionStatus === "PENDING";
+            const isRejected = item.connectionStatus === "REJECTED";
+            const statusColor = isConnected ? success : isPending ? warning : "#EF4444";
+            
+            return (
+              <View key={item.id} style={{ backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#F8FAFC", borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: border }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                  <Text style={{ color: text, fontSize: 13, fontWeight: "800" }}>
+                    🏭 {item.plant?.name || "Target Producer Plant"}
+                  </Text>
+                  <View style={{ backgroundColor: `${statusColor}20`, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 }}>
+                    <Text style={{ color: statusColor, fontSize: 10, fontWeight: "800" }}>
+                      ● {item.connectionStatus}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={{ color: sub, fontSize: 11, marginBottom: 4 }}>
+                  Receiver Meter: <Text style={{ fontWeight: "700", color: text }}>{item.smartMeter?.device?.serialNumber || item.smartMeterId || "CNS-MTR-778899"}</Text> • Requested: <Text style={{ color: accent, fontWeight: "700" }}>{item.allocatedPowerKw} kW</Text>
+                </Text>
+                {item.requestMessage && (
+                  <Text style={{ color: sub, fontSize: 11, fontStyle: "italic", marginBottom: 4 }}>
+                    Note: "{item.requestMessage}"
+                  </Text>
+                )}
+                <Text style={{ color: statusColor, fontSize: 11, fontWeight: "700" }}>
+                  {isConnected ? "✅ Producer Accepted connection. Energy dispatch active!" : isPending ? "⏳ Invite sent to Producer. Awaiting Producer approval..." : "❌ Invite declined by Producer."}
                 </Text>
               </View>
-            </View>
-            <Text style={{ color: sub, fontSize: 11, marginBottom: 4 }}>
-              Meter: {item.meterName} • Requested: {item.requestedKw} kW • {item.date}
-            </Text>
-            <Text style={{ color: item.status === "CONNECTED" ? success : accent, fontSize: 11, fontWeight: "600" }}>
-              Status Note: {item.msg}
-            </Text>
-          </View>
-        ))}
+            );
+          })
+        )}
       </View>
 
       {/* Connection Request Modal */}

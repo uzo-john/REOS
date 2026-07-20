@@ -2059,21 +2059,39 @@ export const useStore = create<REOSState>((set, get) => ({
   submitConnectionRequest: async (dto: any) => {
     const { token } = get();
     try {
-      return await api.submitConnectionRequest(dto, token || undefined);
+      const res = await api.submitConnectionRequest(dto, token || undefined);
+      get().fetchProducerConnectionRequests();
+      return res;
     } catch (e: any) {
-      return { id: `conn-${Date.now()}`, plantId: dto.plantId, connectionStatus: 'PENDING', requestMessage: dto.requestMessage };
+      const newReq = {
+        id: `conn-${Date.now()}`,
+        consumerId: 'c-101',
+        consumer: { firstName: 'Ade', lastName: 'Okafor', email: 'ade.okafor@example.com', phone: '+2348012345678' },
+        plant: { id: dto.plantId || 'plant-1', name: dto.plantName || 'Alpha Commercial Solar Farm' },
+        smartMeterId: dto.smartMeterId || 'dev-met-001',
+        smartMeter: { device: { name: 'Ade Residential Smart Meter', serialNumber: 'CNS-MTR-778899', status: 'ONLINE', signalStrength: 94 } },
+        allocatedPowerKw: dto.requestedPowerKw || 5.0,
+        connectionStatus: 'PENDING',
+        requestMessage: dto.requestMessage || 'Requesting power allocation dispatch to receiver smart meter.',
+        createdAt: new Date().toISOString()
+      };
+      set(state => ({
+        connectionRequests: [newReq, ...state.connectionRequests]
+      }));
+      return newReq;
     }
   },
 
   fetchProducerConnectionRequests: async () => {
-    const { token } = get();
+    const { token, connectionRequests } = get();
     try {
       const res = await api.fetchProducerConnectionRequests(token || undefined);
       set({ connectionRequests: res });
     } catch (e: any) {
+      if (connectionRequests && connectionRequests.length > 0) return;
       set({
         connectionRequests: [
-          { id: 'conn-1', consumerId: 'c-101', consumer: { firstName: 'Ade', lastName: 'Okafor', email: 'ade.okafor@example.com', phone: '+2348012345678' }, plant: { id: 'plant-1', name: 'Alpha Commercial Solar Farm' }, smartMeter: { device: { name: 'Ade Residential Smart Meter', serialNumber: 'CNS-MTR-778899', status: 'ONLINE', signalStrength: 92 } }, allocatedPowerKw: 5.0, connectionStatus: 'PENDING', requestMessage: 'Requesting 5kW clean solar energy allocation for residential home.' },
+          { id: 'conn-1', consumerId: 'c-101', consumer: { firstName: 'Ade', lastName: 'Okafor', email: 'ade.okafor@example.com', phone: '+2348012345678' }, plant: { id: 'plant-1', name: 'Alpha Commercial Solar Farm' }, smartMeter: { device: { name: 'Ade Residential Smart Meter', serialNumber: 'CNS-MTR-778899', status: 'ONLINE', signalStrength: 92 } }, allocatedPowerKw: 5.0, connectionStatus: 'PENDING', requestMessage: 'Requesting 5.0 kW clean solar energy allocation for residential home.' },
           { id: 'conn-2', consumerId: 'c-102', consumer: { firstName: 'Bisi', lastName: 'Adebayo', email: 'bisi.adebayo@example.com', phone: '+2348087654321' }, plant: { id: 'plant-1', name: 'Alpha Commercial Solar Farm' }, smartMeter: { device: { name: 'Bisi Bakery Smart Meter', serialNumber: 'CNS-MTR-445566', status: 'ONLINE', signalStrength: 95 } }, allocatedPowerKw: 12.5, connectionStatus: 'CONNECTED', requestMessage: 'Connecting commercial bakery load profile.' },
         ]
       });
@@ -2092,9 +2110,35 @@ export const useStore = create<REOSState>((set, get) => ({
       if (dto.action === 'SUSPEND') status = 'SUSPENDED';
       if (dto.action === 'DISCONNECT') status = 'DISCONNECTED';
 
-      set(state => ({
-        connectionRequests: state.connectionRequests.map(r => r.id === dto.connectionId ? { ...r, connectionStatus: status } : r)
-      }));
+      set(state => {
+        const updatedRequests = state.connectionRequests.map(r => r.id === dto.connectionId ? { ...r, connectionStatus: status } : r);
+        const approvedReq = state.connectionRequests.find(r => r.id === dto.connectionId);
+        
+        let updatedConnections = [...state.producerConnections];
+        if (approvedReq && status === 'CONNECTED') {
+          const newConn = {
+            id: approvedReq.id,
+            connectionId: approvedReq.id,
+            consumerId: approvedReq.consumerId || 'c-101',
+            consumerName: approvedReq.consumer ? `${approvedReq.consumer.firstName} ${approvedReq.consumer.lastName}` : 'Ade Okafor',
+            consumerEmail: approvedReq.consumer?.email || 'ade@example.com',
+            connectionStatus: 'CONNECTED',
+            allocatedPowerKw: approvedReq.allocatedPowerKw || 5.0,
+            meterName: approvedReq.smartMeter?.device?.name || 'Receiver Smart Meter',
+            meterSerial: approvedReq.smartMeter?.device?.serialNumber || 'CNS-MTR-778899',
+            meterStatus: 'ONLINE',
+            signalStrength: 94,
+            isVerified: true
+          };
+          if (!updatedConnections.some(c => c.id === newConn.id || c.connectionId === newConn.id)) {
+            updatedConnections.push(newConn);
+          }
+        }
+        return {
+          connectionRequests: updatedRequests,
+          producerConnections: updatedConnections
+        };
+      });
       return { id: dto.connectionId, connectionStatus: status };
     }
   },
