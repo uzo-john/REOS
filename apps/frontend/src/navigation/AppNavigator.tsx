@@ -111,7 +111,12 @@ function CustomDrawerContent(props: any) {
           return (
             <TouchableOpacity
               key={item.name}
-              onPress={() => props.navigation.navigate(item.name)}
+              onPress={() => {
+                props.navigation.navigate(item.name);
+                if (typeof props.navigation.closeDrawer === 'function') {
+                  props.navigation.closeDrawer();
+                }
+              }}
               style={{
                 flexDirection: "row", alignItems: "center",
                 marginHorizontal: 12, marginVertical: 2,

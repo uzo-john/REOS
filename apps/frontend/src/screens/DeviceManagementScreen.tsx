@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Modal, TextInput, ActivityIndicator } from "react-native";
 import { useStore } from "../store/useStore";
 import NetworkTopologyVisualizer from "../components/NetworkTopologyVisualizer";
+import ConsumerMeterRegistrationScreen from "./ConsumerMeterRegistrationScreen";
+import ProducerSetupWizardScreen from "./ProducerSetupWizardScreen";
 
 const DEVICE_TYPES = ["INVERTER", "SMART_METER", "BMS", "EDGE_GATEWAY", "WEATHER_STATION", "EV_CHARGER", "ENERGY_SENSOR"];
 const PROTOCOLS = ["MQTT", "MODBUS_TCP", "MODBUS_RTU", "HTTP", "ZIGBEE", "WIFI", "ETHERNET"];
@@ -90,7 +92,7 @@ export default function DeviceManagementScreen({ navigation }: { navigation?: an
   const danger = "#EF4444";
   const inputBg = isDark ? "rgba(255,255,255,0.05)" : "#F8FAFC";
 
-  const [activeTab, setActiveTab] = useState<"DEVICES" | "REQUESTS" | "TOPOLOGY">("DEVICES");
+  const [activeTab, setActiveTab] = useState<"DEVICES" | "REGISTER_METER" | "PRODUCER_WIZARD" | "REQUESTS" | "TOPOLOGY">("DEVICES");
   const [showAdd, setShowAdd] = useState(false);
   const [adding, setAdding] = useState(false);
   const [selectedHealthDevice, setSelectedHealthDevice] = useState<any>(null);
@@ -140,27 +142,34 @@ export default function DeviceManagementScreen({ navigation }: { navigation?: an
       {/* Quick Access Onboarding Buttons */}
       <View style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
         <TouchableOpacity
-          onPress={() => navigation?.navigate("RegisterConsumerMeter")}
-          style={{ flex: 1, backgroundColor: `${accent}18`, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: `${accent}35`, flexDirection: "row", alignItems: "center", gap: 8 }}
+          onPress={() => {
+            setActiveTab("REGISTER_METER");
+            if (navigation?.navigate) navigation.navigate("RegisterConsumerMeter");
+          }}
+          style={{ flex: 1, backgroundColor: activeTab === "REGISTER_METER" ? accent : `${accent}18`, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: `${accent}35`, flexDirection: "row", alignItems: "center", gap: 8 }}
         >
           <Text style={{ fontSize: 20 }}>📟</Text>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: text, fontSize: 12, fontWeight: "800" }}>Register Meter</Text>
-            <Text style={{ color: sub, fontSize: 10 }}>Consumer Smart Meter</Text>
+            <Text style={{ color: activeTab === "REGISTER_METER" ? "#000" : text, fontSize: 12, fontWeight: "800" }}>Register Meter</Text>
+            <Text style={{ color: activeTab === "REGISTER_METER" ? "#000" : sub, fontSize: 10 }}>Consumer Smart Meter</Text>
           </View>
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={() => navigation?.navigate("ProducerSetupWizard")}
-          style={{ flex: 1, backgroundColor: "rgba(124,58,237,0.18)", borderRadius: 14, padding: 12, borderWidth: 1, borderColor: "rgba(124,58,237,0.35)", flexDirection: "row", alignItems: "center", gap: 8 }}
+          onPress={() => {
+            setActiveTab("PRODUCER_WIZARD");
+            if (navigation?.navigate) navigation.navigate("ProducerSetupWizard");
+          }}
+          style={{ flex: 1, backgroundColor: activeTab === "PRODUCER_WIZARD" ? "#7C3AED" : "rgba(124,58,237,0.18)", borderRadius: 14, padding: 12, borderWidth: 1, borderColor: "rgba(124,58,237,0.35)", flexDirection: "row", alignItems: "center", gap: 8 }}
         >
           <Text style={{ fontSize: 20 }}>🏭</Text>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: text, fontSize: 12, fontWeight: "800" }}>Producer Wizard</Text>
-            <Text style={{ color: sub, fontSize: 10 }}>Plant Onboarding</Text>
+            <Text style={{ color: activeTab === "PRODUCER_WIZARD" ? "#FFF" : text, fontSize: 12, fontWeight: "800" }}>Producer Wizard</Text>
+            <Text style={{ color: activeTab === "PRODUCER_WIZARD" ? "#FFF" : sub, fontSize: 10 }}>Plant Onboarding</Text>
           </View>
         </TouchableOpacity>
       </View>
+
       {/* 7-Step Onboarding Stepper Header */}
       <View style={{ backgroundColor: `${accent}12`, borderRadius: 18, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: `${accent}30` }}>
         <Text style={{ color: text, fontSize: 13, fontWeight: "900", marginBottom: 8 }}>
@@ -199,9 +208,11 @@ export default function DeviceManagementScreen({ navigation }: { navigation?: an
       </View>
 
       {/* Tab Switcher */}
-      <View style={{ flexDirection: "row", backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#E2E8F0", borderRadius: 14, padding: 4, marginBottom: 16 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 16 }}>
         {[
           { id: "DEVICES", title: "Device Registry" },
+          { id: "REGISTER_METER", title: "Register Smart Meter" },
+          { id: "PRODUCER_WIZARD", title: "Producer Setup Wizard" },
           { id: "REQUESTS", title: `Requests (${pendingRequestsCount})` },
           { id: "TOPOLOGY", title: "Network Topology" },
         ].map((t) => (
@@ -209,19 +220,27 @@ export default function DeviceManagementScreen({ navigation }: { navigation?: an
             key={t.id}
             onPress={() => setActiveTab(t.id as any)}
             style={{
-              flex: 1,
-              backgroundColor: activeTab === t.id ? accent : "transparent",
+              backgroundColor: activeTab === t.id ? accent : isDark ? "rgba(255,255,255,0.06)" : "#E2E8F0",
               borderRadius: 10,
+              paddingHorizontal: 14,
               paddingVertical: 10,
               alignItems: "center",
+              borderWidth: 1,
+              borderColor: activeTab === t.id ? accent : border,
             }}
           >
             <Text style={{ color: activeTab === t.id ? "#000" : text, fontWeight: "800", fontSize: 12 }}>{t.title}</Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
 
-      {/* TAB 1: DEVICE REGISTRY */}
+      {/* TAB: REGISTER METER INLINE */}
+      {activeTab === "REGISTER_METER" && <ConsumerMeterRegistrationScreen />}
+
+      {/* TAB: PRODUCER WIZARD INLINE */}
+      {activeTab === "PRODUCER_WIZARD" && <ProducerSetupWizardScreen />}
+
+      {/* TAB: DEVICE REGISTRY */}
       {activeTab === "DEVICES" && (
         <View>
           {/* Add Device Button */}
@@ -252,7 +271,7 @@ export default function DeviceManagementScreen({ navigation }: { navigation?: an
         </View>
       )}
 
-      {/* TAB 2: PRODUCER CONNECTION REQUESTS */}
+      {/* TAB: PRODUCER CONNECTION REQUESTS */}
       {activeTab === "REQUESTS" && (
         <View style={{ backgroundColor: card, borderRadius: 20, padding: 18, borderWidth: 1, borderColor: border }}>
           <Text style={{ color: text, fontSize: 16, fontWeight: "800", marginBottom: 14 }}>
@@ -305,7 +324,7 @@ export default function DeviceManagementScreen({ navigation }: { navigation?: an
         </View>
       )}
 
-      {/* TAB 3: NETWORK TOPOLOGY */}
+      {/* TAB: NETWORK TOPOLOGY */}
       {activeTab === "TOPOLOGY" && <NetworkTopologyVisualizer plantId="plant-1" />}
 
       {/* Device Health Diagnostics Modal */}
