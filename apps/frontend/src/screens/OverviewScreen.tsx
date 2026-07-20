@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Animated, Dimensions, TextInput, ActivityIndicator, Platform } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Animated, Dimensions, TextInput, ActivityIndicator, Platform, Modal } from "react-native";
 import { useStore } from "../store/useStore";
 
 import ProducerDashboardScreen from "./ProducerDashboardScreen";
@@ -142,8 +142,9 @@ function OverviewScreenConsumer({ navigation }: any) {
     billingSummary, 
     fetchConsumerContract, 
     fetchConsumerBilling, 
-    acceptEnergySharing 
-  } = useStore();
+    acceptEnergySharing,
+    rechargeWallet
+  } = useStore() as any;
 
   const isDark = theme === "dark";
   const bg = isDark ? "#050810" : "#F1F5F9";
@@ -152,10 +153,26 @@ function OverviewScreenConsumer({ navigation }: any) {
   const card = isDark ? "rgba(17,24,39,0.9)" : "#FFFFFF";
   const border = isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)";
   const accent = "#00D4FF";
+  const success = "#10B981";
+  const warning = "#F59E0B";
 
   const [inviteCode, setInviteCode] = useState("");
   const [linking, setLinking] = useState(false);
   const [linkError, setLinkError] = useState("");
+  const [linkSuccess, setLinkSuccess] = useState("");
+
+  // Modals state
+  const [showTopUp, setShowTopUp] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState("5000");
+  const [selectedGateway, setSelectedGateway] = useState("Paystack");
+  const [recharging, setRecharging] = useState(false);
+  const [topUpSuccess, setTopUpSuccess] = useState("");
+
+  // KPI Detail Modal state
+  const [selectedKpi, setSelectedKpi] = useState<any>(null);
+
+  // Energy Node Modal state
+  const [selectedNode, setSelectedNode] = useState<any>(null);
 
   useEffect(() => {
     fetchConsumerContract();
@@ -166,17 +183,37 @@ function OverviewScreenConsumer({ navigation }: any) {
     if (!inviteCode.trim()) return;
     setLinking(true);
     setLinkError("");
+    setLinkSuccess("");
     try {
       const res = await acceptEnergySharing(inviteCode.trim());
-      if (res) {
-        await fetchConsumerContract();
-        await fetchConsumerBilling();
-        setInviteCode("");
-      }
+      setLinkSuccess(`Supplier linked successfully! Code: ${inviteCode.trim()}`);
+      await fetchConsumerContract();
+      await fetchConsumerBilling();
+      setInviteCode("");
     } catch (e: any) {
       setLinkError(e.message || "Failed to link supplier.");
     } finally {
       setLinking(false);
+    }
+  };
+
+  const handleTopUpSubmit = async () => {
+    const amt = parseFloat(topUpAmount);
+    if (isNaN(amt) || amt <= 0) return;
+    setRecharging(true);
+    setTopUpSuccess("");
+    try {
+      await rechargeWallet(amt, selectedGateway);
+      await fetchConsumerBilling();
+      setTopUpSuccess(`✓ Successfully credited ₦${formatMoney(amt)} via ${selectedGateway}!`);
+      setTimeout(() => {
+        setShowTopUp(false);
+        setTopUpSuccess("");
+      }, 1500);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setRecharging(false);
     }
   };
 
@@ -191,6 +228,15 @@ function OverviewScreenConsumer({ navigation }: any) {
   const microgridEnergyKwh = 6.2;
   const gridEnergyKwh = 2.2;
   const todayCost = (microgridEnergyKwh * tariffRate) + (gridEnergyKwh * 225); // Supplier rate + Utility rate
+
+  const consumerKpis = [
+    { label: "Current Load", value: activePowerKw.toFixed(2), unit: "kW", icon: "🏠", color: "#00D4FF", desc: "Live power consumption being drawn by home appliances.", detail: "Voltage: 231V • Current: 5.4A • Frequency: 50.0Hz" },
+    { label: "Daily Usage", value: dailyEnergyKwh.toFixed(1), unit: "kWh", icon: "📊", color: "#7C3AED", desc: "Total cumulative energy consumed today.", detail: "Peak hour: 2:00 PM – 4:00 PM (3.2 kWh)" },
+    { label: "Microgrid Recv.", value: microgridEnergyKwh.toFixed(1), unit: "kWh", icon: "🔄", color: "#10B981", desc: "Clean solar energy received from linked Microgrid.", detail: "Supplier: Sunshine Microgrid Co. @ ₦180/kWh" },
+    { label: "Grid Import", value: gridEnergyKwh.toFixed(1), unit: "kWh", icon: "🔌", color: "#EF4444", desc: "Energy imported from national grid during peak load.", detail: "Utility tariff: ₦225/kWh" },
+    { label: "Est. Cost Today", value: "₦" + todayCost.toFixed(0), unit: "", icon: "💰", color: "#F59E0B", desc: "Calculated billing cost for today's energy consumption.", detail: "Savings vs pure grid: ₦420 saved today!" },
+    { label: "Active Tariff", value: "₦" + tariffRate, unit: "/kWh", icon: "📊", color: "#10B981", desc: "Prepaid energy tariff rate agreed with solar producer.", detail: "Contract type: PREPAID • Auto-deducted from wallet" },
+  ];
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: bg }} showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16 }}>
@@ -212,7 +258,7 @@ function OverviewScreenConsumer({ navigation }: any) {
         <Text style={{ color: sub, fontSize: 11, fontWeight: "700", letterSpacing: 0.5, marginBottom: 8 }}>⚡ PREPAID UTILITY WALLET</Text>
         <Text style={{ color: accent, fontSize: 32, fontWeight: "900", letterSpacing: -1 }}>₦{formatMoney(walletBalance)}</Text>
         <Text style={{ color: sub, fontSize: 11, marginTop: 4, marginBottom: 16 }}>Billing Cycle: {billingCycle}</Text>
-        <TouchableOpacity onPress={() => navigation.navigate("Billing")} style={{ backgroundColor: accent, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}>
+        <TouchableOpacity activeOpacity={0.8} onPress={() => setShowTopUp(true)} style={{ backgroundColor: accent, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}>
           <Text style={{ color: "#000", fontSize: 13, fontWeight: "900" }}>💳 Top Up Wallet</Text>
         </TouchableOpacity>
       </View>
@@ -229,6 +275,7 @@ function OverviewScreenConsumer({ navigation }: any) {
         {/* Action Buttons for Consumer Registration & Plant Connection Requests */}
         <View style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
           <TouchableOpacity
+            activeOpacity={0.75}
             onPress={() => navigation?.navigate?.("RegisterConsumerMeter")}
             style={{
               flex: 1,
@@ -248,6 +295,7 @@ function OverviewScreenConsumer({ navigation }: any) {
           </TouchableOpacity>
 
           <TouchableOpacity
+            activeOpacity={0.75}
             onPress={() => navigation?.navigate?.("RegisterConsumerMeter")}
             style={{
               flex: 1,
@@ -296,6 +344,9 @@ function OverviewScreenConsumer({ navigation }: any) {
             {linkError ? (
               <Text style={{ color: "#EF4444", fontSize: 11, marginBottom: 8 }}>⚠️ {linkError}</Text>
             ) : null}
+            {linkSuccess ? (
+              <Text style={{ color: success, fontSize: 11, fontWeight: "700", marginBottom: 8 }}>✓ {linkSuccess}</Text>
+            ) : null}
             <View style={{ flexDirection: "row", gap: 8 }}>
               <TextInput
                 placeholder="Enter Supplier Code (e.g. REOS-1234)"
@@ -305,9 +356,10 @@ function OverviewScreenConsumer({ navigation }: any) {
                 style={{ flex: 1, height: 40, borderRadius: 10, borderWidth: 1, borderColor: border, paddingHorizontal: 12, color: text, backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F8FAFC", fontSize: 12 }}
               />
               <TouchableOpacity 
+                activeOpacity={0.75}
                 disabled={linking}
                 onPress={handleLinkSupplier}
-                style={{ backgroundColor: accent, borderRadius: 10, paddingHorizontal: 14, justifyContent: "center", alignItems: "center" }}
+                style={{ backgroundColor: accent, borderRadius: 10, paddingHorizontal: 16, justifyContent: "center", alignItems: "center" }}
               >
                 {linking ? (
                   <ActivityIndicator size="small" color="#000" />
@@ -320,29 +372,50 @@ function OverviewScreenConsumer({ navigation }: any) {
         )}
       </View>
 
-      {/* KPI Grid */}
-      <Text style={{ color: sub, fontSize: 11, fontWeight: "700", letterSpacing: 1.5, marginBottom: 10, textTransform: "uppercase" }}>Usage Details</Text>
+      {/* KPI Grid - Fully Interactive */}
+      <Text style={{ color: sub, fontSize: 11, fontWeight: "700", letterSpacing: 1.5, marginBottom: 10, textTransform: "uppercase" }}>Usage Details (Tap for Metrics)</Text>
       <View style={{ flexDirection: "row", flexWrap: "wrap", marginBottom: 16 }}>
-        <KPICard label="Current Load" value={activePowerKw.toFixed(2)} unit="kW" icon="🏠" color="#00D4FF" />
-        <KPICard label="Daily Usage" value={dailyEnergyKwh.toFixed(1)} unit="kWh" icon="📊" color="#7C3AED" />
-        <KPICard label="Microgrid Recv." value={microgridEnergyKwh.toFixed(1)} unit="kWh" icon="🔄" color="#10B981" />
-        <KPICard label="Grid Import" value={gridEnergyKwh.toFixed(1)} unit="kWh" icon="🔌" color="#EF4444" />
-        <KPICard label="Est. Cost Today" value={"₦" + todayCost.toFixed(0)} unit="" icon="💰" color="#F59E0B" />
-        <KPICard label="Active Tariff" value={"₦" + tariffRate} unit="/kWh" icon="📊" color="#10B981" />
+        {consumerKpis.map((k) => (
+          <TouchableOpacity
+            key={k.label}
+            activeOpacity={0.7}
+            onPress={() => setSelectedKpi(k)}
+            style={{ flex: 1, minWidth: (width - 48) / 2 - 6, margin: 4 }}
+          >
+            <View style={{
+              backgroundColor: isDark ? "rgba(17,24,39,0.9)" : "#FFFFFF",
+              borderRadius: 20, padding: 18,
+              borderWidth: 1, borderColor: `${k.color}30`,
+            }}>
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <View style={{ backgroundColor: `${k.color}20`, borderRadius: 10, padding: 8 }}>
+                  <Text style={{ fontSize: 20 }}>{k.icon}</Text>
+                </View>
+                <Text style={{ color: accent, fontSize: 10, fontWeight: "800" }}>TAP INFO ℹ️</Text>
+              </View>
+              <Text style={{ color: text, fontSize: 24, fontWeight: "900" }}>
+                {k.value}<Text style={{ fontSize: 12, color: sub }}> {k.unit}</Text>
+              </Text>
+              <Text style={{ color: sub, fontSize: 11, fontWeight: "600", marginTop: 4, textTransform: "uppercase" }}>
+                {k.label}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        ))}
       </View>
 
-      {/* Live Energy Flow */}
+      {/* Live Energy Flow - Interactive Nodes */}
       <View style={{ backgroundColor: card, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: border, marginBottom: 16 }}>
-        <Text style={{ color: text, fontSize: 15, fontWeight: "800", marginBottom: 16 }}>⚡ Bidirectional Smart Flow</Text>
+        <Text style={{ color: text, fontSize: 15, fontWeight: "800", marginBottom: 16 }}>⚡ Bidirectional Smart Flow (Tap Nodes)</Text>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           {/* Supplier Node */}
-          <View style={{ alignItems: "center", minWidth: 80 }}>
+          <TouchableOpacity activeOpacity={0.7} onPress={() => setSelectedNode({ name: "Microgrid Supplier", icon: "☀️", power: "6.2 kWh Delivered", desc: "Clean solar energy supplied by Sunshine Microgrid Co.", telemetry: "Tariff: ₦180/kWh • Purity: 99.8% • Frequency: 50Hz" })} style={{ alignItems: "center", minWidth: 80 }}>
             <View style={{ width: 56, height: 56, borderRadius: 16, backgroundColor: "rgba(16,185,129,0.12)", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#10B98150", marginBottom: 8 }}>
               <Text style={{ fontSize: 24 }}>☀️</Text>
             </View>
             <Text style={{ color: text, fontSize: 12, fontWeight: "800" }}>Microgrid</Text>
             <Text style={{ color: sub, fontSize: 9, fontWeight: "600", textAlign: "center" }}>Supplier</Text>
-          </View>
+          </TouchableOpacity>
 
           {/* Flow Arrow */}
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
@@ -351,13 +424,13 @@ function OverviewScreenConsumer({ navigation }: any) {
           </View>
 
           {/* Bidirectional Meter Node */}
-          <View style={{ alignItems: "center", minWidth: 80 }}>
+          <TouchableOpacity activeOpacity={0.7} onPress={() => setSelectedNode({ name: "Bidirectional Smart Meter", icon: "🔌", power: `${activePowerKw.toFixed(2)} kW Active`, desc: "REOS-IoT Net Metering Node with MQTT Telemetry", telemetry: "Serial: CNS-MTR-778899 • Ping: 12ms • Signal: 98%" })} style={{ alignItems: "center", minWidth: 80 }}>
             <View style={{ width: 56, height: 56, borderRadius: 16, backgroundColor: "rgba(0,212,255,0.12)", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#00D4FF50", marginBottom: 8 }}>
               <Text style={{ fontSize: 24 }}>🔌</Text>
             </View>
             <Text style={{ color: text, fontSize: 12, fontWeight: "800" }}>Smart Meter</Text>
             <Text style={{ color: sub, fontSize: 9, fontWeight: "600", textAlign: "center" }}>{activePowerKw.toFixed(1)} kW</Text>
-          </View>
+          </TouchableOpacity>
 
           {/* Flow Arrow */}
           <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
@@ -366,32 +439,133 @@ function OverviewScreenConsumer({ navigation }: any) {
           </View>
 
           {/* Consumer Home Node */}
-          <View style={{ alignItems: "center", minWidth: 80 }}>
+          <TouchableOpacity activeOpacity={0.7} onPress={() => setSelectedNode({ name: "Home Residential Load", icon: "🏠", power: "1.25 kW Load", desc: "Active household circuit breaker & load center.", telemetry: "Voltage: 231V • Power Factor: 0.98 • Status: NORMAL" })} style={{ alignItems: "center", minWidth: 80 }}>
             <View style={{ width: 56, height: 56, borderRadius: 16, backgroundColor: "rgba(124,58,237,0.12)", alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#7C3AED50", marginBottom: 8 }}>
               <Text style={{ fontSize: 24 }}>🏠</Text>
             </View>
             <Text style={{ color: text, fontSize: 12, fontWeight: "800" }}>Home Load</Text>
             <Text style={{ color: sub, fontSize: 9, fontWeight: "600", textAlign: "center" }}>Consumer</Text>
-          </View>
+          </TouchableOpacity>
         </View>
       </View>
 
       {/* Quick Actions */}
       <Text style={{ color: sub, fontSize: 11, fontWeight: "700", letterSpacing: 1.5, marginBottom: 10, textTransform: "uppercase" }}>Quick Actions</Text>
       <View style={{ flexDirection: "row", gap: 8, marginBottom: 24 }}>
-        <TouchableOpacity onPress={() => navigation.navigate("Billing")} style={{ flex: 1, backgroundColor: "rgba(0,212,255,0.1)", borderRadius: 16, padding: 14, borderWidth: 1, borderColor: "rgba(0,212,255,0.25)", alignItems: "center" }}>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => navigation?.navigate?.("Billing")} style={{ flex: 1, backgroundColor: "rgba(0,212,255,0.1)", borderRadius: 16, padding: 14, borderWidth: 1, borderColor: "rgba(0,212,255,0.25)", alignItems: "center" }}>
           <Text style={{ fontSize: 22, marginBottom: 6 }}>💰</Text>
           <Text style={{ color: accent, fontSize: 12, fontWeight: "700" }}>Wallet & Billing</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate("Trading")} style={{ flex: 1, backgroundColor: "rgba(16,185,129,0.1)", borderRadius: 16, padding: 14, borderWidth: 1, borderColor: "rgba(16,185,129,0.25)", alignItems: "center" }}>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => navigation?.navigate?.("Trading")} style={{ flex: 1, backgroundColor: "rgba(16,185,129,0.1)", borderRadius: 16, padding: 14, borderWidth: 1, borderColor: "rgba(16,185,129,0.25)", alignItems: "center" }}>
           <Text style={{ fontSize: 22, marginBottom: 6 }}>🔄</Text>
           <Text style={{ color: "#10B981", fontSize: 12, fontWeight: "700" }}>P2P Energy</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate("AIChat")} style={{ flex: 1, backgroundColor: "rgba(124,58,237,0.1)", borderRadius: 16, padding: 14, borderWidth: 1, borderColor: "rgba(124,58,237,0.25)", alignItems: "center" }}>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => navigation?.navigate?.("AIChat")} style={{ flex: 1, backgroundColor: "rgba(124,58,237,0.1)", borderRadius: 16, padding: 14, borderWidth: 1, borderColor: "rgba(124,58,237,0.25)", alignItems: "center" }}>
           <Text style={{ fontSize: 22, marginBottom: 6 }}>💬</Text>
           <Text style={{ color: "#7C3AED", fontSize: 12, fontWeight: "700" }}>AI Assistant</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Interactive Top Up Modal */}
+      <Modal visible={showTopUp} transparent animationType="slide">
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.75)", justifyContent: "flex-end" }}>
+          <View style={{ backgroundColor: card, borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, borderWidth: 1, borderColor: border }}>
+            <Text style={{ color: text, fontSize: 20, fontWeight: "900", marginBottom: 4 }}>💳 Top Up Utility Wallet</Text>
+            <Text style={{ color: sub, fontSize: 12, marginBottom: 16 }}>Select amount and payment gateway to credit your energy balance.</Text>
+
+            {topUpSuccess ? (
+              <View style={{ backgroundColor: "rgba(16,185,129,0.15)", borderRadius: 12, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: "rgba(16,185,129,0.3)" }}>
+                <Text style={{ color: success, fontWeight: "800", fontSize: 13 }}>{topUpSuccess}</Text>
+              </View>
+            ) : null}
+
+            <Text style={{ color: sub, fontSize: 12, fontWeight: "600", marginBottom: 8 }}>Amount (₦)</Text>
+            <TextInput
+              style={{ backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F8FAFC", borderRadius: 14, padding: 16, color: text, fontSize: 22, fontWeight: "800", borderWidth: 1, borderColor: border, marginBottom: 14 }}
+              value={topUpAmount}
+              onChangeText={setTopUpAmount}
+              keyboardType="numeric"
+              placeholder="5000"
+              placeholderTextColor={sub}
+            />
+
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+              {["1000", "2500", "5000", "10000", "25000"].map((a) => (
+                <TouchableOpacity key={a} onPress={() => setTopUpAmount(a)} style={{ backgroundColor: topUpAmount === a ? accent : (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.05)"), borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10 }}>
+                  <Text style={{ color: topUpAmount === a ? "#000" : text, fontWeight: "800", fontSize: 12 }}>₦{formatMoney(parseInt(a))}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={{ color: sub, fontSize: 12, fontWeight: "600", marginBottom: 10 }}>Select Payment Gateway</Text>
+            <View style={{ flexDirection: "row", gap: 8, marginBottom: 20 }}>
+              {["Paystack", "Flutterwave", "Direct Bank"].map((gw) => (
+                <TouchableOpacity key={gw} onPress={() => setSelectedGateway(gw)} style={{ flex: 1, backgroundColor: selectedGateway === gw ? `${accent}20` : (isDark ? "rgba(255,255,255,0.05)" : "#F1F5F9"), borderRadius: 10, paddingVertical: 10, alignItems: "center", borderWidth: 1, borderColor: selectedGateway === gw ? accent : border }}>
+                  <Text style={{ color: selectedGateway === gw ? accent : text, fontWeight: "700", fontSize: 11 }}>{gw}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <TouchableOpacity onPress={() => setShowTopUp(false)} style={{ flex: 1, backgroundColor: isDark ? "rgba(255,255,255,0.07)" : "#E2E8F0", borderRadius: 12, padding: 14, alignItems: "center" }}>
+                <Text style={{ color: sub, fontWeight: "700" }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity disabled={recharging} onPress={handleTopUpSubmit} style={{ flex: 2, backgroundColor: accent, borderRadius: 12, padding: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}>
+                {recharging && <ActivityIndicator size="small" color="#000" />}
+                <Text style={{ color: "#000", fontWeight: "900", fontSize: 14 }}>Pay & Credit Balance</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* KPI Info Modal */}
+      <Modal visible={!!selectedKpi} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.75)", justifyContent: "center", padding: 20 }}>
+          <View style={{ backgroundColor: card, borderRadius: 24, padding: 24, borderWidth: 1, borderColor: border }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: `${selectedKpi?.color}20`, alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ fontSize: 22 }}>{selectedKpi?.icon}</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: text, fontSize: 18, fontWeight: "900" }}>{selectedKpi?.label}</Text>
+                <Text style={{ color: selectedKpi?.color, fontSize: 22, fontWeight: "900" }}>{selectedKpi?.value} {selectedKpi?.unit}</Text>
+              </View>
+            </View>
+            <Text style={{ color: sub, fontSize: 13, marginBottom: 10, lineHeight: 18 }}>{selectedKpi?.desc}</Text>
+            <View style={{ backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F8FAFC", borderRadius: 12, padding: 12, marginBottom: 18, borderWidth: 1, borderColor: border }}>
+              <Text style={{ color: text, fontSize: 11, fontWeight: "700" }}>⚡ Technical Detail:</Text>
+              <Text style={{ color: sub, fontSize: 12, marginTop: 2 }}>{selectedKpi?.detail}</Text>
+            </View>
+            <TouchableOpacity onPress={() => setSelectedKpi(null)} style={{ backgroundColor: accent, borderRadius: 12, padding: 12, alignItems: "center" }}>
+              <Text style={{ color: "#000", fontWeight: "800" }}>Close Metric Info</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Energy Node Diagnostic Modal */}
+      <Modal visible={!!selectedNode} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.75)", justifyContent: "center", padding: 20 }}>
+          <View style={{ backgroundColor: card, borderRadius: 24, padding: 24, borderWidth: 1, borderColor: border }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <Text style={{ fontSize: 28 }}>{selectedNode?.icon}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: text, fontSize: 18, fontWeight: "900" }}>{selectedNode?.name}</Text>
+                <Text style={{ color: accent, fontSize: 14, fontWeight: "800" }}>{selectedNode?.power}</Text>
+              </View>
+            </View>
+            <Text style={{ color: sub, fontSize: 12, marginBottom: 12, lineHeight: 18 }}>{selectedNode?.desc}</Text>
+            <View style={{ backgroundColor: isDark ? "rgba(0,212,255,0.08)" : "#E0F2FE", borderRadius: 12, padding: 12, marginBottom: 18, borderWidth: 1, borderColor: `${accent}30` }}>
+              <Text style={{ color: text, fontSize: 11, fontWeight: "700" }}>📡 Telemetry Stream:</Text>
+              <Text style={{ color: text, fontSize: 12, marginTop: 2, fontWeight: "600" }}>{selectedNode?.telemetry}</Text>
+            </View>
+            <TouchableOpacity onPress={() => setSelectedNode(null)} style={{ backgroundColor: accent, borderRadius: 12, padding: 12, alignItems: "center" }}>
+              <Text style={{ color: "#000", fontWeight: "800" }}>Close Telemetry Node</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
