@@ -176,8 +176,8 @@ export default function DeviceManagementScreen({ navigation }: { navigation?: an
         ))}
       </View>
 
-      {/* Tab Switcher - All 5 Buttons Standardized to Normal Equalized Pill Size */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginBottom: 16 }}>
+      {/* Tab Switcher */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 4, marginBottom: 10 }}>
         {[
           { id: "DEVICES", title: "Devices", icon: "🔌" },
           { id: "REGISTER_METER", title: "Register Meter", icon: "📟" },
@@ -190,18 +190,18 @@ export default function DeviceManagementScreen({ navigation }: { navigation?: an
             onPress={() => setActiveTab(t.id as any)}
             style={{
               backgroundColor: activeTab === t.id ? accent : isDark ? "rgba(255,255,255,0.06)" : "#E2E8F0",
-              borderRadius: 10,
-              paddingHorizontal: 12,
-              paddingVertical: 8,
+              borderRadius: 6,
+              paddingHorizontal: 8,
+              paddingVertical: 4,
               alignItems: "center",
               flexDirection: "row",
-              gap: 6,
+              gap: 4,
               borderWidth: 1,
               borderColor: activeTab === t.id ? accent : border,
             }}
           >
-            <Text style={{ fontSize: 13 }}>{t.icon}</Text>
-            <Text style={{ color: activeTab === t.id ? "#000" : text, fontWeight: "700", fontSize: 11 }}>{t.title}</Text>
+            <Text style={{ fontSize: 11 }}>{t.icon}</Text>
+            <Text style={{ color: activeTab === t.id ? "#000" : text, fontWeight: "700", fontSize: 10 }}>{t.title}</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
