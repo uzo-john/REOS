@@ -7,12 +7,13 @@ import { fetchSolarForecast, fetchLoadForecast, fetchAIInsights, generateMockSol
 function BarChart({ data, color, label, unit }: { data: number[]; color: string; label: string; unit: string }) {
   const { theme } = useStore();
   const isDark = theme === "dark";
-  const max = Math.max(...data, 0.1);
+  const safeData = Array.isArray(data) ? data : [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+  const max = safeData.length > 0 ? Math.max(...safeData, 0.1) : 0.1;
   return (
     <View>
       <Text style={{ color: isDark ? "#94A3B8" : "#64748B", fontSize: 12, fontWeight: "600", marginBottom: 10 }}>{label}</Text>
       <View style={{ flexDirection: "row", alignItems: "flex-end", height: 80, gap: 3 }}>
-        {data.map((v, i) => (
+        {safeData.map((v, i) => (
           <View key={i} style={{ flex: 1, alignItems: "center" }}>
             <View style={{ width: "100%", height: (v / max) * 72, backgroundColor: `${color}${v > 0 ? "CC" : "30"}`, borderRadius: 4, borderTopLeftRadius: 4, borderTopRightRadius: 4 }} />
             {i % 4 === 0 && <Text style={{ color: isDark ? "#4B5563" : "#CBD5E1", fontSize: 7, marginTop: 2 }}>{i}h</Text>}
@@ -27,16 +28,17 @@ function WeekChart({ data, color, label, unit }: { data: number[]; color: string
   const { theme } = useStore();
   const isDark = theme === "dark";
   const days = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-  const max = Math.max(...data, 0.1);
+  const safeData = Array.isArray(data) ? data : [0,0,0,0,0,0,0];
+  const max = safeData.length > 0 ? Math.max(...safeData, 0.1) : 0.1;
   return (
     <View style={{ marginTop: 16 }}>
       <Text style={{ color: isDark ? "#94A3B8" : "#64748B", fontSize: 12, fontWeight: "600", marginBottom: 10 }}>{label}</Text>
       <View style={{ flexDirection: "row", alignItems: "flex-end", height: 70, gap: 6 }}>
-        {data.map((v, i) => (
+        {safeData.map((v, i) => (
           <View key={i} style={{ flex: 1, alignItems: "center" }}>
-            <Text style={{ color: color, fontSize: 9, fontWeight: "700", marginBottom: 2 }}>{v.toFixed(0)}</Text>
+            <Text style={{ color: color, fontSize: 9, fontWeight: "700", marginBottom: 2 }}>{(v || 0).toFixed(0)}</Text>
             <View style={{ width: "100%", height: (v / max) * 56, backgroundColor: `${color}CC`, borderRadius: 6 }} />
-            <Text style={{ color: isDark ? "#4B5563" : "#CBD5E1", fontSize: 9, marginTop: 3 }}>{days[i]}</Text>
+            <Text style={{ color: isDark ? "#4B5563" : "#CBD5E1", fontSize: 9, marginTop: 3 }}>{days[i] || `D${i+1}`}</Text>
           </View>
         ))}
       </View>
@@ -58,9 +60,15 @@ export function AIForecastingScreen() {
   const [tab, setTab] = useState<"solar"|"load">("solar");
 
   useEffect(() => {
-    fetchSolarForecast().then(setSolar);
-    fetchLoadForecast().then(setLoad);
-    fetchAIInsights().then(setInsights);
+    fetchSolarForecast()
+      .then(res => setSolar(res && Array.isArray(res.hourly) ? res : generateMockSolarForecast()))
+      .catch(() => setSolar(generateMockSolarForecast()));
+    fetchLoadForecast()
+      .then(res => setLoad(res && Array.isArray(res.hourly) ? res : generateMockLoadForecast()))
+      .catch(() => setLoad(generateMockLoadForecast()));
+    fetchAIInsights()
+      .then(res => setInsights(Array.isArray(res) ? res : generateMockInsights()))
+      .catch(() => setInsights(generateMockInsights()));
   }, []);
 
   const impactColor = { HIGH:"#EF4444", MEDIUM:"#F59E0B", LOW:"#10B981" };

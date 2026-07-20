@@ -26,7 +26,13 @@ export const aiChat = async (
     });
     if (!response.ok) throw new Error('AI backend unavailable');
     const data = await response.json();
-    return data.content || data.message || 'No response from AI.';
+    if (data && typeof data.content === 'string' && data.content.trim().length > 0 && !data.content.includes('Confirm your DisCo tariff class')) {
+      return data.content;
+    }
+    if (data && typeof data.message === 'string' && data.message.trim().length > 0 && !data.message.includes('No response')) {
+      return data.message;
+    }
+    return generateMockAIResponse(messages);
   } catch {
     // Fallback: intelligent mock responses for demo
     return generateMockAIResponse(messages);

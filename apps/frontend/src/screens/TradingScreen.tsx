@@ -21,6 +21,13 @@ const MOCK_OFFERS = [
   { id: "o4", sellerId: "u4", sellerName: "Community MicroGrid", sellerLocation: "Abuja, FCT", availableKwh: 5.0, pricePerKwh: 210, status: "OPEN" },
 ];
 
+const MOCK_BUY_REQUESTS = [
+  { id: "b1", buyerId: "ub1", buyerName: "Kano Commercial Cluster", buyerLocation: "Sharada Phase 1", requestedKwh: 45.0, offeredPricePerKwh: 220, deliveryPeriod: "12:00 PM – 4:00 PM", status: "OPEN" },
+  { id: "b2", buyerId: "ub2", buyerName: "Victoria Island Tech Hub", buyerLocation: "VI, Lagos", requestedKwh: 15.0, offeredPricePerKwh: 215, deliveryPeriod: "2:00 PM – 6:00 PM", status: "OPEN" },
+  { id: "b3", buyerId: "ub3", buyerName: "Lekki Residential Coop", buyerLocation: "Lekki Phase 1", requestedKwh: 25.0, offeredPricePerKwh: 200, deliveryPeriod: "6:00 PM – 10:00 PM", status: "OPEN" },
+  { id: "b4", buyerId: "ub4", buyerName: "Ikeja Microgrid Community", buyerLocation: "GRA Ikeja", requestedKwh: 10.0, offeredPricePerKwh: 210, deliveryPeriod: "1:00 PM – 5:00 PM", status: "OPEN" },
+];
+
 const PLATFORM_FEE = 500; // ₦500 flat fee
 
 type Tab = "market" | "history" | "wallet" | "escrow";
@@ -39,6 +46,7 @@ export default function TradingScreen() {
   const blue = "#00D4FF";
 
   const [tab, setTab] = useState<Tab>("market");
+  const [marketView, setMarketView] = useState<"demand" | "supply">("demand");
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -400,46 +408,128 @@ export default function TradingScreen() {
       {/* ── MARKET TAB ── */}
       {tab === "market" && (
         <>
+          {/* Sub-toggle for Demand (Buyers) vs Supply (Sellers) */}
+          <View style={{ flexDirection: "row", backgroundColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)", borderRadius: 12, padding: 3, marginBottom: 16 }}>
+            <TouchableOpacity
+              onPress={() => setMarketView("demand")}
+              style={{
+                flex: 1,
+                paddingVertical: 10,
+                borderRadius: 10,
+                alignItems: "center",
+                backgroundColor: marketView === "demand" ? (isDark ? "rgba(0,212,255,0.2)" : "#0284C7") : "transparent",
+              }}
+            >
+              <Text style={{ color: marketView === "demand" ? "#FFF" : sub, fontWeight: "800", fontSize: 12 }}>
+                👥 Active Buyer Requests (Demand)
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setMarketView("supply")}
+              style={{
+                flex: 1,
+                paddingVertical: 10,
+                borderRadius: 10,
+                alignItems: "center",
+                backgroundColor: marketView === "supply" ? accent : "transparent",
+              }}
+            >
+              <Text style={{ color: marketView === "supply" ? "#000" : sub, fontWeight: "800", fontSize: 12 }}>
+                ☀️ Seller Offers (Supply)
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           <TouchableOpacity onPress={() => setShowOffer(true)} style={{ backgroundColor: accent, borderRadius: 16, padding: 16, alignItems: "center", flexDirection: "row", justifyContent: "center", marginBottom: 16, gap: 8 }}>
             <Text style={{ fontSize: 18 }}>📤</Text>
             <Text style={{ color: "#000", fontSize: 15, fontWeight: "800" }}>List Your Surplus Energy</Text>
           </TouchableOpacity>
+
           <View style={{ backgroundColor: isDark ? "rgba(245,158,11,0.08)" : "rgba(245,158,11,0.06)", borderRadius: 14, padding: 12, marginBottom: 16, flexDirection: "row", gap: 8, borderWidth: 1, borderColor: "rgba(245,158,11,0.2)" }}>
             <Text style={{ fontSize: 18 }}>🛡️</Text>
             <Text style={{ color: sub, fontSize: 12, flex: 1, lineHeight: 18 }}>
-              All purchases are <Text style={{ color: gold, fontWeight: "700" }}>escrow-protected</Text>. Funds only release after smart meter confirms delivery. Platform fee: <Text style={{ color: gold, fontWeight: "700" }}>₦500/transaction</Text>.
+              All P2P trades are <Text style={{ color: gold, fontWeight: "700" }}>escrow-protected</Text>. Funds release after smart meter confirms delivery. Platform fee: <Text style={{ color: gold, fontWeight: "700" }}>₦500/transaction</Text>.
             </Text>
           </View>
-          <Text style={{ color: sub, fontSize: 10, fontWeight: "700", letterSpacing: 1.5, marginBottom: 10, textTransform: "uppercase" }}>Active Offers ({MOCK_OFFERS.length})</Text>
-          {MOCK_OFFERS.map(offer => {
-            const totalCost = offer.availableKwh * offer.pricePerKwh + PLATFORM_FEE;
-            return (
-              <View key={offer.id} style={{ backgroundColor: card, borderRadius: 18, padding: 18, marginBottom: 12, borderWidth: 1, borderColor: border }}>
-                <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 12 }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: text, fontSize: 15, fontWeight: "800", marginBottom: 2 }}>{offer.sellerName}</Text>
-                    <Text style={{ color: sub, fontSize: 12 }}>📍 {offer.sellerLocation}</Text>
+
+          {marketView === "demand" ? (
+            <>
+              <Text style={{ color: sub, fontSize: 10, fontWeight: "700", letterSpacing: 1.5, marginBottom: 10, textTransform: "uppercase" }}>Consumers Requesting Energy ({MOCK_BUY_REQUESTS.length})</Text>
+              {MOCK_BUY_REQUESTS.map(req => {
+                const totalRevenue = req.requestedKwh * req.offeredPricePerKwh;
+                return (
+                  <View key={req.id} style={{ backgroundColor: card, borderRadius: 18, padding: 18, marginBottom: 12, borderWidth: 1, borderColor: border }}>
+                    <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 12 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: text, fontSize: 15, fontWeight: "800", marginBottom: 2 }}>{req.buyerName}</Text>
+                        <Text style={{ color: sub, fontSize: 12 }}>📍 {req.buyerLocation} • ⏰ {req.deliveryPeriod}</Text>
+                      </View>
+                      <View style={{ backgroundColor: "rgba(0,212,255,0.12)", borderRadius: 10, padding: 8, alignItems: "center" }}>
+                        <Text style={{ color: blue, fontSize: 18, fontWeight: "900" }}>₦{req.offeredPricePerKwh}</Text>
+                        <Text style={{ color: sub, fontSize: 10 }}>/kWh offer</Text>
+                      </View>
+                    </View>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                      <View>
+                        <Text style={{ color: text, fontSize: 16, fontWeight: "700" }}>{req.requestedKwh} kWh requested</Text>
+                        <Text style={{ color: accent, fontSize: 11, fontWeight: "600" }}>Payout: ₦{formatMoney(totalRevenue)}</Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => {
+                          Alert.alert(
+                            "⚡ Sell Energy to Buyer",
+                            `Supply ${req.requestedKwh} kWh to ${req.buyerName} at ₦${req.offeredPricePerKwh}/kWh?\n\nTotal earnings: ₦${formatMoney(totalRevenue)}\nFunds locked in escrow instantly upon meter confirmation.`,
+                            [
+                              { text: "Cancel", style: "cancel" },
+                              {
+                                text: "Confirm Sale",
+                                onPress: () => Alert.alert("✅ Order Fulfilled", `You have agreed to supply ${req.requestedKwh} kWh to ${req.buyerName}. Funds reserved in Escrow.`)
+                              }
+                            ]
+                          );
+                        }}
+                        style={{ backgroundColor: blue, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10 }}
+                      >
+                        <Text style={{ color: "#000", fontWeight: "900", fontSize: 13 }}>⚡ Fulfill Order</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                  <View style={{ backgroundColor: "rgba(16,185,129,0.12)", borderRadius: 10, padding: 8, alignItems: "center" }}>
-                    <Text style={{ color: accent, fontSize: 18, fontWeight: "900" }}>₦{offer.pricePerKwh}</Text>
-                    <Text style={{ color: sub, fontSize: 10 }}>/kWh</Text>
+                );
+              })}
+            </>
+          ) : (
+            <>
+              <Text style={{ color: sub, fontSize: 10, fontWeight: "700", letterSpacing: 1.5, marginBottom: 10, textTransform: "uppercase" }}>Active Seller Offers ({MOCK_OFFERS.length})</Text>
+              {MOCK_OFFERS.map(offer => {
+                return (
+                  <View key={offer.id} style={{ backgroundColor: card, borderRadius: 18, padding: 18, marginBottom: 12, borderWidth: 1, borderColor: border }}>
+                    <View style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 12 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: text, fontSize: 15, fontWeight: "800", marginBottom: 2 }}>{offer.sellerName}</Text>
+                        <Text style={{ color: sub, fontSize: 12 }}>📍 {offer.sellerLocation}</Text>
+                      </View>
+                      <View style={{ backgroundColor: "rgba(16,185,129,0.12)", borderRadius: 10, padding: 8, alignItems: "center" }}>
+                        <Text style={{ color: accent, fontSize: 18, fontWeight: "900" }}>₦{offer.pricePerKwh}</Text>
+                        <Text style={{ color: sub, fontSize: 10 }}>/kWh</Text>
+                      </View>
+                    </View>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                      <View>
+                        <Text style={{ color: text, fontSize: 16, fontWeight: "700" }}>{offer.availableKwh} kWh</Text>
+                        <Text style={{ color: sub, fontSize: 11 }}>Energy: ₦{formatMoney(offer.availableKwh * offer.pricePerKwh)} + ₦500 fee</Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => { setMatchingOffer(offer); setBuyKwh(String(offer.availableKwh)); }}
+                        style={{ backgroundColor: accent, borderRadius: 12, paddingHorizontal: 18, paddingVertical: 10 }}
+                      >
+                        <Text style={{ color: "#000", fontWeight: "800", fontSize: 13 }}>Buy Energy</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
-                </View>
-                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                  <View>
-                    <Text style={{ color: text, fontSize: 16, fontWeight: "700" }}>{offer.availableKwh} kWh</Text>
-                    <Text style={{ color: sub, fontSize: 11 }}>Energy: ₦{formatMoney(offer.availableKwh * offer.pricePerKwh)} + ₦500 fee</Text>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => { setMatchingOffer(offer); setBuyKwh(String(offer.availableKwh)); }}
-                    style={{ backgroundColor: accent, borderRadius: 12, paddingHorizontal: 18, paddingVertical: 10 }}
-                  >
-                    <Text style={{ color: "#000", fontWeight: "800", fontSize: 13 }}>Buy Energy</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            );
-          })}
+                );
+              })}
+            </>
+          )}
         </>
       )}
 

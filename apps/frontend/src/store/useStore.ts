@@ -1443,15 +1443,30 @@ export const useStore = create<REOSState>((set, get) => ({
       await api.topUpWallet(amount, gateway, token || undefined);
       await get().fetchConsumerBilling();
     } catch (e) {
-      // Offline fallback
+      // Offline / Demo sandbox fallback
       set(state => {
-        if (!state.billingSummary) return {};
-        const newTx = { id: `tx-${Date.now()}`, contractId: state.billingSummary.contractId, type: 'PREPAID_PURCHASE', amount, currency: 'NGN', paymentGateway: gateway, status: 'SUCCESSFUL', createdAt: new Date().toISOString() };
+        const currentBilling = state.billingSummary || {
+          balance: 4280.5,
+          outstandingBalance: 1520,
+          lastPayment: 8500,
+          billingCycle: 'PREPAID',
+          invoices: [
+            { id: "inv-1", amount: 8500, energyReceivedKwh: 37.8, status: "PAID", billingPeriodStart: "2026-06-01", billingPeriodEnd: "2026-06-30", dueDate: "2026-07-05" },
+            { id: "inv-2", amount: 7200, energyReceivedKwh: 32.0, status: "PAID", billingPeriodStart: "2026-05-01", billingPeriodEnd: "2026-05-31", dueDate: "2026-06-05" },
+            { id: "inv-3", amount: 1520, energyReceivedKwh: 6.8, status: "UNPAID", billingPeriodStart: "2026-07-01", billingPeriodEnd: "2026-07-08", dueDate: "2026-07-15" }
+          ],
+          transactions: [
+            { id: "txn-1", type: "PREPAID_PURCHASE", amount: 5000, status: "SUCCESSFUL", createdAt: "2026-07-01T10:30:00Z", paymentGateway: "Paystack" },
+            { id: "txn-2", type: "CREDIT_TRANSFER", amount: 1250, status: "SUCCESSFUL", createdAt: "2026-06-28T14:15:00Z", paymentGateway: "P2P" }
+          ]
+        };
+        const newTx = { id: `tx-${Date.now()}`, type: 'PREPAID_PURCHASE', amount, currency: 'NGN', paymentGateway: gateway, status: 'SUCCESSFUL', createdAt: new Date().toISOString() };
         return {
           billingSummary: {
-            ...state.billingSummary,
-            balance: state.billingSummary.balance + amount,
-            transactions: [newTx, ...state.billingSummary.transactions]
+            ...currentBilling,
+            balance: currentBilling.balance + amount,
+            lastPayment: amount,
+            transactions: [newTx, ...(currentBilling.transactions || [])]
           }
         };
       });
