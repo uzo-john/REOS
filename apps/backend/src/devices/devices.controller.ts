@@ -21,6 +21,13 @@ import {
   RegisterGatewayProfileDto,
   RegisterBatteryProfileDto,
 } from './dto/devices.dto';
+import {
+  RegisterProducerOnboardingDto,
+  RegisterConsumerSmartMeterDto,
+  SubmitConnectionRequestDto,
+  ProcessConnectionApprovalDto,
+  SearchProducerPlantsDto,
+} from './dto/onboarding.dto';
 import { PaginationDto } from '../common/dto/pagination.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -119,4 +126,84 @@ export class DevicesController {
   upsertBattery(@Body() dto: RegisterBatteryProfileDto) {
     return this.service.registerBattery(dto);
   }
+
+  // ─── PRODUCER ONBOARDING & SETUP WIZARD ───
+
+  @Post('onboard-producer')
+  @ApiOperation({ summary: 'Onboard Plant, Inverter, Meter, BMS, and Gateway setup wizard' })
+  onboardProducer(
+    @Body() dto: RegisterProducerOnboardingDto,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.service.onboardProducerPlantAndDevices(dto, userId);
+  }
+
+  // ─── CONSUMER SMART METER REGISTRATION ───
+
+  @Post('register-consumer-meter')
+  @ApiOperation({ summary: 'Register Smart Meter and bind to Consumer account' })
+  registerConsumerMeter(
+    @Body() dto: RegisterConsumerSmartMeterDto,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.service.registerConsumerSmartMeter(dto, userId);
+  }
+
+  // ─── DEVICE AUTOMATED VERIFICATION ENGINE ───
+
+  @Post(':id/verify')
+  @ApiOperation({ summary: 'Run automated ownership, serial, and communication verification test' })
+  verifyDevice(
+    @Param('id') id: string,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.service.verifyDevice(id, userId);
+  }
+
+  // ─── CONNECTION MANAGEMENT & PRODUCER SEARCH ───
+
+  @Get('plants/search')
+  @ApiOperation({ summary: 'Search active producer energy plants by name, ID, or invitation code' })
+  searchPlants(@Query() dto: SearchProducerPlantsDto) {
+    return this.service.searchProducerPlants(dto);
+  }
+
+  @Post('connections/request')
+  @ApiOperation({ summary: 'Submit connection request from Consumer to Producer Plant' })
+  submitConnectionRequest(
+    @Body() dto: SubmitConnectionRequestDto,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.service.submitConnectionRequest(dto, userId);
+  }
+
+  @Get('connections/producer-requests')
+  @ApiOperation({ summary: 'Get incoming consumer connection requests for Producer plants' })
+  getProducerRequests(@CurrentUser('id') userId: string) {
+    return this.service.getProducerConnectionRequests(userId);
+  }
+
+  @Post('connections/approve')
+  @ApiOperation({ summary: 'Approve, Reject, Suspend, or Disconnect consumer connection' })
+  processApproval(
+    @Body() dto: ProcessConnectionApprovalDto,
+    @CurrentUser('id') userId: string,
+  ) {
+    return this.service.processConnectionApproval(dto, userId);
+  }
+
+  // ─── NETWORK TOPOLOGY & DIAGNOSTICS ───
+
+  @Get('topology/:plantId')
+  @ApiOperation({ summary: 'Get visual network topology tree for plant and connected meters' })
+  getTopology(@Param('plantId') plantId: string) {
+    return this.service.getNetworkTopology(plantId);
+  }
+
+  @Get(':id/health')
+  @ApiOperation({ summary: 'Get device health, signal strength, latency, and communication logs' })
+  getHealth(@Param('id') id: string) {
+    return this.service.getDeviceHealthAndDiagnostics(id);
+  }
 }
+

@@ -337,11 +337,19 @@ export const api = {
     return handleResponse(response);
   },
 
+  async createZone(dto: any, token?: string) {
+    return this.createDistributionZone(dto, token);
+  },
+
   async fetchDistributionZones(plantId: string, token?: string) {
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
     const response = await fetch(`${API_BASE_URL}/producer/plants/${plantId}/zones`, { method: 'GET', headers });
     return handleResponse(response);
+  },
+
+  async fetchZones(plantId: string, token?: string) {
+    return this.fetchDistributionZones(plantId, token);
   },
 
   async connectConsumerToFeeder(dto: any, token?: string) {
@@ -353,6 +361,10 @@ export const api = {
       body: JSON.stringify(dto),
     });
     return handleResponse(response);
+  },
+
+  async connectConsumer(dto: any, token?: string) {
+    return this.connectConsumerToFeeder(dto, token);
   },
 
   async fetchConnections(plantId: string, token?: string) {
@@ -535,5 +547,91 @@ export const api = {
     if (token) headers['Authorization'] = `Bearer ${token}`;
     const response = await fetch(`${API_BASE_URL}/dispatch/${plantId}/control-logs`, { method: 'GET', headers });
     return handleResponse(response);
+  },
+
+  // ─── DEVICE ONBOARDING & CONNECTION MANAGEMENT API ───
+
+  async onboardProducerPlant(dto: any, token?: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/devices/onboard-producer`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(dto),
+    });
+    return handleResponse(response);
+  },
+
+  async registerConsumerSmartMeter(dto: any, token?: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/devices/register-consumer-meter`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(dto),
+    });
+    return handleResponse(response);
+  },
+
+  async verifyDevice(deviceId: string, token?: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/devices/${deviceId}/verify`, {
+      method: 'POST',
+      headers,
+    });
+    return handleResponse(response);
+  },
+
+  async searchProducerPlants(query?: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const qStr = query ? `?query=${encodeURIComponent(query)}` : '';
+    const response = await fetch(`${API_BASE_URL}/devices/plants/search${qStr}`, { method: 'GET', headers });
+    return handleResponse(response);
+  },
+
+  async submitConnectionRequest(dto: any, token?: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/devices/connections/request`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(dto),
+    });
+    return handleResponse(response);
+  },
+
+  async fetchProducerConnectionRequests(token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/devices/connections/producer-requests`, { method: 'GET', headers });
+    return handleResponse(response);
+  },
+
+  async processConnectionApproval(dto: any, token?: string) {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/devices/connections/approve`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(dto),
+    });
+    return handleResponse(response);
+  },
+
+  async fetchNetworkTopology(plantId: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/devices/topology/${plantId}`, { method: 'GET', headers });
+    return handleResponse(response);
+  },
+
+  async fetchDeviceHealth(deviceId: string, token?: string) {
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const response = await fetch(`${API_BASE_URL}/devices/${deviceId}/health`, { method: 'GET', headers });
+    return handleResponse(response);
   }
 };
+

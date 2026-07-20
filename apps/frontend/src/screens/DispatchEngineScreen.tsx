@@ -428,7 +428,7 @@ export default function DispatchEngineScreen() {
             <View key={cmd.id} style={{ borderLeftWidth: 2, borderLeftColor: cmd.status === "EXECUTED" ? success : danger, paddingLeft: 10 }}>
               <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
                 <Text style={{ color: textPrimary, fontSize: 11, fontWeight: "700" }}>{cmd.commandType} on {cmd.targetDevice}</Text>
-                <Text style={{ color: cmd.status === "EXECUTED" ? success : danger, fontSize: 9, fontWeight: "850" }}>{cmd.status}</Text>
+                <Text style={{ color: cmd.status === "EXECUTED" ? success : danger, fontSize: 9, fontWeight: "800" }}>{cmd.status}</Text>
               </View>
               {cmd.failureReason && <Text style={{ color: danger, fontSize: 10, marginTop: 2 }}>Reason: {cmd.failureReason}</Text>}
               <Text style={{ color: textSecondary, fontSize: 9, marginTop: 2 }}>{new Date(cmd.timestamp).toLocaleString()}</Text>

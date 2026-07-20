@@ -143,7 +143,7 @@ export default function ProducerPlantsScreen() {
                   <Text style={{ color: textSecondary, fontSize: 10, marginTop: 2 }}>ID: {plant.id}</Text>
                 </View>
                 <View style={{ paddingHorizontal: 8, paddingVertical: 4, backgroundColor: plant.operatingStatus === "OPERATIONAL" ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)", borderRadius: 6 }}>
-                  <Text style={{ color: plant.operatingStatus === "OPERATIONAL" ? success : danger = "#EF4444", fontSize: 9, fontWeight: "700" }}>
+                  <Text style={{ color: plant.operatingStatus === "OPERATIONAL" ? success : "#EF4444", fontSize: 9, fontWeight: "700" }}>
                     {plant.operatingStatus}
                   </Text>
                 </View>

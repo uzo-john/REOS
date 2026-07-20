@@ -103,7 +103,7 @@ export default function ProducerConsumersScreen() {
                   </View>
                   <View style={{ width: (width - 64) / 2 }}>
                     <Text style={{ color: textSecondary, fontSize: 9, fontWeight: "700" }}>ACTUAL LOAD</Text>
-                    <Text style={{ color: isConnected ? warning = "#F59E0B" : textSecondary, fontSize: 12, fontWeight: "700", marginTop: 2 }}>
+                    <Text style={{ color: isConnected ? "#F59E0B" : textSecondary, fontSize: 12, fontWeight: "700", marginTop: 2 }}>
                       {isConnected ? `${conn.actualPowerKw.toFixed(1)} kW` : "0.0 kW"}
                     </Text>
                   </View>

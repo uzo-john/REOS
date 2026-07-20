@@ -6,6 +6,8 @@ import { NavigationContainer } from "@react-navigation/native";
 import { useStore } from "../store/useStore";
 
 // ── Screens ────────────────────────────────────────────────────────────────
+import ConsumerMeterRegistrationScreen from "../screens/ConsumerMeterRegistrationScreen";
+import ProducerSetupWizardScreen from "../screens/ProducerSetupWizardScreen";
 import OverviewScreen from "../screens/OverviewScreen";
 import MonitoringScreen from "../screens/MonitoringScreen";
 import SolarDesignScreen from "../screens/SolarDesignScreen";
@@ -28,16 +30,18 @@ const Stack = createNativeStackNavigator();
 // ── Nav Items config ──────────────────────────────────────────────────────
 const NAV_ITEMS = [
   { name: "Overview",    label: "Dashboard",         icon: "⚡", userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
+  { name: "RegisterConsumerMeter", label: "Register Smart Meter", icon: "📟", userTypes: ["CONSUMER", "PROSUMER"] },
+  { name: "ProducerSetupWizard", label: "Producer Setup Wizard", icon: "🏭", userTypes: ["PROSUMER", "ADMIN"] },
   { name: "Monitoring",  label: "Live Monitoring",   icon: "📡", userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
   { name: "SolarDesign", label: "Solar Design",      icon: "☀️", userTypes: ["PROSUMER"] },
-  { name: "Devices",     label: "Device Manager",    icon: "🔌", userTypes: ["PROSUMER", "ADMIN"] },
+  { name: "Devices",     label: "Device Manager",    icon: "🔌", userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
   { name: "AIForecast",  label: "AI Forecasting",    icon: "🤖", userTypes: ["PROSUMER"] },
   { name: "AIChat",      label: "AI Assistant",      icon: "💬", userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
   { name: "Analytics",   label: "Energy Analytics",  icon: "📊", userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
   { name: "Billing",     label: "Billing",           icon: "💰", userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
   { name: "Trading",     label: "P2P Trading",       icon: "🔄", userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
   { name: "Admin",       label: "Admin Finance",     icon: "🏛️", userTypes: ["ADMIN"] },
-  { name: "Fleet",       label: "Fleet Dashboard",   icon: "🏭", userTypes: ["PROSUMER"] },
+  { name: "Fleet",       label: "Fleet Dashboard",   icon: "🏗️", userTypes: ["PROSUMER"] },
   { name: "Alarms",      label: "Alarm Center",      icon: "🚨", userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
   { name: "Maintenance", label: "Maintenance",       icon: "🔧", userTypes: ["PROSUMER", "ADMIN"] },
   { name: "Settings",    label: "Settings",          icon: "⚙️", userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
@@ -168,9 +172,11 @@ function DrawerNavigator() {
 
   const screensConfig = [
     { name: "Overview",    component: OverviewScreen,         title: "Dashboard",         userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
+    { name: "RegisterConsumerMeter", component: ConsumerMeterRegistrationScreen, title: "Register Smart Meter", userTypes: ["CONSUMER", "PROSUMER"] },
+    { name: "ProducerSetupWizard", component: ProducerSetupWizardScreen, title: "Producer Setup Wizard", userTypes: ["PROSUMER", "ADMIN"] },
     { name: "Monitoring",  component: MonitoringScreen,       title: "Live Monitoring",   userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
     { name: "SolarDesign", component: SolarDesignScreen,      title: "Solar Design",      userTypes: ["PROSUMER"] },
-    { name: "Devices",     component: DeviceManagementScreen,  title: "Device Manager",    userTypes: ["PROSUMER", "ADMIN"] },
+    { name: "Devices",     component: DeviceManagementScreen,  title: "Device Manager",    userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
     { name: "AIForecast",  component: AIForecastingScreen,     title: "AI Forecasting",    userTypes: ["PROSUMER"] },
     { name: "AIChat",      component: AIChatScreen,           title: "AI Assistant",      userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },
     { name: "Analytics",   component: AnalyticsScreen,        title: "Energy Analytics",  userTypes: ["PROSUMER", "CONSUMER", "ADMIN"] },

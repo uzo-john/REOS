@@ -68,6 +68,9 @@ enum DeviceType {
   CHARGE_CONTROLLER
   RELAY
   EV_CHARGER
+  PLANT_CONTROLLER
+  EMS
+  METER_GATEWAY
   GENERIC
 }
 
@@ -429,6 +432,13 @@ model Device {
   hardwareVersion      String?
   protocol             CommunicationProtocol @default(MQTT)
   status               DeviceStatus          @default(PROVISIONED)
+  verificationStatus   String                @default("PENDING") // PENDING, VERIFIED, REJECTED, OFFLINE, MAINTENANCE
+  verificationError    String?
+  ipAddress            String?
+  gatewayId            String?
+  installationLocation String?
+  commissioningDate    DateTime?
+  hbLatencyMs          Int?                  @default(25)
   deviceAuthToken      String?               @unique
   signalStrength       Int?
   communicationQuality Int?
@@ -1458,24 +1468,30 @@ model DistributionZone {
 }
 
 model ConsumerConnection {
-  id                   String               @id @default(uuid())
-  consumerId           String
-  consumer             User                 @relation(fields: [consumerId], references: [id], onDelete: Cascade)
-  plantId              String
-  plant                Plant                @relation(fields: [plantId], references: [id], onDelete: Cascade)
-  feederId             String?
-  feeder               Feeder?              @relation(fields: [feederId], references: [id], onDelete: SetNull)
-  zoneId               String?
-  zone                 DistributionZone?    @relation(fields: [zoneId], references: [id], onDelete: SetNull)
-  smartMeterId         String?
-  smartMeter           SmartMeter?          @relation(fields: [smartMeterId], references: [id], onDelete: SetNull)
-  allocatedPowerKw     Float                @default(0.0)
-  actualPowerKw        Float                @default(0.0)
-  remainingAllocationKwh Float              @default(0.0)
-  connectionStatus     String               @default("CONNECTED") // CONNECTED, DISCONNECTED, SUSPENDED
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
-  allocations          EnergyAllocation[]
+  id                     String               @id @default(uuid())
+  consumerId             String
+  consumer               User                 @relation(fields: [consumerId], references: [id], onDelete: Cascade)
+  plantId                String
+  plant                  Plant                @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  feederId               String?
+  feeder                 Feeder?              @relation(fields: [feederId], references: [id], onDelete: SetNull)
+  zoneId                 String?
+  zone                   DistributionZone?    @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+  smartMeterId           String?
+  smartMeter             SmartMeter?          @relation(fields: [smartMeterId], references: [id], onDelete: SetNull)
+  allocatedPowerKw       Float                @default(0.0)
+  actualPowerKw          Float                @default(0.0)
+  remainingAllocationKwh Float                @default(0.0)
+  connectionStatus       String               @default("PENDING") // PENDING, CONNECTED, DISCONNECTED, SUSPENDED, REJECTED, OFFLINE, MAINTENANCE
+  requestMessage         String?
+  rejectionReason        String?
+  invitationCode         String?
+  isVerified             Boolean              @default(false)
+  approvedAt             DateTime?
+  verifiedAt             DateTime?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  allocations            EnergyAllocation[]
 }
 
 model EnergyAllocation {
