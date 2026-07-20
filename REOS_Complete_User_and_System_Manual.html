@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>REOS Complete User Operating Manual & Technical System Specification</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 20mm 15mm 20mm 15mm;
+    }
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+      color: #1e293b;
+      line-height: 1.6;
+      font-size: 11pt;
+      background: #ffffff;
+      padding: 0;
+      margin: 0;
+    }
+    h1 {
+      font-size: 24pt;
+      color: #0f172a;
+      border-bottom: 3px solid #00d4ff;
+      padding-bottom: 8px;
+      margin-top: 24px;
+      margin-bottom: 16px;
+      page-break-after: avoid;
+    }
+    h2 {
+      font-size: 18pt;
+      color: #0284c7;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 6px;
+      margin-top: 20px;
+      margin-bottom: 12px;
+      page-break-after: avoid;
+    }
+    h3 {
+      font-size: 14pt;
+      color: #334155;
+      margin-top: 16px;
+      margin-bottom: 8px;
+      page-break-after: avoid;
+    }
+    p {
+      margin-bottom: 12px;
+    }
+    strong {
+      color: #0f172a;
+    }
+    code {
+      font-family: 'Consolas', 'Courier New', monospace;
+      background: #f1f5f9;
+      color: #0284c7;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10pt;
+    }
+    pre {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 14px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 9.5pt;
+      line-height: 1.4;
+      margin-bottom: 16px;
+      page-break-inside: avoid;
+    }
+    pre code {
+      background: transparent;
+      color: inherit;
+      padding: 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 16px;
+      font-size: 10pt;
+      page-break-inside: avoid;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 8px 12px;
+      text-align: left;
+    }
+    tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+    hr {
+      border: 0;
+      height: 1px;
+      background: #cbd5e1;
+      margin: 24px 0;
+    }
+    li {
+      margin-bottom: 4px;
+    }
+    .header-banner {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #ffffff;
+      padding: 30px;
+      border-radius: 12px;
+      margin-bottom: 30px;
+      border-left: 6px solid #00d4ff;
+    }
+    .header-banner h1 {
+      color: #ffffff;
+      border-bottom: none;
+      margin: 0 0 10px 0;
+      font-size: 26pt;
+    }
+    .header-banner p {
+      color: #94a3b8;
+      font-size: 12pt;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="header-banner">
+    <h1>REOS Energy Platform</h1>
+    <p>Complete User Operating Manual & Technical System Specification — Version 2.0</p>
+  </div>
+  <p><h1>📖 REOS (Renewable Energy Operating System)</h1>
+<h2>Complete User Operating Manual & Technical System Specification</h2></p><p><hr/></p><p><h1>TABLE OF CONTENTS</h1></p><p><li><strong>Chapter 1: Introduction & Core System Philosophy</strong></li>
+   - 1.1 Executive Vision & Product Scope
+   - 1.2 Target Personas & Use Cases
+   - 1.3 Key Innovations & Platform Values
+<li><strong>Chapter 2: Architecture & Technical Foundations</strong></li>
+   - 2.1 Full-Stack Monorepo Structure
+   - 2.2 Database Schema & Domain Entity Relationships
+   - 2.3 Protocols & Communications (REST, MQTT, AI)
+<li><strong>Chapter 3: Consumer (Receiver) Portal Operating Manual</strong></li>
+   - 3.1 Live Energy Dashboard (<code>OverviewScreen.tsx</code>)
+   - 3.2 Smart Meter Onboarding & Invites Hub (<code>ConsumerMeterRegistrationScreen.tsx</code>)
+   - 3.3 Prepaid Utility Wallet & Invoicing (<code>BillingScreen.tsx</code>)
+   - 3.4 P2P Energy Marketplace & Escrow (<code>TradingScreen.tsx</code>)
+   - 3.5 AI Assistant & Energy Forecasting (<code>AIChatScreen.tsx</code> & <code>AIForecastingScreen.tsx</code>)
+   - 3.6 Alarm Center & System Notifications (<code>AlarmScreen.tsx</code>)
+   - 3.7 Account Profile & Security Controls (<code>SettingsScreen.tsx</code>)
+<li><strong>Chapter 4: Producer & Prosumer Portal Operating Manual</strong></li>
+   - 4.1 Master Producer Overview (<code>ProducerDashboardScreen.tsx</code>)
+   - 4.2 Consumer Connection & Load Dispatch Hub (<code>ProducerConsumersScreen.tsx</code>)
+   - 4.3 Commissioning & Setup Wizard (<code>ProducerSetupWizardScreen.tsx</code>)
+   - 4.4 Microgrid Busbar & Load Balancing Topology (<code>ProducerMicrogridScreen.tsx</code>)
+   - 4.5 Fleet Portfolio Monitoring (<code>FleetScreen.tsx</code>)
+   - 4.6 Producer Billing & Financial Center (<code>ProducerBillingScreen.tsx</code> & <code>AdminScreen.tsx</code>)
+   - 4.7 Engineering Solar Design & Cable Sizing Tool (<code>SolarDesignScreen.tsx</code>)
+<li><strong>Chapter 5: Producer <-> Consumer Connection Protocol</strong></li>
+   - 5.1 Protocol Lifecycle & State Transition Matrix
+   - 5.2 Sequence Diagram: Consumer Invite -> Producer Acceptance
+   - 5.3 Exception Handling & Automated Fail-Safes
+<li><strong>Chapter 6: Developer & Operations Guide</strong></li>
+   - 6.1 Prerequisites & Local Installation
+   - 6.2 Environment Configurations (<code>.env</code>)
+   - 6.3 Swagger API Reference Summary
+   - 6.4 Troubleshooting & Maintenance Matrix</p><p><hr/></p><p><h1>CHAPTER 1: INTRODUCTION & CORE SYSTEM PHILOSOPHY</h1></p><p><h2>1.1 Executive Vision & Product Scope</h2>
+<strong>REOS (Renewable Energy Operating System)</strong> is an integrated software platform engineered to orchestrate modern clean energy microgrids, commercial solar power stations, prosumer micro-generators, and residential/commercial energy consumers. </p><p>Modern renewable energy grids face a fundamental challenge: bridging the physical generation of clean power with real-time IoT telemetry, automated grid dispatching, and friction-free financial settlements. REOS provides a unified solution that transforms static solar installations into dynamic, commercial-grade energy utilities.</p><p><h2>1.2 Target Personas & Use Cases</h2></p><p><tr><td>Persona</td><td>Role</td><td>Key Objectives in REOS</td></tr></p><p><tr><td><strong>Energy Consumer (Receiver)</strong></td><td>Residential home or commercial business receiving power</td><td>Bind smart meters, track prepaid wallet balance, request power allocations from local producers, participate in P2P energy trading.</td></tr>
+<tr><td><strong>Solar Prosumer</strong></td><td>Residential or commercial owner with solar PV + battery</td><td>Export surplus power to neighbors or microgrid, set custom tariffs, manage incoming receiver requests.</td></tr>
+<tr><td><strong>Commercial Plant Producer</strong></td><td>Industrial Solar Farm / IPP operator (100kW – 10MW+)</td><td>Onboard utility plants, balance feeder zones, manage consumer connections via <strong>Receiver Smart Meter Numbers</strong>, monitor grid stability.</td></tr>
+<tr><td><strong>System Administrator</strong></td><td>Grid regulator or financial controller</td><td>Audit platform revenue streams, inspect escrow transactions, oversee system health and hardware diagnostics.</td></tr></p><p><hr/></p><p><h1>CHAPTER 2: ARCHITECTURE & TECHNICAL FOUNDATIONS</h1></p><p><h2>2.1 Full-Stack Monorepo Structure</h2></p><p>REOS is organized as a clean TypeScript monorepo combining a cross-platform React Native frontend with a NestJS backend:</p><p><pre><code>
+new project/
+├── apps/
+│   ├── frontend/                       # React Native / Expo Application
+│   │   ├── src/
+│   │   │   ├── navigation/
+│   │   │   │   └── AppNavigator.tsx    # Drawer & Native Stack Navigation Registry
+│   │   │   ├── screens/                # 25 Dedicated Screen Interfaces
+│   │   │   └── store/
+│   │   │       ├── useStore.ts         # Zustand Global Store & Offline Fallbacks
+│   │   │       └── api.ts              # Axios/Fetch HTTP Client
+│   │   └── App.tsx                     # Main App Bootstrapper
+│   │
+│   └── backend/                        # NestJS Backend API Core
+│       ├── src/
+│       │   ├── devices/                # IoT Device & Onboarding Controller/Service
+│       │   ├── consumer/               # Consumer Contract & Wallet Logic
+│       │   ├── producer/               # Plant Management & Dispatch Engine
+│       │   ├── trading/                # P2P Order Book & Escrow Manager
+│       │   ├── ai/                     # Google Gemini AI Integration Engine
+│       │   └── prisma/                 # Database Schema & Migrations
+│       └── main.ts                     # NestJS Entry Point
+</code></pre></p><p><h2>2.2 Database Schema & Domain Entities</h2></p><p>REOS relies on Prisma ORM backing a PostgreSQL relational schema. Key domain models include:</p><p><li><strong>User</strong>: Stores credentials, role (<code>PROSUMER</code>, <code>CONSUMER</code>, <code>PRODUCER</code>, <code>ADMIN</code>), contact info, and security tokens.</li>
+<li><strong>Device</strong>: Physical IoT hardware registered in the system (Type: <code>INVERTER</code>, <code>SMART_METER</code>, <code>BATTERY</code>, <code>GATEWAY</code>). Includes serial numbers, MQTT topics, and verification status.</li>
+<li><strong>SmartMeter</strong>: Specific profile linked to a <code>Device</code> record containing phase configuration (<code>SINGLE_PHASE</code> / <code>THREE_PHASE</code>), meter number, and installation address.</li>
+<li><strong>Plant</strong>: Producer utility station profile (Capacity kW, plant type, feeder zones, master smart meters).</li>
+<li><strong>ConsumerConnection</strong>: Junction entity mapping a Consumer's Smart Meter to a Producer Plant. Stores status (<code>PENDING</code>, <code>CONNECTED</code>, <code>REJECTED</code>, <code>SUSPENDED</code>), allocated power (kW), and request messages.</li>
+<li><strong>Wallet</strong>: Prepaid utility currency account (Currency: <code>NGN</code>), available balance, locked escrow balance, and billing cycle.</li>
+<li><strong>Transaction & Invoice</strong>: Audit ledger recording wallet top-ups, energy bill deductions, P2P trade settlements, and monthly statement invoices.</li>
+<li><strong>TradeOffer / BuyRequest / Escrow</strong>: P2P energy trading order book and escrow contract entities.</li></p><p><hr/></p><p><h1>CHAPTER 3: CONSUMER (RECEIVER) PORTAL OPERATING MANUAL</h1></p><p>The Consumer Portal empowers energy receivers to monitor power draw, manage utility payments, and connect with clean energy producers.</p><p><pre><code>
++-------------------------------------------------------------------+
+<tr><td>CONSUMER DASHBOARD</td></tr>
+<tr><td>[⚡ Prepaid Utility Wallet: ₦5,000.00]  --> [💳 Top Up Wallet]</td></tr>
+<tr></tr>
+<tr><td>[📟 Register Smart Meter]          [🔌 Request Connection]</td></tr>
+<tr></tr>
+<tr><td>[ Usage KPIs ]</td></tr>
+<tr><td>🏠 Current Load: 1.25 kW          📊 Daily Usage: 8.4 kWh</td></tr>
+<tr><td>🔄 Microgrid Recv: 6.2 kWh        🔌 Grid Import: 2.2 kWh</td></tr>
+<tr></tr>
+<tr><td>[ Live Energy Flow Path ]</td></tr></p><p>+-------------------------------------------------------------------+
+</code></pre></p><p><h2>3.1 Live Energy Dashboard (<code>OverviewScreen.tsx</code>)</h2></p><p><h3>Wallet Card & Top-Up Trigger:</h3>
+<li><strong>Balance Display</strong>: Live prepaid energy balance (e.g. <code>₦5,000.00</code>).</li>
+<li><strong>Top Up Wallet Button</strong>: Opens the <strong>Interactive Top-Up Modal</strong>. Consumers select quick amount presets (<code>₦1,000</code>, <code>₦2,500</code>, <code>₦5,000</code>, <code>₦10,000</code>, <code>₦25,000</code>) or custom amounts, pick a payment gateway (<em>Paystack</em>, <em>Flutterwave</em>, <em>Direct Bank</em>), and receive immediate account credit with visual feedback.</li></p><p><h3>Action Hub:</h3>
+<li><strong>Register Smart Meter Button</strong>: Triggers the interactive Smart Meter Registration modal and navigates to the registration hub.</li>
+<li><strong>Request Connection Button</strong>: Opens the Producer Connection Request modal to send a dispatch invite.</li>
+<li><strong>Link Supplier Input</strong>: Enter a 6-digit Supplier Invitation Code (e.g., <code>REOS-1234</code>) to bind directly with a local microgrid.</li></p><p><h3>Interactive Usage Details (KPI Cards):</h3>
+<li>Tapping any KPI card opens an <strong>Interactive Metric Modal</strong>:</li>
+  - <strong>Current Load</strong>: Shows active kW draw, voltage (231V), current (5.4A), and line frequency (50.0Hz).
+  - <strong>Daily Usage</strong>: Cumulative kWh consumed today and peak usage timeframes.
+  - <strong>Microgrid Recv.</strong>: Clean solar energy delivered from linked suppliers at the agreed tariff (e.g. <code>₦180/kWh</code>).
+  - <strong>Grid Import</strong>: Utility backup power imported during non-solar hours.
+  - <strong>Est. Cost Today</strong>: Daily expenditure breakdown and total financial savings versus utility grid tariffs.</p><p><h3>Interactive Smart Flow Diagram:</h3>
+<li>Tap the flow nodes (<em>Microgrid Supplier</em>, <em>Smart Meter</em>, <em>Home Load</em>) to inspect live MQTT telemetry streams, hardware ping latency, and power factor diagnostics.</li></p><p><hr/></p><p><h2>3.2 Smart Meter Onboarding & Invites Hub (<code>ConsumerMeterRegistrationScreen.tsx</code>)</h2></p><p><pre><code>
++-------------------------------------------------------------------+
+<tr><td>SMART METER REGISTRATION & INVITES</td></tr>
+<tr></tr>
+<tr><td>1. Meter Specification Form</td></tr>
+<tr><td>- Meter Name: [ Home Main Smart Meter                      ]</td></tr>
+<tr><td>- Serial / Utility ID: [ CNS-MTR-778899                    ]</td></tr>
+<tr><td>- Phase: (x) Single Phase   ( ) Three Phase</td></tr>
+<tr><td>[ Register & Bind Smart Meter ]</td></tr>
+<tr></tr>
+<tr><td>2. Registered Smart Meters List & Connectivity Test</td></tr>
+<tr><td>📟 Ade Residential Smart Meter (SN: CNS-MTR-778899) ● VERIFIED</td></tr>
+<tr><td>[ 🔄 Run Connectivity Verification Test ]</td></tr>
+<tr></tr>
+<tr><td>3. Energy Connection Invites Sent & Live Tracker</td></tr>
+<tr><td>🏭 Alpha Commercial Solar Farm (100kW)</td></tr>
+<tr><td>Receiver Meter: CNS-MTR-778899 • Requested: 5.0 kW</td></tr>
+<tr><td>Status: [ ⏳ PENDING PRODUCER APPROVAL ]</td></tr>
++-------------------------------------------------------------------+
+</code></pre></p><p><h3>Step-by-Step Operating Instructions:</h3></p><p><li><strong>Register Physical Smart Meter</strong>:</li>
+   - Fill in Meter Name, Serial Number (e.g., <code>CNS-MTR-778899</code>), Utility ID, Manufacturer, and Phase Configuration (<code>SINGLE_PHASE</code> / <code>THREE_PHASE</code>).
+   - Click <strong>Register & Bind Smart Meter</strong>. The meter is assigned to your authenticated user account.</p><p><li><strong>Run Connectivity Diagnostic Test</strong>:</li>
+   - Tap <strong>Run Connectivity Verification Test</strong> on any registered meter.
+   - The system executes a ping check against the MQTT telemetry broker and verifies latency (e.g. 12ms) and signal quality (94%).</p><p><li><strong>Send Connection Invite to Energy Producer</strong>:</li>
+   - Search available Producer Plants & Prosumer Microgrids by name or ID.
+   - Click <strong>Submit Connection Request</strong>. Specify requested power allocation (e.g., <code>5.0 kW</code>) and custom note.</p><p><li><strong>Track Invite Status</strong>:</li>
+   - View your invite under <strong>Connection Invites Sent & Live Status Tracking</strong>.
+   - Live Status Indicators:
+     - <code>⏳ PENDING</code>: Invite sent to Producer; awaiting approval on Producer Dashboard.
+     - <code>✅ CONNECTED</code>: Producer accepted invite. Automated power dispatch and net billing active.
+     - <code>❌ REJECTED</code>: Invite declined by Producer.</p><p><hr/></p><p><h2>3.3 Prepaid Utility Wallet & Invoicing (<code>BillingScreen.tsx</code>)</h2></p><p><li><strong>Utility Wallet Management</strong>: Check available funds, last payment timestamp, and prepaid tariff conditions.</li>
+<li><strong>Invoice Statement Ledger</strong>: Review itemized monthly energy invoices detailing total kWh received, rate per kWh, tax breakdown, and due dates.</li>
+<li><strong>Pay Outstanding Invoice</strong>: One-click payment for unpaid or overdue invoices using utility wallet balance.</li>
+<li><strong>Transaction History</strong>: Audit trail of all prepaid purchases, trade settlements, and P2P transfers.</li></p><p><hr/></p><p><h2>3.4 P2P Energy Marketplace & Escrow (<code>TradingScreen.tsx</code>)</h2></p><p>REOS features a Peer-to-Peer Energy Marketplace allowing consumers and prosumers to buy and sell surplus solar energy.</p><p><li><strong>Market Order Book</strong>: Browse open sell offers and buy requests with location tags and price per kWh (<code>₦185 – ₦220/kWh</code>).</li>
+<li><strong>Instant Buy & Trade</strong>: Click <strong>Buy Energy</strong> on any offer. The system calculates energy cost + platform fee (<code>₦500</code>) and locks funds in Escrow.</li>
+<li><strong>Escrow Settlement</strong>: Upon meter verification of energy transfer, funds are released to the seller.</li>
+<li><strong>Dispute Center</strong>: Raise a formal dispute if energy delivery fails. Administrators review telemetry logs to refund or settle escrows.</li></p><p><hr/></p><p><h2>3.5 AI Assistant & Energy Forecasting (<code>AIChatScreen.tsx</code> & <code>AIForecastingScreen.tsx</code>)</h2></p><p><li><strong>AI Energy Assistant (<code>AIChatScreen.tsx</code>)</strong>: Powered by Google Gemini. Ask questions like: <em>"How can I optimize my battery usage during peak hours?"</em> or <em>"What is my average daily expenditure?"</em>.</li>
+<li><strong>AI Forecasting (<code>AIForecastingScreen.tsx</code>)</strong>: Predicts 7-day, 30-day, and 90-day solar generation and household load demand patterns.</li></p><p><hr/></p><p><h1>CHAPTER 4: PLANT PRODUCER & PROSUMER PORTAL OPERATING MANUAL</h1></p><p>Designed for Commercial Solar Plants (100kW – 10MW+) and Prosumers managing energy distribution to connected consumers.</p><p><pre><code>
++-------------------------------------------------------------------+
+<tr><td>PRODUCER CONSUMER MANAGEMENT</td></tr>
+<tr><td>Tabs: [ Connected Consumers (4) ]   [ Invites Requests (1) ]</td></tr>
+<tr></tr>
+<tr><td>INCOMING CONSUMER CONNECTION INVITES</td></tr>
+<tr><td>👤 Ade Okafor (ade.okafor@example.com)               ● PENDING</td></tr>
+<tr><td>📟 Receiver Smart Meter Number: [ CNS-MTR-778899 ]</td></tr>
+<tr><td>Requested Power Allocation: 5.0 kW</td></tr>
+<tr><td>Note: "Requesting clean solar energy allocation for home."</td></tr>
+<tr></tr>
+<tr><td>[ ✅ Accept Invite & Connect Receiver ]    [ Decline ]</td></tr>
++-------------------------------------------------------------------+
+</code></pre></p><p><h2>4.1 Master Producer Overview (<code>ProducerDashboardScreen.tsx</code>)</h2></p><p><li><strong>Capacity Overview</strong>: Displays installed solar capacity (kW), live generation output (kW), active connected consumers count, and daily revenue generation (₦).</li>
+<li><strong>Master Grid Control Switch</strong>: Toggle power dispatch on/off across all connected feeders.</li>
+<li><strong>Generation vs. Demand Gauge</strong>: Visual ratio of live solar production versus connected consumer load demand.</li></p><p><hr/></p><p><h2>4.2 Consumer Connection & Load Dispatch Hub (<code>ProducerConsumersScreen.tsx</code>)</h2></p><p>This screen represents the Producer-side interface for managing receiver connections.</p><p><h3>Incoming Consumer Connection Invites Tab:</h3>
+<li>Review pending connection invites submitted by consumers.</li>
+<li>Inspect the <strong>Receiver Smart Meter Number</strong> (e.g. <code>CNS-MTR-778899</code>), consumer name, email, phone number, and requested kW power allocation.</li>
+<li>Click <strong><code>[✅ Accept Invite & Connect Receiver]</code></strong>:</li>
+   - The connection status updates to <code>CONNECTED</code>.
+   - The consumer's receiver meter is added to the active dispatch list.
+   - The consumer's dashboard automatically reflects the <code>CONNECTED</code> state.
+<li>Click <strong><code>[Decline]</code></strong> to reject an unsuitable connection request.</li></p><p><h3>Connected Consumers Tab:</h3>
+<li>Monitor live power draw (kW) for each connected consumer receiver meter.</li>
+<li>View remaining energy allocation balances (kWh).</li>
+<li>Toggle individual load switches: <strong>🔴 Disconnect Load</strong> or <strong>🟢 Connect Load</strong>.</li></p><p><hr/></p><p><h2>4.3 Setup & Commissioning Wizard (<code>ProducerSetupWizardScreen.tsx</code>)</h2></p><p>A 4-step wizard for onboarding new commercial energy infrastructure:
+<li><strong>Plant Details</strong>: Name, location, organization, and total capacity (kW).</li>
+<li><strong>Master Producer Smart Meter</strong>: Serial number, meter number (e.g. <code>PRD-MTR-001</code>), and MQTT gateway topic.</li>
+<li><strong>Inverters & PV Arrays</strong>: Onboard inverter specifications, efficiency ratings, and string configurations.</li>
+<li><strong>Battery Energy Storage System (BESS)</strong>: Capacity (kWh), battery voltage (V), and maximum discharge current.</li></p><p><hr/></p><p><h2>4.4 Microgrid Topology & Load Balancing (<code>ProducerMicrogridScreen.tsx</code>)</h2></p><p><li><strong>Live Flow Path Diagram</strong>: Visualizes energy movement from Solar PV -> Battery Storage -> Consumer Load -> Utility Grid Net Export.</li>
+<li><strong>Busbar Phase Voltage Monitoring</strong>: Displays Phase A, B, and C AC voltages (e.g. 231.2V) to ensure grid compliance.</li>
+<li><strong>Line Loss Calculator</strong>: Calculates distribution cable heat losses and percentage loss efficiency.</li></p><p><hr/></p><p><h2>4.5 Engineering Tools (<code>SolarDesignScreen.tsx</code>)</h2></p><p>Includes interactive engineering calculators for installers and plant managers:
+<li><strong>Solar PV Sizing Tool</strong>: Enter daily energy target (kWh) to calculate required solar panel wattage and roof footprint.</li>
+<li><strong>Battery Backup Calculator</strong>: Compute required amp-hour (Ah) battery bank size based on autonomy days and depth of discharge (DoD).</li>
+<li><strong>Cable Voltage Drop Calculator</strong>: Input current (A), cable distance (meters), voltage (V), and wire cross-sectional area (mm²) to compute voltage drop percentage.</li></p><p><hr/></p><p><h1>CHAPTER 5: PRODUCER <-> CONSUMER CONNECTION PROTOCOL</h1></p><p><h2>5.1 Protocol State Transition Matrix</h2></p><p>Every connection request follows a strict state machine to prevent unauthorized energy draw:</p><p><tr><td>Initial State</td><td>Trigger Action</td><td>New State</td><td>Description</td></tr></p><p><tr><td><code>NONE</code></td><td>Consumer submits invite on <code>ConsumerMeterRegistrationScreen</code></td><td><code>PENDING</code></td><td>Connection invite created with Receiver Smart Meter Number (<code>CNS-MTR-XXXXXX</code>) and requested kW allocation.</td></tr>
+<tr><td><code>PENDING</code></td><td>Producer clicks <strong>Accept Invite</strong> on <code>ProducerConsumersScreen</code></td><td><code>CONNECTED</code></td><td>Producer binds receiver meter. Automated power dispatch and net billing activated.</td></tr>
+<tr><td><code>PENDING</code></td><td>Producer clicks <strong>Decline</strong></td><td><code>REJECTED</code></td><td>Request rejected. Consumer notified on dashboard tracker.</td></tr>
+<tr><td><code>CONNECTED</code></td><td>Producer toggles <strong>Disconnect Load</strong></td><td><code>SUSPENDED</code> / <code>DISCONNECTED</code></td><td>Power dispatch physically isolated. Telemetry continues logging standby state.</td></tr>
+<tr><td><code>SUSPENDED</code></td><td>Producer toggles <strong>Connect Load</strong></td><td><code>CONNECTED</code></td><td>Power dispatch restored to receiver meter.</td></tr></p><p><hr/></p><p><h2>5.2 End-to-End Sequence Diagram</h2></p><p><pre><code>mermaid
+sequenceDiagram
+    autonumber
+    actor Consumer
+    participant ConsumerUI as Consumer Meter Screen
+    participant Store as Zustand Store / API
+    participant ProducerUI as Producer Dashboard
+    actor Producer</p><p>    Consumer->>ConsumerUI: 1. Fill Meter Specs (CNS-MTR-778899) & Click Register
+    ConsumerUI->>Store: registerConsumerSmartMeter(dto)
+    Store-->>ConsumerUI: Meter Bound to Consumer Account</p><p>    Consumer->>ConsumerUI: 2. Search Producer Plant & Click "Send Invite"
+    ConsumerUI->>Store: submitConnectionRequest({ plantId, requestedKw: 5.0 })
+    Store-->>ConsumerUI: Status set to PENDING</p><p>    Note over ConsumerUI: Step 4 Tracker shows:<br/>"⏳ PENDING PRODUCER APPROVAL"</p><p>    Producer->>ProducerUI: 3. Open "Incoming Invites" tab
+    ProducerUI-->>Producer: Card displays:<br/>Receiver Meter: CNS-MTR-778899<br/>Requested Power: 5.0 kW</p><p>    Producer->>ProducerUI: 4. Click "[✅ Accept Invite & Connect Receiver]"
+    ProducerUI->>Store: processConnectionApproval({ connectionId, action: 'APPROVE' })
+    Store-->>ProducerUI: Status updated to CONNECTED</p><p>    Note over ConsumerUI: Step 4 Tracker automatically updates to:<br/>"✅ CONNECTED (Energy Dispatch Active)"
+</code></pre></p><p><hr/></p><p><h1>CHAPTER 6: DEVELOPER & OPERATIONS GUIDE</h1></p><p><h2>6.1 Prerequisites & Installation</h2></p><p><h3>Environment Requirements</h3>
+<li>Node.js v18.0.0 or higher</li>
+<li>npm v9.0.0 or higher</li>
+<li>Git</li></p><p><h3>Installation Steps</h3></p><p><pre><code>bash
+<h1>1. Clone repository</h1>
+git clone https://github.com/uzo-john/REOS.git
+cd REOS</p><p><h1>2. Install Frontend Dependencies</h1>
+cd apps/frontend
+npm install</p><p><h1>3. Install Backend Dependencies</h1>
+cd ../backend
+npm install
+</code></pre></p><p><h2>6.2 Running the Application</h2></p><p><h3>Frontend (React Native / Expo Web)</h3>
+<pre><code>bash
+cd apps/frontend
+<h1>Start Expo Web Development Server</h1>
+npx expo start --web
+</code></pre></p><p><h3>Backend (NestJS Server)</h3>
+<pre><code>bash
+cd apps/backend
+<h1>Generate Prisma Database Client</h1>
+npx prisma generate</p><p><h1>Start NestJS Development API Server</h1>
+npm run start:dev
+</code></pre>
+<li>Access API Documentation (Swagger): <code>http://localhost:3000/api/docs</code></li></p><p><hr/></p><p><h2>6.3 Key REST API Endpoints Summary</h2></p><p><tr><td>Endpoint</td><td>Method</td><td>Role</td><td>Description</td></tr></p><p><tr><td><code>/api/devices/consumer/register-smart-meter</code></td><td><code>POST</code></td><td><code>CONSUMER</code></td><td>Registers physical smart meter serial number and profile.</td></tr>
+<tr><td><code>/api/devices/consumer/submit-connection-request</code></td><td><code>POST</code></td><td><code>CONSUMER</code></td><td>Sends connection invite from smart meter to target producer plant.</td></tr>
+<tr><td><code>/api/devices/producer/connection-requests</code></td><td><code>GET</code></td><td><code>PRODUCER</code></td><td>Returns incoming consumer invites containing receiver smart meter numbers.</td></tr>
+<tr><td><code>/api/devices/producer/process-approval</code></td><td><code>POST</code></td><td><code>PRODUCER</code></td><td>Approves (<code>CONNECTED</code>) or rejects (<code>REJECTED</code>) consumer connection requests.</td></tr>
+<tr><td><code>/api/wallets/recharge</code></td><td><code>POST</code></td><td><code>CONSUMER</code></td><td>Credits prepaid utility wallet via simulated payment gateway.</td></tr>
+<tr><td><code>/api/trading/buy-energy</code></td><td><code>POST</code></td><td><code>CONSUMER</code></td><td>Initiates P2P trade purchase and locks funds in escrow.</td></tr></p><p><hr/></p><p><h2>6.4 Troubleshooting & Support Matrix</h2></p><p><tr><td>Issue</td><td>Root Cause</td><td>Resolution</td></tr></p><p><tr><td>Button appears static on web browser</td><td>Missing <code>activeOpacity</code> or click event handler</td><td>Update component with <code><TouchableOpacity activeOpacity={0.7} onPress={...}></code>.</td></tr>
+<tr><td>Connection invite not showing on Producer screen</td><td>Plant ID mismatch or un-fetched request list</td><td>Trigger <code>fetchProducerConnectionRequests()</code> in <code>useEffect</code> when switching tabs.</td></tr>
+<tr><td>Wallet top-up balance not updating</td><td>Asynchronous state delay</td><td>Call <code>await fetchConsumerBilling()</code> immediately following <code>rechargeWallet()</code>.</td></tr>
+<tr><td>Smart Meter connectivity test fails</td><td>MQTT broker offline or serial number unregistered</td><td>Verify serial number format (<code>CNS-MTR-XXXXXX</code>) and run diagnostic ping test.</td></tr></p><p><hr/></p><p><em>REOS Complete User Operating Manual & Technical System Specification — Version 2.0</em>
+</p>
+</body>
+</html>
