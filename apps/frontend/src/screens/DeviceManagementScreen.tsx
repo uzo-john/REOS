@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Modal, TextInput, ActivityIndicator } from "react-native";
 import { useStore } from "../store/useStore";
 import NetworkTopologyVisualizer from "../components/NetworkTopologyVisualizer";
+import ConsumerMeterRegistrationScreen from "./ConsumerMeterRegistrationScreen";
+import ProducerSetupWizardScreen from "./ProducerSetupWizardScreen";
 
 const DEVICE_TYPES = ["INVERTER", "SMART_METER", "BMS", "EDGE_GATEWAY", "WEATHER_STATION", "EV_CHARGER", "ENERGY_SENSOR"];
 const PROTOCOLS = ["MQTT", "MODBUS_TCP", "MODBUS_RTU", "HTTP", "ZIGBEE", "WIFI", "ETHERNET"];
@@ -90,7 +92,7 @@ export default function DeviceManagementScreen({ navigation }: { navigation?: an
   const danger = "#EF4444";
   const inputBg = isDark ? "rgba(255,255,255,0.05)" : "#F8FAFC";
 
-  const [activeTab, setActiveTab] = useState<"DEVICES" | "REQUESTS" | "TOPOLOGY">("DEVICES");
+  const [activeTab, setActiveTab] = useState<"DEVICES" | "REGISTER_METER" | "PRODUCER_WIZARD" | "REQUESTS" | "TOPOLOGY">("DEVICES");
   const [showAdd, setShowAdd] = useState(false);
   const [adding, setAdding] = useState(false);
   const [selectedHealthDevice, setSelectedHealthDevice] = useState<any>(null);
@@ -174,28 +176,41 @@ export default function DeviceManagementScreen({ navigation }: { navigation?: an
         ))}
       </View>
 
-      {/* Tab Switcher */}
-      <View style={{ flexDirection: "row", backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#E2E8F0", borderRadius: 14, padding: 4, marginBottom: 16 }}>
+      {/* Tab Switcher - All 5 Buttons Standardized to Normal Equalized Pill Size */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, marginBottom: 16 }}>
         {[
-          { id: "DEVICES", title: "Device Registry" },
-          { id: "REQUESTS", title: `Requests (${pendingRequestsCount})` },
-          { id: "TOPOLOGY", title: "Network Topology" },
+          { id: "DEVICES", title: "Devices", icon: "🔌" },
+          { id: "REGISTER_METER", title: "Register Meter", icon: "📟" },
+          { id: "PRODUCER_WIZARD", title: "Producer Wizard", icon: "🏭" },
+          { id: "REQUESTS", title: `Requests (${pendingRequestsCount})`, icon: "🔔" },
+          { id: "TOPOLOGY", title: "Topology", icon: "🕸️" },
         ].map((t) => (
           <TouchableOpacity
             key={t.id}
             onPress={() => setActiveTab(t.id as any)}
             style={{
-              flex: 1,
-              backgroundColor: activeTab === t.id ? accent : "transparent",
+              backgroundColor: activeTab === t.id ? accent : isDark ? "rgba(255,255,255,0.06)" : "#E2E8F0",
               borderRadius: 10,
-              paddingVertical: 10,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
               alignItems: "center",
+              flexDirection: "row",
+              gap: 6,
+              borderWidth: 1,
+              borderColor: activeTab === t.id ? accent : border,
             }}
           >
-            <Text style={{ color: activeTab === t.id ? "#000" : text, fontWeight: "800", fontSize: 12 }}>{t.title}</Text>
+            <Text style={{ fontSize: 13 }}>{t.icon}</Text>
+            <Text style={{ color: activeTab === t.id ? "#000" : text, fontWeight: "700", fontSize: 11 }}>{t.title}</Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
+
+      {/* TAB: REGISTER METER INLINE */}
+      {activeTab === "REGISTER_METER" && <ConsumerMeterRegistrationScreen />}
+
+      {/* TAB: PRODUCER WIZARD INLINE */}
+      {activeTab === "PRODUCER_WIZARD" && <ProducerSetupWizardScreen />}
 
       {/* TAB: DEVICE REGISTRY */}
       {activeTab === "DEVICES" && (
