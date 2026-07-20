@@ -261,21 +261,42 @@ export default function ConsumerMeterRegistrationScreen() {
         )}
       </View>
 
-      {/* Step 3: Connect to Energy Producer */}
+      {/* Step 3: Connect to Energy Producer or Prosumer */}
       <View style={{ backgroundColor: card, borderRadius: 20, padding: 20, marginBottom: 20, borderWidth: 1, borderColor: border }}>
-        <Text style={{ color: text, fontSize: 16, fontWeight: "800", marginBottom: 6 }}>
-          3. Connect to Energy Producer Plant
+        <Text style={{ color: text, fontSize: 16, fontWeight: "800", marginBottom: 4 }}>
+          3. Request Energy Connection to Producer / Prosumer
         </Text>
         <Text style={{ color: sub, fontSize: 12, marginBottom: 14 }}>
-          Search approved Energy Plants by Name, Plant ID, or Invitation Code to request power dispatch.
+          Browse available Commercial Plant Producers and Prosumer Microgrids to request power dispatch.
         </Text>
+
+        {/* Category Tabs */}
+        <View style={{ flexDirection: "row", backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#E2E8F0", borderRadius: 10, padding: 3, marginBottom: 14 }}>
+          {["PLANT_PRODUCER", "PROSUMER"].map((cat) => (
+            <TouchableOpacity
+              key={cat}
+              onPress={() => setSearchQuery(cat === "PROSUMER" ? "Prosumer" : "")}
+              style={{
+                flex: 1,
+                backgroundColor: (cat === "PROSUMER" && searchQuery.includes("Prosumer")) || (cat === "PLANT_PRODUCER" && !searchQuery.includes("Prosumer")) ? accent : "transparent",
+                borderRadius: 8,
+                paddingVertical: 8,
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ color: (cat === "PROSUMER" && searchQuery.includes("Prosumer")) || (cat === "PLANT_PRODUCER" && !searchQuery.includes("Prosumer")) ? "#000" : text, fontSize: 11, fontWeight: "800" }}>
+                {cat === "PLANT_PRODUCER" ? "🏭 Plant Producers" : "🏡 Prosumers"}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         <View style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
           <TextInput
             style={{ flex: 1, backgroundColor: inputBg, borderRadius: 12, padding: 14, color: text, fontSize: 14, borderWidth: 1, borderColor: border }}
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="Search plant name or ID..."
+            placeholder="Search plant name, prosumer, or ID..."
             placeholderTextColor={sub}
           />
           <TouchableOpacity
@@ -293,7 +314,7 @@ export default function ConsumerMeterRegistrationScreen() {
           </View>
         )}
 
-        {/* Plant Search Results */}
+        {/* Search Results */}
         {plantSearchResults.map((plant: any) => (
           <View key={plant.id} style={{ backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#F8FAFC", borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: border }}>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
@@ -310,6 +331,55 @@ export default function ConsumerMeterRegistrationScreen() {
             >
               <Text style={{ color: "#000", fontSize: 12, fontWeight: "800" }}>Submit Connection Request</Text>
             </TouchableOpacity>
+          </View>
+        ))}
+      </View>
+
+      {/* Step 4: Connection Request Status & Tracking */}
+      <View style={{ backgroundColor: card, borderRadius: 20, padding: 20, marginBottom: 20, borderWidth: 1, borderColor: border }}>
+        <Text style={{ color: text, fontSize: 16, fontWeight: "800", marginBottom: 4 }}>
+          4. Connection Request Status & Live Tracking
+        </Text>
+        <Text style={{ color: sub, fontSize: 12, marginBottom: 14 }}>
+          Track the live review status of your energy connection requests sent to Producers & Prosumers.
+        </Text>
+
+        {/* Demo / Live Request Items */}
+        {[
+          {
+            id: "req-live-1",
+            producerName: "Kano Clean Energy Industrial Plant",
+            meterName: "Home Main Smart Meter",
+            requestedKw: 5.0,
+            status: "CONNECTED",
+            date: "Today, 02:15 PM",
+            msg: "Approved! 5kW clean solar dispatch activated.",
+          },
+          {
+            id: "req-live-2",
+            producerName: "Sharada Solar Microgrid (Prosumer)",
+            meterName: "Backup Meter B",
+            requestedKw: 2.5,
+            status: "PENDING",
+            date: "Today, 04:30 PM",
+            msg: "Awaiting producer approval.",
+          },
+        ].map((item) => (
+          <View key={item.id} style={{ backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#F8FAFC", borderRadius: 14, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: border }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+              <Text style={{ color: text, fontSize: 13, fontWeight: "800" }}>{item.producerName}</Text>
+              <View style={{ backgroundColor: item.status === "CONNECTED" ? `${success}20` : `${warning}20`, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 }}>
+                <Text style={{ color: item.status === "CONNECTED" ? success : warning, fontSize: 10, fontWeight: "800" }}>
+                  ● {item.status}
+                </Text>
+              </View>
+            </View>
+            <Text style={{ color: sub, fontSize: 11, marginBottom: 4 }}>
+              Meter: {item.meterName} • Requested: {item.requestedKw} kW • {item.date}
+            </Text>
+            <Text style={{ color: item.status === "CONNECTED" ? success : accent, fontSize: 11, fontWeight: "600" }}>
+              Status Note: {item.msg}
+            </Text>
           </View>
         ))}
       </View>

@@ -9,7 +9,10 @@ export default function ProducerConsumersScreen() {
     theme,
     selectedProducerPlantId,
     producerConnections,
+    connectionRequests,
     fetchConnections,
+    fetchProducerConnectionRequests,
+    processConnectionApproval,
     disconnectConsumer,
     reconnectConsumer
   } = useStore() as any;
@@ -22,17 +25,23 @@ export default function ProducerConsumersScreen() {
   const textSecondary = isDark ? "#94A3B8" : "#64748B";
   const accent = "#8B5CF6";
   const success = "#10B981";
+  const warning = "#F59E0B";
   const danger = "#EF4444";
 
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"ACTIVE" | "PENDING">("ACTIVE");
 
   useEffect(() => {
+    fetchProducerConnectionRequests();
     if (selectedProducerPlantId) {
       fetchConnections(selectedProducerPlantId).then(() => setLoading(false));
       const interval = setInterval(() => {
         fetchConnections(selectedProducerPlantId);
+        fetchProducerConnectionRequests();
       }, 4000);
       return () => clearInterval(interval);
+    } else {
+      setLoading(false);
     }
   }, [selectedProducerPlantId]);
 
@@ -48,6 +57,12 @@ export default function ProducerConsumersScreen() {
     }
   };
 
+  const handleApprovalAction = async (connectionId: string, action: 'APPROVE' | 'REJECT' | 'SUSPEND' | 'DISCONNECT') => {
+    await processConnectionApproval({ connectionId, action });
+  };
+
+  const pendingRequests = (connectionRequests || []).filter((r: any) => r.connectionStatus === "PENDING");
+
   if (loading && producerConnections.length === 0) {
     return (
       <View style={{ flex: 1, backgroundColor: bg, justifyContent: "center", alignItems: "center" }}>
@@ -61,11 +76,79 @@ export default function ProducerConsumersScreen() {
       <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
         {/* Header Block */}
         <View style={{ marginBottom: 16 }}>
-          <Text style={{ color: textPrimary, fontSize: 18, fontWeight: "900" }}>Multi-Consumer Management</Text>
+          <Text style={{ color: textPrimary, fontSize: 18, fontWeight: "900" }}>Consumer & Connection Management</Text>
           <Text style={{ color: textSecondary, fontSize: 12, marginTop: 2 }}>
-            Monitor smart meters, load allocations, real-time consumption and connection status.
+            Manage active consumer connections, review incoming requests, and control power dispatches.
           </Text>
         </View>
+
+        {/* Tab Switcher */}
+        <View style={{ flexDirection: "row", backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#E2E8F0", borderRadius: 12, padding: 3, marginBottom: 16 }}>
+          <TouchableOpacity
+            onPress={() => setActiveTab("ACTIVE")}
+            style={{ flex: 1, backgroundColor: activeTab === "ACTIVE" ? accent : "transparent", borderRadius: 10, paddingVertical: 10, alignItems: "center" }}
+          >
+            <Text style={{ color: activeTab === "ACTIVE" ? "#FFF" : textPrimary, fontWeight: "800", fontSize: 12 }}>
+              Connected Consumers ({producerConnections.length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setActiveTab("PENDING")}
+            style={{ flex: 1, backgroundColor: activeTab === "PENDING" ? warning : "transparent", borderRadius: 10, paddingVertical: 10, alignItems: "center" }}
+          >
+            <Text style={{ color: activeTab === "PENDING" ? "#000" : textPrimary, fontWeight: "800", fontSize: 12 }}>
+              Requests ({pendingRequests.length})
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Pending Requests View */}
+        {activeTab === "PENDING" && (
+          <View style={{ backgroundColor: cardBg, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: border, marginBottom: 16 }}>
+            <Text style={{ color: textPrimary, fontSize: 15, fontWeight: "800", marginBottom: 12 }}>
+              Incoming Consumer Connection Requests
+            </Text>
+            {pendingRequests.length === 0 ? (
+              <Text style={{ color: textSecondary, fontSize: 12, textAlign: "center", paddingVertical: 16 }}>
+                No pending requests. All consumer connections are up to date.
+              </Text>
+            ) : (
+              pendingRequests.map((req: any) => (
+                <View key={req.id} style={{ backgroundColor: isDark ? "rgba(255,255,255,0.03)" : "#F8FAFC", borderRadius: 12, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: border }}>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <Text style={{ color: textPrimary, fontSize: 14, fontWeight: "800" }}>
+                      👤 {req.consumer?.firstName} {req.consumer?.lastName}
+                    </Text>
+                    <View style={{ backgroundColor: `${warning}20`, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 }}>
+                      <Text style={{ color: warning, fontSize: 10, fontWeight: "700" }}>● {req.connectionStatus}</Text>
+                    </View>
+                  </View>
+                  <Text style={{ color: textSecondary, fontSize: 11, marginBottom: 4 }}>
+                    Email: {req.consumer?.email} • Meter ID: {req.smartMeterId || "Consumer Smart Meter"}
+                  </Text>
+                  <Text style={{ color: accent, fontSize: 12, fontWeight: "700", marginBottom: 8 }}>
+                    Requested Allocation: {req.allocatedPowerKw} kW
+                  </Text>
+                  {req.requestMessage && (
+                    <Text style={{ color: textPrimary, fontSize: 12, fontStyle: "italic", marginBottom: 10 }}>
+                      "{req.requestMessage}"
+                    </Text>
+                  )}
+
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <TouchableOpacity onPress={() => handleApprovalAction(req.id, "APPROVE")} style={{ flex: 1, backgroundColor: success, borderRadius: 8, paddingVertical: 8, alignItems: "center" }}>
+                      <Text style={{ color: "#FFF", fontWeight: "800", fontSize: 11 }}>Approve & Activate</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleApprovalAction(req.id, "REJECT")} style={{ flex: 1, backgroundColor: `${danger}20`, borderRadius: 8, paddingVertical: 8, alignItems: "center" }}>
+                      <Text style={{ color: danger, fontWeight: "800", fontSize: 11 }}>Reject</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+        )}
 
         {/* Consumer list */}
         <View style={{ gap: 12 }}>

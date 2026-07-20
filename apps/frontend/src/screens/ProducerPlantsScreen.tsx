@@ -4,7 +4,9 @@ import { useStore } from "../store/useStore";
 
 const { width } = Dimensions.get("window");
 
-export default function ProducerPlantsScreen() {
+import ProducerSetupWizardScreen from "./ProducerSetupWizardScreen";
+
+export default function ProducerPlantsScreen({ navigation }: { navigation?: any }) {
   const {
     theme,
     producerPlants,
@@ -24,6 +26,7 @@ export default function ProducerPlantsScreen() {
 
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
+  const [showWizardInline, setShowWizardInline] = useState(false);
   const [editingPlant, setEditingPlant] = useState<any | null>(null);
 
   // Form Fields
@@ -63,40 +66,40 @@ export default function ProducerPlantsScreen() {
 
   const openEditModal = (plant: any) => {
     setEditingPlant(plant);
-    setName(plant.name);
-    setType(plant.type);
-    setInstalledCapacity(String(plant.installedCapacityKw));
-    setAvailableCapacity(String(plant.availableCapacityKw || plant.installedCapacityKw));
-    setLatitude(String(plant.latitude ?? ""));
-    setLongitude(String(plant.longitude ?? ""));
-    setAddress(plant.address ?? "");
-    setCity(plant.city ?? "");
-    setGridStatus(plant.gridConnectionStatus ?? "CONNECTED");
-    setUtilityDetails(plant.utilityDetails ?? "");
-    setOperatingStatus(plant.operatingStatus ?? "OPERATIONAL");
-    setOwnerInfo(plant.ownerInfo ?? "");
+    setName(plant.name || "");
+    setType(plant.type || "Solar");
+    setInstalledCapacity(plant.installedCapacityKw ? String(plant.installedCapacityKw) : "");
+    setAvailableCapacity(plant.availableCapacityKw ? String(plant.availableCapacityKw) : "");
+    setLatitude(plant.latitude ? String(plant.latitude) : "");
+    setLongitude(plant.longitude ? String(plant.longitude) : "");
+    setAddress(plant.address || "");
+    setCity(plant.city || "");
+    setGridStatus(plant.gridConnectionStatus || "CONNECTED");
+    setUtilityDetails(plant.utilityDetails || "");
+    setOperatingStatus(plant.operatingStatus || "OPERATIONAL");
+    setOwnerInfo(plant.ownerInfo || "");
     setModalVisible(true);
   };
 
   const handleSave = async () => {
-    if (!name || !installedCapacity) return;
+    if (!name.trim()) return;
+    setLoading(true);
 
     const payload = {
-      name,
+      name: name.trim(),
       type,
-      installedCapacityKw: parseFloat(installedCapacity),
-      availableCapacityKw: parseFloat(availableCapacity || installedCapacity),
-      latitude: latitude ? parseFloat(latitude) : undefined,
-      longitude: longitude ? parseFloat(longitude) : undefined,
+      installedCapacityKw: parseFloat(installedCapacity) || 0,
+      availableCapacityKw: parseFloat(availableCapacity) || 0,
+      latitude: parseFloat(latitude) || undefined,
+      longitude: parseFloat(longitude) || undefined,
       address,
       city,
       gridConnectionStatus: gridStatus,
       utilityDetails,
       operatingStatus,
-      ownerInfo
+      ownerInfo,
     };
 
-    setLoading(true);
     try {
       if (editingPlant) {
         await updateProducerPlant(editingPlant.id, payload);
@@ -122,15 +125,76 @@ export default function ProducerPlantsScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: bg }}>
       <ScrollView contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
-        {/* Header Block */}
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <View>
-            <Text style={{ color: textPrimary, fontSize: 18, fontWeight: "900" }}>Generating Plant Registry</Text>
-            <Text style={{ color: textSecondary, fontSize: 12, marginTop: 2 }}>Register and manage your energy generation assets.</Text>
+        {/* Plant Producer Setup & Hardware Onboarding Banner */}
+        <View style={{ backgroundColor: `${accent}15`, borderRadius: 18, padding: 18, marginBottom: 16, borderWidth: 1, borderColor: `${accent}30` }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <Text style={{ color: textPrimary, fontSize: 15, fontWeight: "900" }}>🏭 Plant Producer Onboarding Hub</Text>
+            <View style={{ backgroundColor: `${accent}25`, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
+              <Text style={{ color: accent, fontSize: 10, fontWeight: "700" }}>PLANT PRODUCER</Text>
+            </View>
           </View>
-          <TouchableOpacity onPress={openRegisterModal} style={{ backgroundColor: accent, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 }}>
-            <Text style={{ color: "#FFF", fontSize: 12, fontWeight: "700" }}>➕ Register Plant</Text>
-          </TouchableOpacity>
+          <Text style={{ color: textSecondary, fontSize: 12, marginBottom: 14 }}>
+            Configure power plant facilities, register inverters, master smart meters, BMS batteries, and IoT edge gateways.
+          </Text>
+
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <TouchableOpacity
+              onPress={() => {
+                setShowWizardInline(!showWizardInline);
+                if (navigation?.navigate) navigation.navigate("ProducerSetupWizard");
+              }}
+              style={{
+                flex: 1,
+                backgroundColor: accent,
+                borderRadius: 10,
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+                alignItems: "center",
+                flexDirection: "row",
+                justifyContent: "center",
+                gap: 6,
+              }}
+            >
+              <Text style={{ fontSize: 14 }}>🏭</Text>
+              <Text style={{ color: "#FFF", fontSize: 11, fontWeight: "800" }}>
+                {showWizardInline ? "Close Wizard" : "Run 7-Step Setup Wizard"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={openRegisterModal}
+              style={{
+                backgroundColor: "rgba(16,185,129,0.18)",
+                borderRadius: 10,
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+                alignItems: "center",
+                borderWidth: 1,
+                borderColor: "rgba(16,185,129,0.30)",
+                flexDirection: "row",
+                justifyContent: "center",
+                gap: 6,
+              }}
+            >
+              <Text style={{ fontSize: 14 }}>➕</Text>
+              <Text style={{ color: success, fontSize: 11, fontWeight: "800" }}>Register Facility</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Inline Producer Setup Wizard when toggled */}
+        {showWizardInline && (
+          <View style={{ marginBottom: 20 }}>
+            <ProducerSetupWizardScreen />
+          </View>
+        )}
+
+        {/* Header Block */}
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <View>
+            <Text style={{ color: textPrimary, fontSize: 16, fontWeight: "900" }}>Registered Commercial Power Plants</Text>
+            <Text style={{ color: textSecondary, fontSize: 12, marginTop: 2 }}>Overview of verified generation facilities and connected grid assets.</Text>
+          </View>
         </View>
 
         {/* List of Registered Plants */}

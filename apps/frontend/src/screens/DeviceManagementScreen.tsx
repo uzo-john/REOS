@@ -140,19 +140,30 @@ export default function DeviceManagementScreen({ navigation }: { navigation?: an
   return (
     <ScrollView style={{ flex: 1, backgroundColor: bg }} contentContainerStyle={{ padding: 16 }} showsVerticalScrollIndicator={false}>
       {/* Quick Access Onboarding Buttons */}
-      <View style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
+      <View style={{ flexDirection: "row", gap: 8, marginBottom: 14 }}>
         <TouchableOpacity
           onPress={() => {
             setActiveTab("REGISTER_METER");
             if (navigation?.navigate) navigation.navigate("RegisterConsumerMeter");
           }}
-          style={{ flex: 1, backgroundColor: activeTab === "REGISTER_METER" ? accent : `${accent}18`, borderRadius: 14, padding: 12, borderWidth: 1, borderColor: `${accent}35`, flexDirection: "row", alignItems: "center", gap: 8 }}
+          style={{
+            flex: 1,
+            backgroundColor: activeTab === "REGISTER_METER" ? accent : `${accent}12`,
+            borderRadius: 10,
+            paddingHorizontal: 10,
+            paddingVertical: 8,
+            borderWidth: 1,
+            borderColor: `${accent}30`,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
+          }}
         >
-          <Text style={{ fontSize: 20 }}>📟</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: activeTab === "REGISTER_METER" ? "#000" : text, fontSize: 12, fontWeight: "800" }}>Register Meter</Text>
-            <Text style={{ color: activeTab === "REGISTER_METER" ? "#000" : sub, fontSize: 10 }}>Consumer Smart Meter</Text>
-          </View>
+          <Text style={{ fontSize: 14 }}>📟</Text>
+          <Text style={{ color: activeTab === "REGISTER_METER" ? "#000" : text, fontSize: 11, fontWeight: "700" }}>
+            Register Meter
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -160,13 +171,24 @@ export default function DeviceManagementScreen({ navigation }: { navigation?: an
             setActiveTab("PRODUCER_WIZARD");
             if (navigation?.navigate) navigation.navigate("ProducerSetupWizard");
           }}
-          style={{ flex: 1, backgroundColor: activeTab === "PRODUCER_WIZARD" ? "#7C3AED" : "rgba(124,58,237,0.18)", borderRadius: 14, padding: 12, borderWidth: 1, borderColor: "rgba(124,58,237,0.35)", flexDirection: "row", alignItems: "center", gap: 8 }}
+          style={{
+            flex: 1,
+            backgroundColor: activeTab === "PRODUCER_WIZARD" ? "#7C3AED" : "rgba(124,58,237,0.12)",
+            borderRadius: 10,
+            paddingHorizontal: 10,
+            paddingVertical: 8,
+            borderWidth: 1,
+            borderColor: "rgba(124,58,237,0.30)",
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
+          }}
         >
-          <Text style={{ fontSize: 20 }}>🏭</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={{ color: activeTab === "PRODUCER_WIZARD" ? "#FFF" : text, fontSize: 12, fontWeight: "800" }}>Producer Wizard</Text>
-            <Text style={{ color: activeTab === "PRODUCER_WIZARD" ? "#FFF" : sub, fontSize: 10 }}>Plant Onboarding</Text>
-          </View>
+          <Text style={{ fontSize: 14 }}>🏭</Text>
+          <Text style={{ color: activeTab === "PRODUCER_WIZARD" ? "#FFF" : text, fontSize: 11, fontWeight: "700" }}>
+            Producer Wizard
+          </Text>
         </TouchableOpacity>
       </View>
 

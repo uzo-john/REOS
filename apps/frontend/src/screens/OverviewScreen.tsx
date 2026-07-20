@@ -217,10 +217,56 @@ function OverviewScreenConsumer({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      {/* Supplier Bidirectional Link Card */}
+      {/* Smart Meter Onboarding & Energy Supplier Link Hub */}
       <View style={{ backgroundColor: card, borderRadius: 20, padding: 20, borderWidth: 1, borderColor: border, marginBottom: 16 }}>
-        <Text style={{ color: text, fontSize: 15, fontWeight: "800", marginBottom: 12 }}>🔗 Energy Supplier Link</Text>
-        
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <Text style={{ color: text, fontSize: 15, fontWeight: "800" }}>🔗 Energy Connection & Smart Meter</Text>
+          <View style={{ backgroundColor: "rgba(0,212,255,0.12)", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 }}>
+            <Text style={{ color: accent, fontSize: 10, fontWeight: "700" }}>CONSUMER PORTAL</Text>
+          </View>
+        </View>
+
+        {/* Action Buttons for Consumer Registration & Plant Connection Requests */}
+        <View style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
+          <TouchableOpacity
+            onPress={() => navigation?.navigate?.("RegisterConsumerMeter")}
+            style={{
+              flex: 1,
+              backgroundColor: `${accent}15`,
+              borderRadius: 12,
+              padding: 12,
+              borderWidth: 1,
+              borderColor: `${accent}35`,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+            }}
+          >
+            <Text style={{ fontSize: 16 }}>📟</Text>
+            <Text style={{ color: text, fontSize: 11, fontWeight: "800" }}>Register Smart Meter</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => navigation?.navigate?.("RegisterConsumerMeter")}
+            style={{
+              flex: 1,
+              backgroundColor: "rgba(16,185,129,0.15)",
+              borderRadius: 12,
+              padding: 12,
+              borderWidth: 1,
+              borderColor: "rgba(16,185,129,0.35)",
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 6,
+            }}
+          >
+            <Text style={{ fontSize: 16 }}>🔌</Text>
+            <Text style={{ color: text, fontSize: 11, fontWeight: "800" }}>Request Connection</Text>
+          </TouchableOpacity>
+        </View>
+
         {activeContract && activeContract.connectionStatus === "ACTIVE" ? (
           <View>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
