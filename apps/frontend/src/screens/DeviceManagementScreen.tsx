@@ -176,35 +176,42 @@ export default function DeviceManagementScreen({ navigation }: { navigation?: an
         ))}
       </View>
 
-      {/* Tab Switcher */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 4, marginBottom: 10 }}>
-        {[
-          { id: "DEVICES", title: "Devices", icon: "🔌" },
-          { id: "REGISTER_METER", title: "Register Meter", icon: "📟" },
-          { id: "PRODUCER_WIZARD", title: "Producer Wizard", icon: "🏭" },
-          { id: "REQUESTS", title: `Requests (${pendingRequestsCount})`, icon: "🔔" },
-          { id: "TOPOLOGY", title: "Topology", icon: "🕸️" },
-        ].map((t) => (
-          <TouchableOpacity
-            key={t.id}
-            onPress={() => setActiveTab(t.id as any)}
-            style={{
-              backgroundColor: activeTab === t.id ? accent : isDark ? "rgba(255,255,255,0.06)" : "#E2E8F0",
-              borderRadius: 6,
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-              alignItems: "center",
-              flexDirection: "row",
-              gap: 4,
-              borderWidth: 1,
-              borderColor: activeTab === t.id ? accent : border,
-            }}
-          >
-            <Text style={{ fontSize: 11 }}>{t.icon}</Text>
-            <Text style={{ color: activeTab === t.id ? "#000" : text, fontWeight: "700", fontSize: 10 }}>{t.title}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      {/* Tab Switcher - Fixed height container to prevent Web flex-stretch */}
+      <View style={{ height: 38, marginBottom: 14 }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ alignItems: "center", gap: 6 }}
+        >
+          {[
+            { id: "DEVICES", title: "Devices", icon: "🔌" },
+            { id: "REGISTER_METER", title: "Register Meter", icon: "📟" },
+            { id: "PRODUCER_WIZARD", title: "Producer Wizard", icon: "🏭" },
+            { id: "REQUESTS", title: `Requests (${pendingRequestsCount})`, icon: "🔔" },
+            { id: "TOPOLOGY", title: "Topology", icon: "🕸️" },
+          ].map((t) => (
+            <TouchableOpacity
+              key={t.id}
+              onPress={() => setActiveTab(t.id as any)}
+              style={{
+                backgroundColor: activeTab === t.id ? accent : isDark ? "rgba(255,255,255,0.06)" : "#E2E8F0",
+                borderRadius: 8,
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                alignSelf: "flex-start",
+                alignItems: "center",
+                flexDirection: "row",
+                gap: 5,
+                borderWidth: 1,
+                borderColor: activeTab === t.id ? accent : border,
+              }}
+            >
+              <Text style={{ fontSize: 12 }}>{t.icon}</Text>
+              <Text style={{ color: activeTab === t.id ? "#000" : text, fontWeight: "700", fontSize: 11 }}>{t.title}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {/* TAB: REGISTER METER INLINE */}
       {activeTab === "REGISTER_METER" && <ConsumerMeterRegistrationScreen />}
