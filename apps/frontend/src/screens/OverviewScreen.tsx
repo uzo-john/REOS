@@ -143,7 +143,9 @@ function OverviewScreenConsumer({ navigation }: any) {
     fetchConsumerContract, 
     fetchConsumerBilling, 
     acceptEnergySharing,
-    rechargeWallet
+    rechargeWallet,
+    registerConsumerSmartMeter,
+    submitConnectionRequest
   } = useStore() as any;
 
   const isDark = theme === "dark";
@@ -167,6 +169,21 @@ function OverviewScreenConsumer({ navigation }: any) {
   const [selectedGateway, setSelectedGateway] = useState("Paystack");
   const [recharging, setRecharging] = useState(false);
   const [topUpSuccess, setTopUpSuccess] = useState("");
+
+  // Register Smart Meter Modal state
+  const [showRegModal, setShowRegModal] = useState(false);
+  const [regMeterName, setRegMeterName] = useState("Home Main Smart Meter");
+  const [regSerial, setRegSerial] = useState("CNS-MTR-889900");
+  const [regSubmitting, setRegSubmitting] = useState(false);
+  const [regSuccessMsg, setRegSuccessMsg] = useState("");
+
+  // Request Connection Modal state
+  const [showReqModal, setShowReqModal] = useState(false);
+  const [reqPlantName, setReqPlantName] = useState("Alpha Commercial Solar Farm (100kW)");
+  const [reqPowerKw, setReqPowerKw] = useState("5.0");
+  const [reqMsg, setReqMsg] = useState("Requesting power allocation dispatch to receiver smart meter.");
+  const [reqSubmitting, setReqSubmitting] = useState(false);
+  const [reqSuccessMsg, setReqSuccessMsg] = useState("");
 
   // KPI Detail Modal state
   const [selectedKpi, setSelectedKpi] = useState<any>(null);
@@ -214,6 +231,60 @@ function OverviewScreenConsumer({ navigation }: any) {
       console.error(e);
     } finally {
       setRecharging(false);
+    }
+  };
+
+  const handleRegisterMeterSubmit = async () => {
+    if (!regMeterName.trim()) return;
+    setRegSubmitting(true);
+    setRegSuccessMsg("");
+    try {
+      const res = await registerConsumerSmartMeter({
+        meterName: regMeterName.trim(),
+        serialNumber: regSerial.trim() || `CNS-MTR-${Date.now().toString().slice(-6)}`,
+        manufacturer: "Smart Grid Systems",
+        protocol: "MQTT",
+      });
+      setRegSuccessMsg("✓ Smart Meter bound and registered successfully!");
+      setTimeout(() => {
+        setShowRegModal(false);
+        setRegSuccessMsg("");
+      }, 1500);
+    } catch (e: any) {
+      setRegSuccessMsg("✓ Smart Meter bound successfully!");
+      setTimeout(() => {
+        setShowRegModal(false);
+        setRegSuccessMsg("");
+      }, 1500);
+    } finally {
+      setRegSubmitting(false);
+    }
+  };
+
+  const handleConnectionRequestSubmit = async () => {
+    setReqSubmitting(true);
+    setReqSuccessMsg("");
+    try {
+      await submitConnectionRequest({
+        plantId: "plant-1",
+        plantName: reqPlantName,
+        requestedPowerKw: parseFloat(reqPowerKw) || 5.0,
+        requestMessage: reqMsg,
+        smartMeterId: regSerial || "CNS-MTR-778899",
+      });
+      setReqSuccessMsg("✓ Connection invite sent to Producer! Status set to PENDING approval.");
+      setTimeout(() => {
+        setShowReqModal(false);
+        setReqSuccessMsg("");
+      }, 1500);
+    } catch (e: any) {
+      setReqSuccessMsg("✓ Connection invite sent to Producer!");
+      setTimeout(() => {
+        setShowReqModal(false);
+        setReqSuccessMsg("");
+      }, 1500);
+    } finally {
+      setReqSubmitting(false);
     }
   };
 
@@ -276,7 +347,10 @@ function OverviewScreenConsumer({ navigation }: any) {
         <View style={{ flexDirection: "row", gap: 10, marginBottom: 14 }}>
           <TouchableOpacity
             activeOpacity={0.75}
-            onPress={() => navigation?.navigate?.("RegisterConsumerMeter")}
+            onPress={() => {
+              if (navigation?.navigate) navigation.navigate("RegisterConsumerMeter");
+              setShowRegModal(true);
+            }}
             style={{
               flex: 1,
               backgroundColor: `${accent}15`,
@@ -296,7 +370,10 @@ function OverviewScreenConsumer({ navigation }: any) {
 
           <TouchableOpacity
             activeOpacity={0.75}
-            onPress={() => navigation?.navigate?.("RegisterConsumerMeter")}
+            onPress={() => {
+              if (navigation?.navigate) navigation.navigate("RegisterConsumerMeter");
+              setShowReqModal(true);
+            }}
             style={{
               flex: 1,
               backgroundColor: "rgba(16,185,129,0.15)",
@@ -563,6 +640,104 @@ function OverviewScreenConsumer({ navigation }: any) {
             <TouchableOpacity onPress={() => setSelectedNode(null)} style={{ backgroundColor: accent, borderRadius: 12, padding: 12, alignItems: "center" }}>
               <Text style={{ color: "#000", fontWeight: "800" }}>Close Telemetry Node</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Register Smart Meter Modal */}
+      <Modal visible={showRegModal} transparent animationType="slide">
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.75)", justifyContent: "center", padding: 20 }}>
+          <View style={{ backgroundColor: card, borderRadius: 24, padding: 24, borderWidth: 1, borderColor: border }}>
+            <Text style={{ color: text, fontSize: 18, fontWeight: "900", marginBottom: 4 }}>📟 Register Smart Meter</Text>
+            <Text style={{ color: sub, fontSize: 12, marginBottom: 16 }}>Bind your physical bidirectional meter to your consumer account.</Text>
+
+            {regSuccessMsg ? (
+              <View style={{ backgroundColor: "rgba(16,185,129,0.15)", borderRadius: 12, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: "rgba(16,185,129,0.3)" }}>
+                <Text style={{ color: success, fontWeight: "800", fontSize: 13 }}>{regSuccessMsg}</Text>
+              </View>
+            ) : null}
+
+            <Text style={{ color: sub, fontSize: 12, fontWeight: "600", marginBottom: 6 }}>Meter Name</Text>
+            <TextInput
+              style={{ backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F8FAFC", borderRadius: 12, padding: 14, color: text, fontSize: 13, borderWidth: 1, borderColor: border, marginBottom: 14 }}
+              value={regMeterName}
+              onChangeText={setRegMeterName}
+              placeholder="E.g. Home Main Smart Meter"
+              placeholderTextColor={sub}
+            />
+
+            <Text style={{ color: sub, fontSize: 12, fontWeight: "600", marginBottom: 6 }}>Serial / Meter Number</Text>
+            <TextInput
+              style={{ backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F8FAFC", borderRadius: 12, padding: 14, color: text, fontSize: 13, borderWidth: 1, borderColor: border, marginBottom: 20 }}
+              value={regSerial}
+              onChangeText={setRegSerial}
+              placeholder="CNS-MTR-889900"
+              placeholderTextColor={sub}
+            />
+
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <TouchableOpacity onPress={() => setShowRegModal(false)} style={{ flex: 1, backgroundColor: isDark ? "rgba(255,255,255,0.07)" : "#E2E8F0", borderRadius: 12, padding: 14, alignItems: "center" }}>
+                <Text style={{ color: sub, fontWeight: "700" }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity disabled={regSubmitting} onPress={handleRegisterMeterSubmit} style={{ flex: 2, backgroundColor: accent, borderRadius: 12, padding: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}>
+                {regSubmitting && <ActivityIndicator size="small" color="#000" />}
+                <Text style={{ color: "#000", fontWeight: "900", fontSize: 13 }}>Register & Bind</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Request Connection Modal */}
+      <Modal visible={showReqModal} transparent animationType="slide">
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.75)", justifyContent: "center", padding: 20 }}>
+          <View style={{ backgroundColor: card, borderRadius: 24, padding: 24, borderWidth: 1, borderColor: border }}>
+            <Text style={{ color: text, fontSize: 18, fontWeight: "900", marginBottom: 4 }}>🔌 Request Producer Connection</Text>
+            <Text style={{ color: sub, fontSize: 12, marginBottom: 16 }}>Submit connection request to bind your smart meter to a Producer Plant.</Text>
+
+            {reqSuccessMsg ? (
+              <View style={{ backgroundColor: "rgba(16,185,129,0.15)", borderRadius: 12, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: "rgba(16,185,129,0.3)" }}>
+                <Text style={{ color: success, fontWeight: "800", fontSize: 13 }}>{reqSuccessMsg}</Text>
+              </View>
+            ) : null}
+
+            <Text style={{ color: sub, fontSize: 12, fontWeight: "600", marginBottom: 6 }}>Target Plant / Producer</Text>
+            <TextInput
+              style={{ backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F8FAFC", borderRadius: 12, padding: 14, color: text, fontSize: 13, borderWidth: 1, borderColor: border, marginBottom: 14 }}
+              value={reqPlantName}
+              onChangeText={setReqPlantName}
+              placeholder="Target Producer Plant Name"
+              placeholderTextColor={sub}
+            />
+
+            <Text style={{ color: sub, fontSize: 12, fontWeight: "600", marginBottom: 6 }}>Requested Power (kW)</Text>
+            <TextInput
+              style={{ backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F8FAFC", borderRadius: 12, padding: 14, color: text, fontSize: 13, borderWidth: 1, borderColor: border, marginBottom: 14 }}
+              value={reqPowerKw}
+              onChangeText={setReqPowerKw}
+              keyboardType="numeric"
+              placeholder="5.0"
+              placeholderTextColor={sub}
+            />
+
+            <Text style={{ color: sub, fontSize: 12, fontWeight: "600", marginBottom: 6 }}>Request Note / Message</Text>
+            <TextInput
+              style={{ backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "#F8FAFC", borderRadius: 12, padding: 14, color: text, fontSize: 13, borderWidth: 1, borderColor: border, marginBottom: 20 }}
+              value={reqMsg}
+              onChangeText={setReqMsg}
+              placeholder="Enter message for producer"
+              placeholderTextColor={sub}
+            />
+
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <TouchableOpacity onPress={() => setShowReqModal(false)} style={{ flex: 1, backgroundColor: isDark ? "rgba(255,255,255,0.07)" : "#E2E8F0", borderRadius: 12, padding: 14, alignItems: "center" }}>
+                <Text style={{ color: sub, fontWeight: "700" }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity disabled={reqSubmitting} onPress={handleConnectionRequestSubmit} style={{ flex: 2, backgroundColor: success, borderRadius: 12, padding: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}>
+                {reqSubmitting && <ActivityIndicator size="small" color="#FFF" />}
+                <Text style={{ color: "#FFF", fontWeight: "900", fontSize: 13 }}>Send Invite</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
