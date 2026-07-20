@@ -198,10 +198,10 @@ export default function ConsumerMeterRegistrationScreen() {
         <TouchableOpacity
           onPress={handleRegisterMeter}
           disabled={registering}
-          style={{ backgroundColor: accent, borderRadius: 14, padding: 16, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 10 }}
+          style={{ backgroundColor: accent, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 16, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}
         >
           {registering && <ActivityIndicator size="small" color="#000" />}
-          <Text style={{ color: "#000", fontWeight: "900", fontSize: 15 }}>
+          <Text style={{ color: "#000", fontWeight: "800", fontSize: 13 }}>
             {registering ? "Registering & Binding Meter..." : "Register & Bind Smart Meter"}
           </Text>
         </TouchableOpacity>
